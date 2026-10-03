@@ -1,0 +1,27 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.duplicate-coordinate",
+  "name": "V2 Duplicate Coordinate",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "initialCellCommitDistance": 0.4,
+    "subsequentCellCommitDistance": 0.4,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [{"id":"key.test"}],
+  "layouts": [{"id":"layout.base","placements":[{"keyID":"key.test","row":0,"column":0}]}],
+  "layers": [{"id":"base","layoutRef":"layout.base"}],
+  "boards": [
+    {
+      "id":"board.root",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"noop","arguments":{}}]},
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"noop","arguments":{}}]}
+      ]
+    }
+  ],
+  "entryPoints": [{"id":"entry.base.key.test","layerID":"base","keyID":"key.test","trigger":"press","boardRef":"board.root"}],
+  "macros": []
+}
