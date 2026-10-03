@@ -12,7 +12,7 @@ on:
       - "Packages/GestureIMECore/**"
       - "Packages/GestureIMEProfileAuthoring/**"
       - "spec/**"
-      - ".github/workflows/shared-core.yml"
+      - "scripts/check-product-delete-contract.py"\n      - ".github/workflows/shared-core.yml"
 
 permissions:
   contents: read
@@ -43,6 +43,9 @@ jobs:
               echo "Parsing $file"
               swiftc -frontend -parse "$file"
             done
+
+      - name: Product delete action contract
+        run: python3 scripts/check-product-delete-contract.py
 
       - name: Parse main-app Swift sources
         run: |
