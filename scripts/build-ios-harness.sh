@@ -43,6 +43,12 @@ if [[ ! -d "$APPEX_PATH" ]]; then
   exit 4
 fi
 
+if [[ ! -f "$APPEX_PATH/default-ja.json" ]]; then
+  echo "Expected built-in profile resource missing: $APPEX_PATH/default-ja.json" >&2
+  find "$APPEX_PATH" -maxdepth 2 -print
+  exit 5
+fi
+
 mkdir -p "$ARTIFACT_DIR/Payload"
 ditto "$APP_PATH" "$ARTIFACT_DIR/Payload/GestureHarness.app"
 
