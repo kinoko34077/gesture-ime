@@ -315,3 +315,64 @@ fn persistent_transition_from_transient_board_replaces_baseline() {
     assert_eq!(second.current_board_id, "board.p");
     assert_eq!(second.persistent_board_id, "board.p");
 }
+
+
+#[test]
+fn accepted_v1_duplicate_key_placements_normalize_once_per_layer() {
+    let json = r#"
+    {
+      "schema":"gesture-ime.profile.v1",
+      "id":"fixture.v1.duplicate-placement",
+      "name":"Duplicate placement",
+      "version":1,
+      "gesturePolicy":{
+        "deadZone":0.1,
+        "stage1CommitDistance":0.3,
+        "stage2CommitDistance":0.3,
+        "angularHysteresisDegrees":8,
+        "maxDirectionalStages":2
+      },
+      "keyDefinitions":[{"id":"key.test"}],
+      "layouts":[
+        {
+          "id":"layout.base",
+          "placements":[
+            {"keyID":"key.test","row":0,"column":0},
+            {"keyID":"key.test","row":0,"column":1}
+          ]
+        }
+      ],
+      "bindingSets":[
+        {
+          "id":"bindings.base",
+          "bindings":[
+            {
+              "keyID":"key.test",
+              "path":[],
+              "behavior":{
+                "onRelease":[{"actionID":"text.insert","arguments":{"text":"x"}}]
+              }
+            }
+          ]
+        }
+      ],
+      "layers":[
+        {"id":"base","layoutRef":"layout.base","bindingSetRef":"bindings.base"}
+      ],
+      "macros":[]
+    }
+    "#;
+
+    let profile = BoardProfileCodec::decode_and_validate(json.as_bytes())
+        .expect("accepted v1 with duplicate placement must normalize");
+
+    assert_eq!(profile.entry_points.len(), 1);
+    assert_eq!(
+        profile
+            .boards
+            .iter()
+            .filter(|board| board.id == profile.entry_points[0].board_ref)
+            .count(),
+        1
+    );
+}
