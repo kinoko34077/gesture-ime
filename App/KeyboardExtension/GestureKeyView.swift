@@ -69,8 +69,8 @@ final class GestureKeyView: UIView {
             profileRevision: "builtin.phase3.v1",
             trie: trie,
             policy: policyStore.policy,
-            keySize: GestureSize(width: bounds.width, height: bounds.height),
-            touchDown: GesturePoint(x: point.x, y: point.y),
+            keySize: GestureSize(width: Double(bounds.width), height: Double(bounds.height)),
+            touchDown: GesturePoint(x: Double(point.x), y: Double(point.y)),
             atMs: 0
         )
         backgroundColor = .tertiarySystemFill
@@ -81,7 +81,7 @@ final class GestureKeyView: UIView {
         guard var active = session, let touch = touches.first else { return }
         let point = touch.location(in: self)
         active.move(
-            to: GesturePoint(x: point.x, y: point.y),
+            to: GesturePoint(x: Double(point.x), y: Double(point.y)),
             atMs: elapsedMs(touch)
         )
         session = active
@@ -94,7 +94,7 @@ final class GestureKeyView: UIView {
             return
         }
         let point = touch.location(in: self)
-        active.move(to: GesturePoint(x: point.x, y: point.y), atMs: elapsedMs(touch))
+        active.move(to: GesturePoint(x: Double(point.x), y: Double(point.y)), atMs: elapsedMs(touch))
         let result = active.touchUp(atMs: elapsedMs(touch))
         session = nil
         resetVisualState()
