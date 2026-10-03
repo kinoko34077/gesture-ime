@@ -50,6 +50,68 @@ fn ffi_validation_rejects_v2_coordinate_unknown_member() {
 }
 
 #[test]
+fn ffi_validation_rejects_v2_explicit_null_for_non_nullable_optional_members() {
+    let base: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v2-board-cardinal.valid.json"))
+            .expect("v2 fixture JSON");
+
+    let reject = |profile: serde_json::Value, context: &str| {
+        let result = validate_profile_json(profile.to_string());
+        assert!(!result.valid, "{context} must fail canonical schema validation");
+        assert_eq!(
+            result.error_code.as_deref(),
+            Some("E_UNSUPPORTED_SCHEMA"),
+            "{context}"
+        );
+    };
+
+    let mut theme = base.clone();
+    theme["theme"] = serde_json::Value::Null;
+    reject(theme, "theme:null");
+
+    let mut key_presentation = base.clone();
+    key_presentation["keyDefinitions"][0]["presentation"] = serde_json::Value::Null;
+    reject(key_presentation, "key presentation:null");
+
+    let mut presentation_text = base.clone();
+    presentation_text["keyDefinitions"][0]["presentation"] =
+        serde_json::json!({"text": null});
+    reject(presentation_text, "presentation.text:null");
+
+    let mut placement_width = base.clone();
+    placement_width["layouts"][0]["placements"][0]["width"] = serde_json::Value::Null;
+    reject(placement_width, "placement.width:null");
+
+    let mut entry_transition = base.clone();
+    entry_transition["boards"][0]["entries"][0]["transition"] = serde_json::Value::Null;
+    reject(entry_transition, "board entry transition:null");
+
+    let mut entry_hold_repeat = base.clone();
+    entry_hold_repeat["boards"][0]["entries"][0]["hold"] = serde_json::json!({
+        "delayMs": 450,
+        "onStart": [],
+        "repeat": null,
+        "suppressOnReleaseAfterStart": false
+    });
+    reject(entry_hold_repeat, "board entry hold.repeat:null");
+
+    let mut trigger_delay = base;
+    let board_id = trigger_delay["boards"][0]["id"]
+        .as_str()
+        .expect("board id")
+        .to_owned();
+    trigger_delay["boards"][0]["triggers"] = serde_json::json!([{
+        "type": "hold",
+        "delayMs": null,
+        "transition": {
+            "targetBoardRef": board_id,
+            "lifetime": "transient"
+        }
+    }]);
+    reject(trigger_delay, "board trigger delayMs:null");
+}
+
+#[test]
 fn ffi_runtime_drives_two_stage_session_without_platform_semantics() {
     let runtime = SharedCoreRuntime::new(fixture("profile-diagonal-two-stage.valid.json"))
         .expect("runtime");
