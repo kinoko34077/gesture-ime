@@ -79,7 +79,7 @@ public enum ProfileValidator {
     public static func validate(_ profile: ProfileBundle, encodedBytes: Int? = nil) throws {
         if let encodedBytes, encodedBytes > ProfileLimits.encodedBytes { throw ProfileValidationError(.profileTooLarge) }
         guard profile.schema == "gesture-ime.profile.v1", profile.version >= 1 else { throw ProfileValidationError(.unsupportedSchema) }
-        guard isValidID(profile.id), !profile.name.isEmpty, profile.name.count <= 128 else { throw ProfileValidationError(.unsupportedSchema) }
+        guard isValidID(profile.id), !profile.name.isEmpty, profile.name.unicodeScalars.count <= 128 else { throw ProfileValidationError(.unsupportedSchema) }
         guard profile.keyDefinitions.count <= ProfileLimits.keys else { throw ProfileValidationError(.limitKeys) }
         guard profile.layouts.count <= ProfileLimits.layouts else { throw ProfileValidationError(.limitLayouts) }
         guard profile.layers.count <= ProfileLimits.layers else { throw ProfileValidationError(.limitLayers) }
@@ -261,9 +261,9 @@ public enum ProfileValidator {
         case "text.insert", "text.directInsert":
             try exact(["text"]); _ = try string("text")
         case "edit.delete":
-            try exact(["count"]); guard let v = a["count"]?.intValue, v != 0, abs(v) <= 64 else { throw ProfileValidationError(.invalidActionArguments, action.actionID) }
+            try exact(["count"]); guard let v = a["count"]?.intValue, v != 0, (-64...64).contains(v) else { throw ProfileValidationError(.invalidActionArguments, action.actionID) }
         case "cursor.move":
-            try exact(["offset"]); guard let v = a["offset"]?.intValue, v != 0, abs(v) <= 64 else { throw ProfileValidationError(.invalidActionArguments, action.actionID) }
+            try exact(["offset"]); guard let v = a["offset"]?.intValue, v != 0, (-64...64).contains(v) else { throw ProfileValidationError(.invalidActionArguments, action.actionID) }
         case "layer.set", "layer.push":
             try exact(["layer"]); let ref = try string("layer"); guard layerIDs.contains(ref) else { throw ProfileValidationError(.missingReference, ref) }
         case "profile.switch":
