@@ -49,14 +49,14 @@ pub struct BoardTransition {
 #[serde(rename_all = "camelCase")]
 pub struct BoardEntry {
     pub coordinate: BoardCoordinate,
-    #[serde(default)]
-    pub presentation: Option<BindingPresentation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presentation: OptionBindingPresentation>,
     #[serde(default)]
     pub on_release: Vec<ActionInvocation>,
-    #[serde(default)]
-    pub hold: Option<HoldBehavior>,
-    #[serde(default)]
-    pub transition: Option<BoardTransition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hold: OptionHoldBehavior>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transition: OptionBoardTransition>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -64,8 +64,8 @@ pub struct BoardEntry {
 pub struct BoardTrigger {
     #[serde(rename = "type")]
     pub trigger_type: String,
-    #[serde(default)]
-    pub delay_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delay_ms: Optioni64>,
     pub transition: BoardTransition,
 }
 
@@ -127,8 +127,8 @@ pub struct ProfileBundleV2 {
     pub boards: Vec<Board>,
     pub entry_points: Vec<BoardEntryPoint>,
     pub macros: Vec<Macro>,
-    #[serde(default)]
-    pub theme: Option<HashMap<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: OptionHashMap<String, Value>>,
 }
 
 pub struct BoardProfileCodec;
