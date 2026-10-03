@@ -58,4 +58,8 @@ jobs:
         run: |
           OUT="$RUNNER_TEMP/GestureIMECoreSwift"
           SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
-          swiftc -typecheck -I "$OUT" "$SWIFT_FILE"
+          MODULEMAP="$(find "$OUT" -maxdepth 1 -name '*.modulemap' -print -quit)"
+          swiftc -typecheck \
+            -I "$OUT" \
+            -Xcc "-fmodule-map-file=$MODULEMAP" \
+            "$SWIFT_FILE"
