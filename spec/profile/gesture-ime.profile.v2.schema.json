@@ -210,6 +210,9 @@
         },
         "transition": {
           "$ref": "#/$defs/transition"
+        },
+        "hold": {
+          "$ref": "#/$defs/holdBehavior"
         }
       },
       "anyOf": [
@@ -221,6 +224,11 @@
         {
           "required": [
             "onRelease"
+          ]
+        },
+        {
+          "required": [
+            "hold"
           ]
         },
         {
@@ -428,6 +436,57 @@
           "items": {
             "$ref": "#/$defs/actionInvocation"
           }
+        }
+      },
+      "additionalProperties": true
+    },
+    "repeatBehavior": {
+      "type": "object",
+      "required": [
+        "intervalMs",
+        "actions"
+      ],
+      "properties": {
+        "intervalMs": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 5000
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "holdBehavior": {
+      "type": "object",
+      "required": [
+        "delayMs",
+        "onStart",
+        "suppressOnReleaseAfterStart"
+      ],
+      "properties": {
+        "delayMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "onStart": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        },
+        "repeat": {
+          "$ref": "#/$defs/repeatBehavior"
+        },
+        "suppressOnReleaseAfterStart": {
+          "type": "boolean"
         }
       },
       "additionalProperties": true
