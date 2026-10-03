@@ -1,0 +1,100 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.lifetime-hold",
+  "name": "V2 persistent transient and hold fixture",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "initialCommitDistance": 0.4,
+    "continuationCommitDistance": 0.4,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [
+    {"id": "key.mode", "presentation": {"text": "M"}, "role": "control"}
+  ],
+  "layouts": [
+    {
+      "id": "layout.base",
+      "placements": [
+        {"keyID": "key.mode", "row": 0, "column": 0}
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": "base",
+      "layoutRef": "layout.base",
+      "keyBoards": [
+        {"keyID": "key.mode", "boardRef": "board.root"}
+      ]
+    }
+  ],
+  "boards": [
+    {
+      "id": "board.root",
+      "entries": [
+        {
+          "coordinate": {"x": 0, "y": 0},
+          "onRelease": [{"actionID": "noop", "arguments": {}}],
+          "hold": {
+            "delayMs": 450,
+            "transition": {"targetBoard": "board.hold", "lifetime": "transient"}
+          }
+        },
+        {
+          "coordinate": {"x": 1, "y": 0},
+          "transition": {"targetBoard": "board.transient", "lifetime": "transient"}
+        },
+        {
+          "coordinate": {"x": 0, "y": -1},
+          "transition": {"targetBoard": "board.persistent", "lifetime": "persistent"}
+        }
+      ]
+    },
+    {
+      "id": "board.transient",
+      "entries": [
+        {
+          "coordinate": {"x": 0, "y": 0},
+          "onRelease": [{"actionID": "text.directInsert", "arguments": {"text": "T"}}]
+        },
+        {
+          "coordinate": {"x": 1, "y": 1},
+          "transition": {"targetBoard": "board.transient.deep", "lifetime": "transient"}
+        }
+      ]
+    },
+    {
+      "id": "board.transient.deep",
+      "entries": [
+        {
+          "coordinate": {"x": 0, "y": 0},
+          "onRelease": [{"actionID": "text.directInsert", "arguments": {"text": "D"}}]
+        }
+      ]
+    },
+    {
+      "id": "board.persistent",
+      "entries": [
+        {
+          "coordinate": {"x": 0, "y": 0},
+          "onRelease": [{"actionID": "text.directInsert", "arguments": {"text": "P"}}]
+        },
+        {
+          "coordinate": {"x": -1, "y": 0},
+          "transition": {"targetBoard": "board.root", "lifetime": "persistent"}
+        }
+      ]
+    },
+    {
+      "id": "board.hold",
+      "entries": [
+        {
+          "coordinate": {"x": 0, "y": 0},
+          "onRelease": [{"actionID": "text.directInsert", "arguments": {"text": "H"}}]
+        }
+      ]
+    }
+  ],
+  "macros": []
+}
