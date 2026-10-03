@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import GestureIMECore
 
@@ -120,15 +121,15 @@ private struct GesturePad: View {
                         var trace = Path()
                         trace.move(to: model.trace[0])
                         for point in model.trace.dropFirst() { trace.addLine(to: point) }
-                        context.stroke(trace, with: .foreground, lineWidth: 3)
+                        context.stroke(trace, with: .color(.primary), lineWidth: 3)
                     }
 
                     for point in model.commitAnchors {
-                        context.fill(Path(ellipseIn: markerRect(point, radius: 7)), with: .foreground)
+                        context.fill(Path(ellipseIn: markerRect(point, radius: 7)), with: .color(.primary))
                     }
 
                     if let anchor = model.anchor {
-                        context.stroke(Path(ellipseIn: markerRect(anchor, radius: 11)), with: .foreground, lineWidth: 2)
+                        context.stroke(Path(ellipseIn: markerRect(anchor, radius: 11)), with: .color(.primary), lineWidth: 2)
                     }
                 }
 
