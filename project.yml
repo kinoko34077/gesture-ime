@@ -7,6 +7,8 @@ options:
 packages:
   GestureIMECore:
     path: Packages/GestureIMECore
+  GestureIMEProfileAuthoring:
+    path: Packages/GestureIMEProfileAuthoring
   AzooKeyCore:
     path: Vendor/azooKey/AzooKeyCore
   AzooKeyKanaKanjiConverter:
@@ -40,9 +42,13 @@ targets:
     platform: iOS
     sources:
       - path: App/MainApp
+      - path: .build/GestureIMECoreSharedIOS/Sources
+      - path: App/KeyboardExtension/Resources/default-ja.json
+        buildPhase: resources
     dependencies:
       - target: GestureKeyboard
         embed: true
+      - package: GestureIMEProfileAuthoring
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime
@@ -56,6 +62,18 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 0.2.0
         ENABLE_PREVIEWS: NO
+        SWIFT_INCLUDE_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/.build/GestureIMECoreSharedIOS/FFI"
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/.build/GestureIMECoreSharedIOS/FFI"
+        LIBRARY_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/.build/GestureIMECoreSharedIOS/Lib"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lgesture_ime_core"
 
   GestureKeyboard:
     type: app-extension
