@@ -58,14 +58,14 @@
     },
     "boards": {
       "type": "array",
-      "maxItems": 1024,
+      "maxItems": 16384,
       "items": {
         "$ref": "#/$defs/board"
       }
     },
     "entryPoints": {
       "type": "array",
-      "maxItems": 1024,
+      "maxItems": 8192,
       "items": {
         "$ref": "#/$defs/entryPoint"
       }
