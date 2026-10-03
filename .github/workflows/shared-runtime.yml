@@ -48,7 +48,9 @@ jobs:
             "$OUT" \
             --swift-sources \
             --headers \
-            --modulemap
+            --modulemap \
+            --module-name gesture_ime_coreFFI \
+            --modulemap-filename gesture_ime_coreFFI.modulemap
           find "$OUT" -maxdepth 1 -type f -print
           test -n "$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
           test -n "$(find "$OUT" -maxdepth 1 -name '*.h' -print -quit)"
