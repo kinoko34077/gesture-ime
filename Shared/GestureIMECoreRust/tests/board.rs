@@ -376,3 +376,101 @@ fn accepted_v1_duplicate_key_placements_normalize_once_per_layer() {
         1
     );
 }
+
+
+#[test]
+fn center_release_uses_source_actions_before_persistent_transition() {
+    let json = r#"
+    {
+      "schema":"gesture-ime.profile.v2",
+      "id":"fixture.v2.center-transition",
+      "name":"Center transition",
+      "version":1,
+      "gesturePolicy":{
+        "deadZone":0.1,
+        "initialCellCommitDistance":0.3,
+        "subsequentCellCommitDistance":0.3,
+        "angularHysteresisDegrees":8
+      },
+      "keyDefinitions":[{"id":"key.test","presentation":{"text":"K"}}],
+      "layouts":[{"id":"layout.base","placements":[{"keyID":"key.test","row":0,"column":0}]}],
+      "layers":[{"id":"base","layoutRef":"layout.base"}],
+      "boards":[
+        {
+          "id":"board.root",
+          "selectionPolicy":{"kind":"relativeCoordinate"},
+          "entries":[
+            {
+              "coordinate":{"x":0,"y":0},
+              "onRelease":[{"actionID":"text.insert","arguments":{"text":"source"}}],
+              "transition":{"targetBoardRef":"board.target","lifetime":"persistent"}
+            }
+          ]
+        },
+        {
+          "id":"board.target",
+          "selectionPolicy":{"kind":"relativeCoordinate"},
+          "entries":[
+            {
+              "coordinate":{"x":0,"y":0},
+              "onRelease":[{"actionID":"text.insert","arguments":{"text":"target"}}]
+            }
+          ]
+        }
+      ],
+      "entryPoints":[
+        {"id":"entry.test","layerID":"base","keyID":"key.test","trigger":"press","boardRef":"board.root"}
+      ],
+      "macros":[]
+    }
+    "#;
+
+    let profile = BoardProfileCodec::decode_and_validate(json.as_bytes()).expect("profile");
+    let entry = profile.entry_points.first().unwrap().clone();
+    let state = Arc::new(Mutex::new(HashMap::new()));
+    let boards = Arc::new(board_map(&profile));
+
+    let mut first = BoardSession::new(
+        &entry,
+        "first",
+        boards.clone(),
+        state.clone(),
+        profile.gesture_policy.clone(),
+        GestureSize {
+            width: 100.0,
+            height: 100.0,
+        },
+        GesturePoint { x: 0.0, y: 0.0 },
+        0,
+    )
+    .expect("first");
+    first.touch_up(Some(10));
+
+    assert_eq!(first.persistent_board_id, "board.target");
+    assert_eq!(first.dispatched_actions.len(), 1);
+    assert_eq!(
+        first.dispatched_actions[0].arguments["text"],
+        "source"
+    );
+
+    let mut second = BoardSession::new(
+        &entry,
+        "second",
+        boards,
+        state,
+        profile.gesture_policy,
+        GestureSize {
+            width: 100.0,
+            height: 100.0,
+        },
+        GesturePoint { x: 0.0, y: 0.0 },
+        20,
+    )
+    .expect("second");
+    assert_eq!(second.current_board_id, "board.target");
+    second.touch_up(Some(30));
+    assert_eq!(
+        second.dispatched_actions[0].arguments["text"],
+        "target"
+    );
+}
