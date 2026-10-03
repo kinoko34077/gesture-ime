@@ -38,3 +38,19 @@ Canonical comparisons cover:
 - semantic action dispatch presence/absence.
 
 Rendering, haptic waveform, native event identity, timer implementation, and OS lifecycle details are not compared here.
+
+
+## Board Graph Profile v2
+
+Profile v2 board-graph conformance is indexed separately by `board-graph-v2-manifest.json` while v1 compatibility remains covered by `manifest.json`.
+
+The v2 corpus verifies:
+- sparse board-local coordinates, including coordinates outside the Direction8 unit ring;
+- ordinary cardinal/diagonal entry topology;
+- chained transient Board transitions;
+- persistent baseline replacement;
+- Hold-triggered BoardTransition using the same transition semantics;
+- missing Board reference rejection;
+- duplicate Board coordinate rejection.
+
+During the migration, v1 and v2 manifests are deliberately separate so a v1-only compatibility runner does not accidentally claim v2 conformance. The shared Rust v2 runtime must consume the v2 manifest before #23 acceptance.
