@@ -88,12 +88,15 @@ struct SharedRuntimeSwiftSmoke {
         guard first.currentBoardId == "board.e",
               first.persistentBoardId == "board.root",
               first.boardTransitionCount == 1,
-              first.anchor == FfiPoint(x: 50, y: 0) else {
+              abs(first.anchor.x - 50) < 0.0001,
+              abs(first.anchor.y) < 0.0001 else {
             fatalError("v2 Board transition/local-origin reset mismatch")
         }
 
         let second = try session.move(x: 50, y: -50, atMs: 20)
-        guard second.selectedCoordinate == FfiBoardCoordinate(x: 0, y: -1) else {
+        guard let selected = second.selectedCoordinate,
+              selected.x == 0,
+              selected.y == -1 else {
             fatalError("v2 local-coordinate selection mismatch")
         }
 
