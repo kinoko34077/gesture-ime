@@ -1,5 +1,4 @@
 import Foundation
-import GestureIMECore
 
 @MainActor
 final class GesturePolicyStore {
@@ -11,14 +10,14 @@ final class GesturePolicyStore {
     }
 
     private let defaults: UserDefaults
-    private let fallback: GesturePolicy
+    private let fallback: FfiGesturePolicy
 
     private(set) var deadZone: Double
     private(set) var stage1: Double
     private(set) var stage2: Double
     private(set) var hysteresis: Double
 
-    init(defaultPolicy: GesturePolicy, defaults: UserDefaults = .standard) {
+    init(defaultPolicy: FfiGesturePolicy, defaults: UserDefaults = .standard) {
         self.defaults = defaults
         fallback = defaultPolicy
         deadZone = Self.value(defaults, Key.deadZone, fallback: defaultPolicy.deadZone)
@@ -28,13 +27,13 @@ final class GesturePolicyStore {
         normalizeAndPersist()
     }
 
-    var policy: GesturePolicy {
-        GesturePolicy(
+    var policy: FfiGesturePolicy {
+        FfiGesturePolicy(
             deadZone: deadZone,
             stage1CommitDistance: max(stage1, deadZone),
             stage2CommitDistance: max(stage2, deadZone),
             angularHysteresisDegrees: min(max(hysteresis, 0), 44),
-            maxDirectionalStages: 2
+            maxDirectionalStages: fallback.maxDirectionalStages
         )
     }
 

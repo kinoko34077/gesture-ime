@@ -1,49 +1,65 @@
 import Foundation
-import GestureIMECore
 
 struct KeyboardKeyRuntime: Identifiable {
     let id: String
+    let layerID: String
     let title: String
-    let trie: BindingTrie
+    let role: String?
+    let firstStagePresentation: [String: String]
+    let row: Int
+    let column: Int
+    let width: Int
+    let height: Int
 }
 
 struct KeyboardLayoutRuntime {
-    let rows: [[KeyboardKeyRuntime]]
+    let sharedRuntime: IOSSharedGestureRuntimeAdapter
+    let layerID: String
+    let keys: [KeyboardKeyRuntime]
+    let rowCount: Int
+    let columnCount: Int
     let profileRevision: String
-    let defaultPolicy: GesturePolicy
+    let defaultPolicy: FfiGesturePolicy
 
-    static func compile(profile: ProfileBundle, layerID: String = "base") throws -> KeyboardLayoutRuntime {
-        guard let layer = profile.layers.first(where: { $0.id == layerID }),
-              let layout = profile.layouts.first(where: { $0.id == layer.layoutRef }),
-              let bindingSet = profile.bindingSets.first(where: { $0.id == layer.bindingSetRef }) else {
-            throw ProfileValidationError(.missingReference, layerID)
-        }
+    static func compile(profileJSON: String, layerID: String = "base") throws -> KeyboardLayoutRuntime {
+        let sharedRuntime = try IOSSharedGestureRuntimeAdapter(profileJSON: profileJSON)
+        return try compile(sharedRuntime: sharedRuntime, layerID: layerID)
+    }
 
-        let keyDefinitions = Dictionary(uniqueKeysWithValues: profile.keyDefinitions.map { ($0.id, $0) })
-        let grouped = Dictionary(grouping: layout.placements, by: \.row)
-        let rows = try grouped.keys.sorted().map { row in
-            try grouped[row, default: []]
-                .sorted { lhs, rhs in
-                    if lhs.column == rhs.column { return lhs.keyID < rhs.keyID }
-                    return lhs.column < rhs.column
-                }
-                .map { placement in
-                    guard let definition = keyDefinitions[placement.keyID] else {
-                        throw ProfileValidationError(.missingReference, placement.keyID)
-                    }
-                    let trie = try BindingTrieCompiler.compile(bindingSet, keyID: placement.keyID)
-                    return KeyboardKeyRuntime(
-                        id: placement.keyID,
-                        title: definition.presentation?.text ?? placement.keyID,
-                        trie: trie
-                    )
-                }
+    static func compile(
+        sharedRuntime: IOSSharedGestureRuntimeAdapter,
+        layerID: String
+    ) throws -> KeyboardLayoutRuntime {
+        let layout = try sharedRuntime.compileLayout(layerID: layerID)
+
+        let keys = layout.keys.map { key in
+            var presentations: [String: String] = [:]
+            for presentation in key.firstStagePresentations {
+                guard let text = presentation.text, !text.isEmpty else { continue }
+                presentations[String(describing: presentation.direction).lowercased()] = text
+            }
+
+            return KeyboardKeyRuntime(
+                id: key.id,
+                layerID: layerID,
+                title: key.title ?? key.id,
+                role: key.role,
+                firstStagePresentation: presentations,
+                row: Int(key.row),
+                column: Int(key.column),
+                width: max(1, Int(key.width.rounded())),
+                height: max(1, Int(key.height.rounded()))
+            )
         }
 
         return KeyboardLayoutRuntime(
-            rows: rows,
-            profileRevision: "\(profile.id):\(profile.version)",
-            defaultPolicy: profile.gesturePolicy
+            sharedRuntime: sharedRuntime,
+            layerID: layerID,
+            keys: keys,
+            rowCount: Int(layout.rowCount),
+            columnCount: Int(layout.columnCount),
+            profileRevision: sharedRuntime.profileRevision,
+            defaultPolicy: sharedRuntime.defaultPolicy()
         )
     }
 }

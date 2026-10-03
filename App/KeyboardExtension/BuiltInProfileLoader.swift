@@ -1,11 +1,10 @@
 import Foundation
-import GestureIMECore
 
 enum BuiltInProfileLoader {
-    static func load() throws -> ProfileBundle {
+    static func loadJSON() throws -> String {
         guard let url = Bundle.main.url(forResource: "default-ja", withExtension: "json") else {
-            throw ProfileValidationError(.missingReference, "default-ja.json")
+            throw CocoaError(.fileNoSuchFile)
         }
-        return try ProfileCodec.decodeAndValidate(Data(contentsOf: url))
+        return try String(contentsOf: url, encoding: .utf8)
     }
 }

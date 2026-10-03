@@ -1,70 +1,82 @@
+import SwiftUI
 import UIKit
-import GestureIMECore
+
+final class KeyboardHostingController<Content: View>: UIHostingController<Content> {
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
+        .bottom
+    }
+}
 
 @MainActor
-final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegate {
-    private let keyboardStack = UIStackView()
-    private var tuningPanel: TuningPanelView?
+final class KeyboardViewController: UIInputViewController {
+    private var keyboardHost: KeyboardHostingController<AzooKeyProductKeyboardRoot>?
+    private var model: ProductKeyboardViewModel?
+    private var composition: AzooKeyCompositionBridge?
     private var heightConstraint: NSLayoutConstraint?
 
-    private var layoutRuntime: KeyboardLayoutRuntime?
-    private var policyStore: GesturePolicyStore?
-    private var keyViews: [ObjectIdentifier: GestureKeyView] = [:]
-    private var touchingKeys = Set<ObjectIdentifier>()
-    private var blockedByMultitouch = false
+    override func loadView() {
+        super.loadView()
+        view.backgroundColor = .clear
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-
-        keyboardStack.axis = .vertical
-        keyboardStack.spacing = 5
-        keyboardStack.distribution = .fillEqually
-        keyboardStack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(keyboardStack)
 
         do {
-            let profile = try BuiltInProfileLoader.load()
-            let runtime = try KeyboardLayoutRuntime.compile(profile: profile)
-            let store = GesturePolicyStore(defaultPolicy: runtime.defaultPolicy)
-            layoutRuntime = runtime
-            policyStore = store
-            installKeyboard(runtime: runtime, store: store)
+            let profileJSON = try BuiltInProfileLoader.loadJSON()
+            let layout = try KeyboardLayoutRuntime.compile(profileJSON: profileJSON)
+            let store = GesturePolicyStore(defaultPolicy: layout.defaultPolicy)
+            let composition = AzooKeyCompositionBridge(proxy: textDocumentProxy)
+
+            let model = ProductKeyboardViewModel(
+                initialLayout: layout,
+                policyStore: store,
+                composition: composition,
+                onNextKeyboard: { [weak self] in
+                    self?.advanceToNextInputMode()
+                },
+                onDismissKeyboard: { [weak self] in
+                    self?.dismissKeyboard()
+                }
+            )
+
+            let host = KeyboardHostingController(
+                rootView: AzooKeyProductKeyboardRoot(model: model)
+            )
+            addChild(host)
+            host.view.translatesAutoresizingMaskIntoConstraints = false
+            host.view.backgroundColor = .clear
+            view.addSubview(host.view)
+            host.didMove(toParent: self)
+            host.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+
+            let height = view.heightAnchor.constraint(equalToConstant: 344)
+            height.priority = .defaultHigh
+            NSLayoutConstraint.activate([
+                host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                host.view.topAnchor.constraint(equalTo: view.topAnchor),
+                host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                height
+            ])
+
+            keyboardHost = host
+            heightConstraint = height
+            self.composition = composition
+            self.model = model
         } catch {
             installError(String(describing: error))
         }
-
-        heightConstraint = view.heightAnchor.constraint(equalToConstant: 300)
-        heightConstraint?.priority = .defaultHigh
-
-        NSLayoutConstraint.activate([
-            keyboardStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 5),
-            keyboardStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -5),
-            keyboardStack.topAnchor.constraint(equalTo: view.topAnchor, constant: 5),
-            keyboardStack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -5),
-            heightConstraint!
-        ])
     }
 
-    private func installKeyboard(runtime: KeyboardLayoutRuntime, store: GesturePolicyStore) {
-        for row in runtime.rows {
-            let rowStack = UIStackView()
-            rowStack.axis = .horizontal
-            rowStack.spacing = 5
-            rowStack.distribution = .fillEqually
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        composition?.setTextDocumentProxy(textDocumentProxy)
+    }
 
-            for keyRuntime in row {
-                let key = GestureKeyView(
-                    runtime: keyRuntime,
-                    profileRevision: runtime.profileRevision,
-                    policyStore: store
-                )
-                key.delegate = self
-                keyViews[ObjectIdentifier(key)] = key
-                rowStack.addArrangedSubview(key)
-            }
-            keyboardStack.addArrangedSubview(rowStack)
-        }
+    override func viewWillDisappear(_ animated: Bool) {
+        composition?.close()
+        super.viewWillDisappear(animated)
     }
 
     private func installError(_ message: String) {
@@ -72,93 +84,14 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         label.numberOfLines = 0
         label.textAlignment = .center
         label.font = .systemFont(ofSize: 12)
-        label.text = "Profile load failed\n\(message)"
-        keyboardStack.addArrangedSubview(label)
-    }
-
-    func gestureKeyViewShouldBegin(_ keyView: GestureKeyView) -> Bool {
-        let id = ObjectIdentifier(keyView)
-        touchingKeys.insert(id)
-
-        guard touchingKeys.count == 1, !blockedByMultitouch else {
-            blockedByMultitouch = true
-            for view in keyViews.values {
-                view.cancelCurrentGesture()
-            }
-            return false
-        }
-        return true
-    }
-
-    func gestureKeyViewDidEndTouch(_ keyView: GestureKeyView) {
-        touchingKeys.remove(ObjectIdentifier(keyView))
-        if touchingKeys.isEmpty {
-            blockedByMultitouch = false
-        }
-    }
-
-    func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [ActionInvocation]) {
-        guard !blockedByMultitouch else { return }
-        for action in actions {
-            dispatch(action)
-        }
-    }
-
-    private func dispatch(_ action: ActionInvocation) {
-        switch action.actionID {
-        case "text.insert", "text.directInsert":
-            if let text = action.arguments["text"]?.stringValue {
-                textDocumentProxy.insertText(text)
-            }
-
-        case "edit.delete":
-            if let count = action.arguments["count"]?.intValue, count > 0 {
-                for _ in 0..<count {
-                    textDocumentProxy.deleteBackward()
-                }
-            }
-
-        case "cursor.move":
-            if let offset = action.arguments["offset"]?.intValue {
-                textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
-            }
-
-        case "system.nextKeyboard":
-            advanceToNextInputMode()
-
-        case "system.dismissKeyboard":
-            dismissKeyboard()
-
-        case "panel.open":
-            if action.arguments["panel"]?.stringValue == "tuning" {
-                showTuning()
-            }
-
-        default:
-            break
-        }
-    }
-
-    private func showTuning() {
-        guard tuningPanel == nil, let policyStore else { return }
-        keyboardStack.isHidden = true
-
-        let panel = TuningPanelView(store: policyStore)
-        panel.onClose = { [weak self] in self?.hideTuning() }
-        view.addSubview(panel)
-        tuningPanel = panel
-
+        label.text = "Keyboard load failed\n\(message)"
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
         NSLayoutConstraint.activate([
-            panel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            panel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            panel.topAnchor.constraint(equalTo: view.topAnchor),
-            panel.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            label.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -12)
         ])
-    }
-
-    private func hideTuning() {
-        tuningPanel?.removeFromSuperview()
-        tuningPanel = nil
-        keyboardStack.isHidden = false
     }
 }

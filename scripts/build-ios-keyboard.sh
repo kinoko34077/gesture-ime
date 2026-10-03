@@ -15,6 +15,7 @@ ARTIFACT_DIR="${ARTIFACT_DIR:-$RUNNER_TEMP/GestureIMEKeyboardArtifact}"
 rm -rf "$DERIVED_DATA" "$ARTIFACT_DIR" GestureIME.xcodeproj
 mkdir -p "$ARTIFACT_DIR"
 
+bash scripts/prepare-shared-runtime-ios.sh
 xcodegen generate --spec project.yml
 
 xcodebuild \

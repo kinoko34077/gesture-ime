@@ -7,8 +7,13 @@ on:
       - "App/MainApp/**"
       - "App/KeyboardExtension/**"
       - "Packages/GestureIMECore/**"
+      - "Shared/GestureIMECoreRust/**"
+      - "Platforms/iOS/SharedRuntime/**"
       - "project.yml"
+      - ".gitmodules"
+      - "Vendor/azooKey"
       - "scripts/build-ios-keyboard.sh"
+      - "scripts/prepare-shared-runtime-ios.sh"
       - ".github/workflows/ios-keyboard.yml"
 
 permissions:
@@ -21,6 +26,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Toolchain
         run: |
@@ -29,15 +36,13 @@ jobs:
           brew install xcodegen
           xcodegen --version
 
-      - name: Swift core tests
+      - name: Shared core tests
+        working-directory: Shared/GestureIMECoreRust
+        run: cargo test
+
+      - name: Swift reference regression
         working-directory: Packages/GestureIMECore
         run: swift test
-
-      - name: Phase 2 harness regression build
-        env:
-          DERIVED_DATA: ${{ runner.temp }}/GestureHarnessRegressionDerivedData
-          ARTIFACT_DIR: ${{ runner.temp }}/GestureHarnessRegressionArtifact
-        run: bash scripts/build-ios-harness.sh
 
       - name: Build unsigned keyboard IPA
         env:

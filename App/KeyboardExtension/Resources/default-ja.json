@@ -1,8 +1,8 @@
 {
   "schema": "gesture-ime.profile.v1",
-  "id": "builtin.ja.phase3",
-  "name": "Built-in Japanese Phase 3",
-  "version": 1,
+  "id": "builtin.ja.product",
+  "name": "Built-in Japanese Product",
+  "version": 3,
   "gesturePolicy": {
     "deadZone": 0.15,
     "stage1CommitDistance": 0.4,
@@ -110,18 +110,298 @@
       "role": "text"
     },
     {
-      "id": "test.gesture",
-      "presentation": {
-        "text": "◇"
-      },
-      "role": "control"
-    },
-    {
       "id": "panel.tuning",
       "presentation": {
         "text": "⚙︎"
       },
       "role": "control"
+    },
+    {
+      "id": "mode.symbols",
+      "presentation": {
+        "text": "記号"
+      },
+      "role": "control"
+    },
+    {
+      "id": "mode.numbers",
+      "presentation": {
+        "text": "123"
+      },
+      "role": "control"
+    },
+    {
+      "id": "mode.alpha",
+      "presentation": {
+        "text": "あA"
+      },
+      "role": "control"
+    },
+    {
+      "id": "utility.chat",
+      "presentation": {
+        "text": "💬"
+      },
+      "role": "control"
+    },
+    {
+      "id": "utility.emoji",
+      "presentation": {
+        "text": "☺︎"
+      },
+      "role": "control"
+    },
+    {
+      "id": "utility.emoticon",
+      "presentation": {
+        "text": "^_^"
+      },
+      "role": "control"
+    },
+    {
+      "id": "punctuation",
+      "presentation": {
+        "text": "?!"
+      },
+      "role": "control"
+    },
+    {
+      "id": "mode.hira",
+      "presentation": {
+        "text": "あいう"
+      },
+      "role": "control"
+    },
+    {
+      "id": "num.1",
+      "presentation": {
+        "text": "1"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.2",
+      "presentation": {
+        "text": "2"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.3",
+      "presentation": {
+        "text": "3"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.4",
+      "presentation": {
+        "text": "4"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.5",
+      "presentation": {
+        "text": "5"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.6",
+      "presentation": {
+        "text": "6"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.7",
+      "presentation": {
+        "text": "7"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.8",
+      "presentation": {
+        "text": "8"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.9",
+      "presentation": {
+        "text": "9"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.0",
+      "presentation": {
+        "text": "0"
+      },
+      "role": "text"
+    },
+    {
+      "id": "num.punct",
+      "presentation": {
+        "text": "."
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.symbol",
+      "presentation": {
+        "text": "@"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.abc",
+      "presentation": {
+        "text": "ABC"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.def",
+      "presentation": {
+        "text": "DEF"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.ghi",
+      "presentation": {
+        "text": "GHI"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.jkl",
+      "presentation": {
+        "text": "JKL"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.mno",
+      "presentation": {
+        "text": "MNO"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.pqrs",
+      "presentation": {
+        "text": "PQRS"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.tuv",
+      "presentation": {
+        "text": "TUV"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.wxyz",
+      "presentation": {
+        "text": "WXYZ"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.quote",
+      "presentation": {
+        "text": "'"
+      },
+      "role": "text"
+    },
+    {
+      "id": "alpha.punct",
+      "presentation": {
+        "text": "."
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.bracket",
+      "presentation": {
+        "text": "「"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.arrow",
+      "presentation": {
+        "text": "→"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.star",
+      "presentation": {
+        "text": "☆"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.math",
+      "presentation": {
+        "text": "+"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.compare",
+      "presentation": {
+        "text": "<"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.currency",
+      "presentation": {
+        "text": "¥"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.mark",
+      "presentation": {
+        "text": "！"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.line",
+      "presentation": {
+        "text": "ー"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.shape",
+      "presentation": {
+        "text": "○"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.quote",
+      "presentation": {
+        "text": "「"
+      },
+      "role": "text"
+    },
+    {
+      "id": "sym.punct",
+      "presentation": {
+        "text": "。"
+      },
+      "role": "text"
     }
   ],
   "layouts": [
@@ -129,115 +409,578 @@
       "id": "layout.base",
       "placements": [
         {
-          "keyID": "kana.a",
+          "keyID": "mode.symbols",
           "row": 0,
           "column": 0,
-          "width": 1,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "kana.a",
+          "row": 0,
+          "column": 2,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ka",
           "row": 0,
-          "column": 1,
-          "width": 1,
+          "column": 4,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.sa",
           "row": 0,
-          "column": 2,
-          "width": 1,
+          "column": 6,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "edit.delete",
           "row": 0,
-          "column": 3,
-          "width": 1,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.numbers",
+          "row": 1,
+          "column": 0,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ta",
           "row": 1,
-          "column": 0,
-          "width": 1,
+          "column": 2,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.na",
           "row": 1,
-          "column": 1,
-          "width": 1,
+          "column": 4,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ha",
           "row": 1,
-          "column": 2,
-          "width": 1,
+          "column": 6,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "text.space",
           "row": 1,
-          "column": 3,
-          "width": 1,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.alpha",
+          "row": 2,
+          "column": 0,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ma",
           "row": 2,
-          "column": 0,
-          "width": 1,
+          "column": 2,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ya",
           "row": 2,
-          "column": 1,
-          "width": 1,
+          "column": 4,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ra",
           "row": 2,
-          "column": 2,
-          "width": 1,
+          "column": 6,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "text.enter",
           "row": 2,
-          "column": 3,
-          "width": 1,
-          "height": 1
+          "column": 8,
+          "width": 2,
+          "height": 2
         },
         {
-          "keyID": "system.next",
+          "keyID": "utility.chat",
           "row": 3,
           "column": 0,
           "width": 1,
           "height": 1
         },
         {
-          "keyID": "kana.wa",
+          "keyID": "utility.emoji",
           "row": 3,
           "column": 1,
           "width": 1,
           "height": 1
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "utility.emoticon",
           "row": 3,
           "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "kana.wa",
+          "row": 3,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "punctuation",
+          "row": 3,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        }
+      ]
+    },
+    {
+      "id": "layout.numbers",
+      "placements": [
+        {
+          "keyID": "mode.hira",
+          "row": 0,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.1",
+          "row": 0,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.2",
+          "row": 0,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.3",
+          "row": 0,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "edit.delete",
+          "row": 0,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.symbols",
+          "row": 1,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.4",
+          "row": 1,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.5",
+          "row": 1,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.6",
+          "row": 1,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "text.space",
+          "row": 1,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.alpha",
+          "row": 2,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.7",
+          "row": 2,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.8",
+          "row": 2,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.9",
+          "row": 2,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "text.enter",
+          "row": 2,
+          "column": 8,
+          "width": 2,
+          "height": 2
+        },
+        {
+          "keyID": "utility.chat",
+          "row": 3,
+          "column": 0,
           "width": 1,
           "height": 1
         },
         {
-          "keyID": "panel.tuning",
+          "keyID": "utility.emoji",
           "row": 3,
-          "column": 3,
+          "column": 1,
           "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "utility.emoticon",
+          "row": 3,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.0",
+          "row": 3,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "num.punct",
+          "row": 3,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        }
+      ]
+    },
+    {
+      "id": "layout.alpha",
+      "placements": [
+        {
+          "keyID": "mode.hira",
+          "row": 0,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.symbol",
+          "row": 0,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.abc",
+          "row": 0,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.def",
+          "row": 0,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "edit.delete",
+          "row": 0,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.numbers",
+          "row": 1,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.ghi",
+          "row": 1,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.jkl",
+          "row": 1,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.mno",
+          "row": 1,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "text.space",
+          "row": 1,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.symbols",
+          "row": 2,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.pqrs",
+          "row": 2,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.tuv",
+          "row": 2,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.wxyz",
+          "row": 2,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "text.enter",
+          "row": 2,
+          "column": 8,
+          "width": 2,
+          "height": 2
+        },
+        {
+          "keyID": "utility.chat",
+          "row": 3,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "utility.emoji",
+          "row": 3,
+          "column": 1,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "utility.emoticon",
+          "row": 3,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.quote",
+          "row": 3,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "alpha.punct",
+          "row": 3,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        }
+      ]
+    },
+    {
+      "id": "layout.symbols",
+      "placements": [
+        {
+          "keyID": "mode.hira",
+          "row": 0,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.bracket",
+          "row": 0,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.arrow",
+          "row": 0,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.star",
+          "row": 0,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "edit.delete",
+          "row": 0,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.numbers",
+          "row": 1,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.math",
+          "row": 1,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.compare",
+          "row": 1,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.currency",
+          "row": 1,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "text.space",
+          "row": 1,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.alpha",
+          "row": 2,
+          "column": 0,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.mark",
+          "row": 2,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.line",
+          "row": 2,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.shape",
+          "row": 2,
+          "column": 6,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "text.enter",
+          "row": 2,
+          "column": 8,
+          "width": 2,
+          "height": 2
+        },
+        {
+          "keyID": "utility.chat",
+          "row": 3,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "utility.emoji",
+          "row": 3,
+          "column": 1,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "utility.emoticon",
+          "row": 3,
+          "column": 2,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.quote",
+          "row": 3,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "sym.punct",
+          "row": 3,
+          "column": 6,
+          "width": 2,
           "height": 1
         }
       ]
@@ -1396,47 +2139,288 @@
           }
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "punctuation",
           "path": [],
           "behavior": {
             "presentation": {
-              "text": "◇",
-              "accessibilityLabel": "◇"
+              "text": "。",
+              "accessibilityLabel": "。"
             },
             "onRelease": [
               {
                 "actionID": "text.insert",
                 "arguments": {
-                  "text": "◇"
+                  "text": "。"
                 }
               }
             ]
           }
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "punctuation",
           "path": [
             {
-              "direction": "ne"
+              "direction": "w"
             }
           ],
           "behavior": {
             "presentation": {
-              "text": "↗︎",
-              "accessibilityLabel": "↗︎"
+              "text": "、",
+              "accessibilityLabel": "、"
             },
             "onRelease": [
               {
                 "actionID": "text.insert",
                 "arguments": {
-                  "text": "↗︎"
+                  "text": "、"
                 }
               }
             ]
           }
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "punctuation",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "？",
+              "accessibilityLabel": "？"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "？"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "punctuation",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "！",
+              "accessibilityLabel": "！"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "！"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "punctuation",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "…",
+              "accessibilityLabel": "…"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "…"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.symbols",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "記号",
+              "accessibilityLabel": "記号"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "symbols"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.numbers",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "123",
+              "accessibilityLabel": "123"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "numbers"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.alpha",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ABC",
+              "accessibilityLabel": "ABC"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "alpha"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.chat",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "💬",
+              "accessibilityLabel": "💬"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "phrase"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoji",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "☺︎",
+              "accessibilityLabel": "☺︎"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoji"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoticon",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "^_^",
+              "accessibilityLabel": "^_^"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoticon"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bindings.numbers",
+      "bindings": [
+        {
+          "keyID": "num.1",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "1",
+              "accessibilityLabel": "1"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.1",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "☆",
+              "accessibilityLabel": "☆"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "☆"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.1",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "♪",
+              "accessibilityLabel": "♪"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "♪"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.1",
           "path": [
             {
               "direction": "e"
@@ -1449,7 +2433,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "→"
                 }
@@ -1458,25 +2442,3612 @@
           }
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "num.2",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "2",
+              "accessibilityLabel": "2"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "2"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.2",
           "path": [
             {
-              "direction": "e"
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "¥",
+              "accessibilityLabel": "¥"
             },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "¥"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.2",
+          "path": [
             {
               "direction": "n"
             }
           ],
           "behavior": {
             "presentation": {
-              "text": "→↑",
-              "accessibilityLabel": "→↑"
+              "text": "$",
+              "accessibilityLabel": "$"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "$"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.2",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "€",
+              "accessibilityLabel": "€"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "€"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.3",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "3",
+              "accessibilityLabel": "3"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "3"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.3",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "%",
+              "accessibilityLabel": "%"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "%"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.3",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "°",
+              "accessibilityLabel": "°"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "°"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.3",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "#",
+              "accessibilityLabel": "#"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "#"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.4",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "4",
+              "accessibilityLabel": "4"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "4"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.4",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "○",
+              "accessibilityLabel": "○"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "○"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.4",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "＊",
+              "accessibilityLabel": "＊"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "＊"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.4",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "・",
+              "accessibilityLabel": "・"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "・"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.5",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "5",
+              "accessibilityLabel": "5"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "5"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.5",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "+",
+              "accessibilityLabel": "+"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "+"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.5",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "×",
+              "accessibilityLabel": "×"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "×"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.5",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "÷",
+              "accessibilityLabel": "÷"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "÷"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.6",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "6",
+              "accessibilityLabel": "6"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "6"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.6",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "<",
+              "accessibilityLabel": "<"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "<"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.6",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "=",
+              "accessibilityLabel": "="
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "="
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.6",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": ">",
+              "accessibilityLabel": ">"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": ">"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.7",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "7",
+              "accessibilityLabel": "7"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "7"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.7",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "「",
+              "accessibilityLabel": "「"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "「"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.7",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "」",
+              "accessibilityLabel": "」"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "」"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.7",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": ":",
+              "accessibilityLabel": ":"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": ":"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.8",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "8",
+              "accessibilityLabel": "8"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "8"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.8",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "〒",
+              "accessibilityLabel": "〒"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "〒"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.8",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "々",
+              "accessibilityLabel": "々"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "々"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.8",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "〆",
+              "accessibilityLabel": "〆"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "〆"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.9",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "9",
+              "accessibilityLabel": "9"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "9"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.9",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "^",
+              "accessibilityLabel": "^"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "^"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.9",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "|",
+              "accessibilityLabel": "|"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "|"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.9",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "\\",
+              "accessibilityLabel": "\\"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "\\"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.0",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "0",
+              "accessibilityLabel": "0"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "0"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.0",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "〜",
+              "accessibilityLabel": "〜"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "〜"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.0",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "…",
+              "accessibilityLabel": "…"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "…"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.0",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "・",
+              "accessibilityLabel": "・"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "・"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.punct",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": ".",
+              "accessibilityLabel": "."
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.punct",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "，",
+              "accessibilityLabel": "，"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "，"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.punct",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "-",
+              "accessibilityLabel": "-"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "-"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.punct",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "/",
+              "accessibilityLabel": "/"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "/"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "num.punct",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "・",
+              "accessibilityLabel": "・"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "・"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.symbols",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "記号",
+              "accessibilityLabel": "記号"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "symbols"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.numbers",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "123",
+              "accessibilityLabel": "123"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "numbers"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.alpha",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ABC",
+              "accessibilityLabel": "ABC"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "alpha"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.hira",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "あいう",
+              "accessibilityLabel": "あいう"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "base"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.chat",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "💬",
+              "accessibilityLabel": "💬"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "phrase"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoji",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "☺︎",
+              "accessibilityLabel": "☺︎"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoji"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoticon",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "^_^",
+              "accessibilityLabel": "^_^"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoticon"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "edit.delete",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "⌫",
+              "accessibilityLabel": "⌫"
+            },
+            "onRelease": [
+              {
+                "actionID": "edit.delete",
+                "arguments": {
+                  "count": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.space",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "空白",
+              "accessibilityLabel": "空白"
             },
             "onRelease": [
               {
                 "actionID": "text.insert",
                 "arguments": {
-                  "text": "→↑"
+                  "text": " "
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.enter",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "改行",
+              "accessibilityLabel": "改行"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "\n"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bindings.alpha",
+      "bindings": [
+        {
+          "keyID": "alpha.symbol",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "@",
+              "accessibilityLabel": "@"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "@"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.symbol",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "#",
+              "accessibilityLabel": "#"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "#"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.symbol",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "/",
+              "accessibilityLabel": "/"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "/"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.symbol",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "&",
+              "accessibilityLabel": "&"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "&"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.symbol",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "_",
+              "accessibilityLabel": "_"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "_"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.abc",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ABC",
+              "accessibilityLabel": "ABC"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "ABC"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.abc",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "B",
+              "accessibilityLabel": "B"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "B"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.abc",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "C",
+              "accessibilityLabel": "C"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "C"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.abc",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "A",
+              "accessibilityLabel": "A"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "A"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.def",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "DEF",
+              "accessibilityLabel": "DEF"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "DEF"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.def",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "E",
+              "accessibilityLabel": "E"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "E"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.def",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "F",
+              "accessibilityLabel": "F"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "F"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.def",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "D",
+              "accessibilityLabel": "D"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "D"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.ghi",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "GHI",
+              "accessibilityLabel": "GHI"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "GHI"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.ghi",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "H",
+              "accessibilityLabel": "H"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "H"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.ghi",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "I",
+              "accessibilityLabel": "I"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "I"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.ghi",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "G",
+              "accessibilityLabel": "G"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "G"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.jkl",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "JKL",
+              "accessibilityLabel": "JKL"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "JKL"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.jkl",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "K",
+              "accessibilityLabel": "K"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "K"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.jkl",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "L",
+              "accessibilityLabel": "L"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "L"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.jkl",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "J",
+              "accessibilityLabel": "J"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "J"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.mno",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "MNO",
+              "accessibilityLabel": "MNO"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "MNO"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.mno",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "N",
+              "accessibilityLabel": "N"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "N"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.mno",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "O",
+              "accessibilityLabel": "O"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "O"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.mno",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "M",
+              "accessibilityLabel": "M"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "M"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.pqrs",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "PQRS",
+              "accessibilityLabel": "PQRS"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "PQRS"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.pqrs",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "Q",
+              "accessibilityLabel": "Q"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "Q"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.pqrs",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "R",
+              "accessibilityLabel": "R"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "R"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.pqrs",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "S",
+              "accessibilityLabel": "S"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "S"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.pqrs",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "P",
+              "accessibilityLabel": "P"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "P"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.tuv",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "TUV",
+              "accessibilityLabel": "TUV"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "TUV"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.tuv",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "U",
+              "accessibilityLabel": "U"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "U"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.tuv",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "V",
+              "accessibilityLabel": "V"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "V"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.tuv",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "T",
+              "accessibilityLabel": "T"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "T"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.wxyz",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "WXYZ",
+              "accessibilityLabel": "WXYZ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "WXYZ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.wxyz",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "X",
+              "accessibilityLabel": "X"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "X"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.wxyz",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "Y",
+              "accessibilityLabel": "Y"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "Y"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.wxyz",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "Z",
+              "accessibilityLabel": "Z"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "Z"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.wxyz",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "W",
+              "accessibilityLabel": "W"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "W"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.quote",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "'",
+              "accessibilityLabel": "'"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "'"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.quote",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "\"",
+              "accessibilityLabel": "\""
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "\""
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.quote",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "(",
+              "accessibilityLabel": "("
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "("
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.quote",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": ")",
+              "accessibilityLabel": ")"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": ")"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.quote",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "’",
+              "accessibilityLabel": "’"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "’"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.punct",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": ".",
+              "accessibilityLabel": "."
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.punct",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": ",",
+              "accessibilityLabel": ","
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": ","
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.punct",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "?",
+              "accessibilityLabel": "?"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "?"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.punct",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "!",
+              "accessibilityLabel": "!"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "!"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "alpha.punct",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "-",
+              "accessibilityLabel": "-"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "-"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.symbols",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "記号",
+              "accessibilityLabel": "記号"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "symbols"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.numbers",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "123",
+              "accessibilityLabel": "123"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "numbers"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.alpha",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ABC",
+              "accessibilityLabel": "ABC"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "alpha"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.hira",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "あいう",
+              "accessibilityLabel": "あいう"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "base"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.chat",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "💬",
+              "accessibilityLabel": "💬"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "phrase"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoji",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "☺︎",
+              "accessibilityLabel": "☺︎"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoji"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoticon",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "^_^",
+              "accessibilityLabel": "^_^"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoticon"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "edit.delete",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "⌫",
+              "accessibilityLabel": "⌫"
+            },
+            "onRelease": [
+              {
+                "actionID": "edit.delete",
+                "arguments": {
+                  "count": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.space",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "空白",
+              "accessibilityLabel": "空白"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": " "
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.enter",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "改行",
+              "accessibilityLabel": "改行"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "\n"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bindings.symbols",
+      "bindings": [
+        {
+          "keyID": "sym.bracket",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "「",
+              "accessibilityLabel": "「"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "「"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.bracket",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "『",
+              "accessibilityLabel": "『"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "『"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.bracket",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "【",
+              "accessibilityLabel": "【"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "【"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.bracket",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "（",
+              "accessibilityLabel": "（"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "（"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.bracket",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "［",
+              "accessibilityLabel": "［"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "［"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.arrow",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "→",
+              "accessibilityLabel": "→"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "→"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.arrow",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "←",
+              "accessibilityLabel": "←"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "←"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.arrow",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "↑",
+              "accessibilityLabel": "↑"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "↑"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.arrow",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "↓",
+              "accessibilityLabel": "↓"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "↓"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.arrow",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "↔",
+              "accessibilityLabel": "↔"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "↔"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.star",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "☆",
+              "accessibilityLabel": "☆"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "☆"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.star",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "★",
+              "accessibilityLabel": "★"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "★"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.star",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "♪",
+              "accessibilityLabel": "♪"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "♪"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.star",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "※",
+              "accessibilityLabel": "※"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "※"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.star",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "＊",
+              "accessibilityLabel": "＊"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "＊"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.math",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "+",
+              "accessibilityLabel": "+"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "+"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.math",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "−",
+              "accessibilityLabel": "−"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "−"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.math",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "×",
+              "accessibilityLabel": "×"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "×"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.math",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "÷",
+              "accessibilityLabel": "÷"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "÷"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.math",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "=",
+              "accessibilityLabel": "="
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "="
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.compare",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "<",
+              "accessibilityLabel": "<"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "<"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.compare",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": ">",
+              "accessibilityLabel": ">"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": ">"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.compare",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "≠",
+              "accessibilityLabel": "≠"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "≠"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.compare",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "≒",
+              "accessibilityLabel": "≒"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "≒"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.compare",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "≦",
+              "accessibilityLabel": "≦"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "≦"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.currency",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "¥",
+              "accessibilityLabel": "¥"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "¥"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.currency",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "$",
+              "accessibilityLabel": "$"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "$"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.currency",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "€",
+              "accessibilityLabel": "€"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "€"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.currency",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "£",
+              "accessibilityLabel": "£"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "£"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.currency",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "¢",
+              "accessibilityLabel": "¢"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "¢"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.mark",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "！",
+              "accessibilityLabel": "！"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "！"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.mark",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "？",
+              "accessibilityLabel": "？"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "？"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.mark",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "‼",
+              "accessibilityLabel": "‼"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "‼"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.mark",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "⁉",
+              "accessibilityLabel": "⁉"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "⁉"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.mark",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "…",
+              "accessibilityLabel": "…"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "…"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.line",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ー",
+              "accessibilityLabel": "ー"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "ー"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.line",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "〜",
+              "accessibilityLabel": "〜"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "〜"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.line",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "・",
+              "accessibilityLabel": "・"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "・"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.line",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "—",
+              "accessibilityLabel": "—"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "—"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.line",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "―",
+              "accessibilityLabel": "―"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "―"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.shape",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "○",
+              "accessibilityLabel": "○"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "○"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.shape",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "●",
+              "accessibilityLabel": "●"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "●"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.shape",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "□",
+              "accessibilityLabel": "□"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "□"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.shape",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "■",
+              "accessibilityLabel": "■"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "■"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.shape",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "△",
+              "accessibilityLabel": "△"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "△"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.quote",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "「",
+              "accessibilityLabel": "「"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "「"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.quote",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "」",
+              "accessibilityLabel": "」"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "」"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.quote",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "『",
+              "accessibilityLabel": "『"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "『"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.quote",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "』",
+              "accessibilityLabel": "』"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "』"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.quote",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "“",
+              "accessibilityLabel": "“"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "“"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.punct",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "。",
+              "accessibilityLabel": "。"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "。"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.punct",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "、",
+              "accessibilityLabel": "、"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "、"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.punct",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "：",
+              "accessibilityLabel": "："
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "："
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.punct",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "；",
+              "accessibilityLabel": "；"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "；"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "sym.punct",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "・",
+              "accessibilityLabel": "・"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.directInsert",
+                "arguments": {
+                  "text": "・"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.symbols",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "記号",
+              "accessibilityLabel": "記号"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "symbols"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.numbers",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "123",
+              "accessibilityLabel": "123"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "numbers"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.alpha",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ABC",
+              "accessibilityLabel": "ABC"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "alpha"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.hira",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "あいう",
+              "accessibilityLabel": "あいう"
+            },
+            "onRelease": [
+              {
+                "actionID": "layer.set",
+                "arguments": {
+                  "layer": "base"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.chat",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "💬",
+              "accessibilityLabel": "💬"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "phrase"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoji",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "☺︎",
+              "accessibilityLabel": "☺︎"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoji"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoticon",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "^_^",
+              "accessibilityLabel": "^_^"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoticon"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "edit.delete",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "⌫",
+              "accessibilityLabel": "⌫"
+            },
+            "onRelease": [
+              {
+                "actionID": "edit.delete",
+                "arguments": {
+                  "count": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.space",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "空白",
+              "accessibilityLabel": "空白"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": " "
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.enter",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "改行",
+              "accessibilityLabel": "改行"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "\n"
                 }
               }
             ]
@@ -1490,7 +6061,28 @@
       "id": "base",
       "layoutRef": "layout.base",
       "bindingSetRef": "bindings.base"
+    },
+    {
+      "id": "numbers",
+      "layoutRef": "layout.numbers",
+      "bindingSetRef": "bindings.numbers"
+    },
+    {
+      "id": "alpha",
+      "layoutRef": "layout.alpha",
+      "bindingSetRef": "bindings.alpha"
+    },
+    {
+      "id": "symbols",
+      "layoutRef": "layout.symbols",
+      "bindingSetRef": "bindings.symbols"
     }
   ],
-  "macros": []
+  "macros": [],
+  "theme": {
+    "productLayout": {
+      "type": "string",
+      "value": "simeji-reference-five-column"
+    }
+  }
 }
