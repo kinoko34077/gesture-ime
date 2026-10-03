@@ -1069,7 +1069,10 @@ impl BoardSession {
         };
 
         let angle = angle_degrees(dx, dy);
-        let Some(nearest) = self.nearest_reachable_coordinate(angle, normalized, base_commit) else {
+        let Some(nearest) = self
+            .nearest_reachable_coordinate(angle, normalized, base_commit)
+            .or_else(|| self.nearest_precommit_coordinate(angle))
+        else {
             self.candidate_coordinate = None;
             return;
         };
@@ -1095,6 +1098,12 @@ impl BoardSession {
         let Some(coordinate) = self.candidate_coordinate else {
             return;
         };
+        let required_commit =
+            base_commit * coordinate.chebyshev_radius() as f64;
+        if normalized < required_commit {
+            return;
+        }
+
         let Some(entry) = self.entry_at(coordinate).cloned() else {
             return;
         };
@@ -1233,6 +1242,26 @@ impl BoardSession {
         self.terminal = Some(BoardSessionTerminal::Invalidated);
         self.current_board_id = self.persistent_board_id.clone();
         self.cancel_holds();
+    }
+
+    fn nearest_precommit_coordinate(&self, angle: f64) -> Option<BoardCoordinate> {
+        self.current_board()?
+            .entries
+            .iter()
+            .filter(|entry| !entry.coordinate.is_origin())
+            .map(|entry| entry.coordinate)
+            .min_by(|lhs, rhs| {
+                let lhs_angle = angular_distance(angle, coordinate_angle(*lhs));
+                let rhs_angle = angular_distance(angle, coordinate_angle(*rhs));
+                lhs_angle
+                    .total_cmp(&rhs_angle)
+                    .then_with(|| {
+                        lhs.chebyshev_radius()
+                            .cmp(&rhs.chebyshev_radius())
+                    })
+                    .then_with(|| lhs.y.cmp(&rhs.y))
+                    .then_with(|| lhs.x.cmp(&rhs.x))
+            })
     }
 
     fn nearest_reachable_coordinate(

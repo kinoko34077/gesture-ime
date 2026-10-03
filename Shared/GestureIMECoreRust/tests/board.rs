@@ -318,6 +318,87 @@ fn persistent_transition_from_transient_board_replaces_baseline() {
 
 
 #[test]
+fn precommit_candidate_preserves_wider_same_ray_reachability() {
+    let json = r#"
+    {
+      "schema":"gesture-ime.profile.v2",
+      "id":"fixture.v2.wider-ray",
+      "name":"Wider ray",
+      "version":1,
+      "gesturePolicy":{
+        "deadZone":0.1,
+        "initialCellCommitDistance":0.4,
+        "subsequentCellCommitDistance":0.4,
+        "angularHysteresisDegrees":8
+      },
+      "keyDefinitions":[{"id":"key.test"}],
+      "layouts":[{"id":"layout.base","placements":[{"keyID":"key.test","row":0,"column":0}]}],
+      "layers":[{"id":"base","layoutRef":"layout.base"}],
+      "boards":[
+        {
+          "id":"board.root",
+          "selectionPolicy":{"kind":"relativeCoordinate"},
+          "entries":[
+            {"coordinate":{"x":0,"y":0},"onRelease":[]},
+            {"coordinate":{"x":1,"y":0},"onRelease":[]},
+            {"coordinate":{"x":2,"y":0},"onRelease":[]}
+          ]
+        }
+      ],
+      "entryPoints":[
+        {"id":"entry.test","layerID":"base","keyID":"key.test","trigger":"press","boardRef":"board.root"}
+      ],
+      "macros":[]
+    }
+    "#;
+
+    let profile = BoardProfileCodec::decode_and_validate(json.as_bytes()).expect("profile");
+    let entry = profile.entry_points.first().expect("entry").clone();
+    let boards = Arc::new(board_map(&profile));
+
+    let mut gradual = BoardSession::new(
+        &entry,
+        "gradual",
+        boards.clone(),
+        Arc::new(Mutex::new(HashMap::new())),
+        profile.gesture_policy.clone(),
+        GestureSize {
+            width: 100.0,
+            height: 100.0,
+        },
+        GesturePoint { x: 0.0, y: 0.0 },
+        0,
+    )
+    .expect("gradual session");
+    gradual.move_to(GesturePoint { x: 20.0, y: 0.0 }, None);
+    assert_eq!(
+        gradual.candidate_coordinate,
+        Some(BoardCoordinate { x: 1, y: 0 })
+    );
+    assert!(gradual.committed_coordinates.is_empty());
+
+    let mut jump = BoardSession::new(
+        &entry,
+        "jump",
+        boards,
+        Arc::new(Mutex::new(HashMap::new())),
+        profile.gesture_policy,
+        GestureSize {
+            width: 100.0,
+            height: 100.0,
+        },
+        GesturePoint { x: 0.0, y: 0.0 },
+        0,
+    )
+    .expect("jump session");
+    jump.move_to(GesturePoint { x: 90.0, y: 0.0 }, None);
+    assert_eq!(
+        jump.committed_coordinates,
+        vec![BoardCoordinate { x: 2, y: 0 }]
+    );
+}
+
+#[test]
 fn accepted_v1_duplicate_key_placements_normalize_once_per_layer() {
     let json = r#"
     {
