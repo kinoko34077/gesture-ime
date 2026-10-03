@@ -38,13 +38,14 @@ The GitHub Actions artifact is intentionally unsigned. The sideload tool is resp
 For each candidate GesturePolicy:
 
 1. Select **4-way** and confirm only N/E/S/W are offered.
-2. Select **Diagonal + 2-stage** and verify NE appears.
-3. Use **Single-stage trial** while repeatedly performing ordinary flicks.
-4. Record Trials and Accidental rate.
-5. Use **Two-stage trial** and repeatedly perform deliberate [E,N] and [E,E].
-6. Record successful two-stage recognition.
-7. Adjust dead zone, stage-1 distance, stage-2 distance, and hysteresis.
-8. Do not promote numeric defaults to the common canon until physical-device evidence is recorded on #10.
+2. Select **8-way + 2-stage** and confirm N/NE/E/SE/S/SW/W/NW are all offered at the root.
+3. Commit E as stage 1 and confirm the virtual anchor moves; from the new anchor only E/N are offered by the current two-stage test bindings.
+4. Use **Single-stage** while repeatedly performing ordinary one-stage flicks.
+5. Record Trials and Accidental rate.
+6. Use **Target [E,N]** and **Target [E,E]** separately and repeat each target gesture.
+7. Record each target's success rate.
+8. Adjust dead zone, stage-1 distance, stage-2 distance, and hysteresis.
+9. Do not promote numeric defaults to the common canon until physical-device evidence is recorded on #10.
 
 ## Development signing boundary
 
