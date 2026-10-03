@@ -4,11 +4,12 @@ import Foundation
 import GestureIMECoreShared
 #endif
 
-/// iOS-side coordinate/lifecycle adapter for the platform-neutral Rust gesture runtime.
+/// iOS-side coordinate/lifecycle adapter for the platform-neutral Rust input runtime.
 ///
-/// This layer deliberately does not own gesture semantics. It only translates native
-/// touch geometry/timestamps into the generated UniFFI API. Profile, BindingTrie,
-/// Direction8, stage commits, cancellation, and ActionInvocation resolution stay in Rust.
+/// This layer deliberately does not own input semantics. It only translates native
+/// touch geometry/timestamps into the generated UniFFI API. Profile validation,
+/// v1-to-v2 normalization, Board selection/transition lifetime, cancellation, and
+/// ActionInvocation resolution stay in Rust.
 public final class IOSSharedGestureRuntimeAdapter {
     private let core: SharedCoreRuntime
 
@@ -91,5 +92,34 @@ public final class IOSSharedGestureSessionAdapter {
 
     public func invalidate(atMs: Int64? = nil) throws -> FfiSessionSnapshot {
         try core.invalidate(atMs: atMs)
+    }
+}
+
+
+public struct IOSBoardSessionState {
+    public let currentBoardID: String
+    public let persistentBoardID: String
+    public let eligibleCoordinates: [FfiBoardCoordinate]
+    public let candidateCoordinate: FfiBoardCoordinate?
+    public let selectedCoordinate: FfiBoardCoordinate?
+    public let committedCoordinates: [FfiBoardCoordinate]
+    public let transitionCount: Int64
+    public let transitionLimitHit: Bool
+
+    init(snapshot: FfiSessionSnapshot) {
+        currentBoardID = snapshot.currentBoardId
+        persistentBoardID = snapshot.persistentBoardId
+        eligibleCoordinates = snapshot.eligibleCoordinates
+        candidateCoordinate = snapshot.candidateCoordinate
+        selectedCoordinate = snapshot.selectedCoordinate
+        committedCoordinates = snapshot.committedCoordinates
+        transitionCount = snapshot.boardTransitionCount
+        transitionLimitHit = snapshot.transitionLimitHit
+    }
+}
+
+public extension IOSSharedGestureSessionAdapter {
+    func boardState() throws -> IOSBoardSessionState {
+        IOSBoardSessionState(snapshot: try snapshot())
     }
 }
