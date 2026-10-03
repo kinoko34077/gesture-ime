@@ -9,31 +9,6 @@ packages:
     path: Packages/GestureIMECore
 
 targets:
-  GestureKeyboard:
-    type: app-extension
-    platform: iOS
-    sources:
-      - path: App/KeyboardExtension
-        excludes:
-          - Resources
-    resources:
-      - path: App/KeyboardExtension/Resources
-    dependencies:
-      - package: GestureIMECore
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.harness.keyboard
-        PRODUCT_NAME: GestureKeyboard
-        INFOPLIST_FILE: App/KeyboardExtension/Info.plist
-        GENERATE_INFOPLIST_FILE: NO
-        SWIFT_VERSION: 6.0
-        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-        APPLICATION_EXTENSION_API_ONLY: YES
-        SKIP_INSTALL: YES
-        CURRENT_PROJECT_VERSION: 1
-        MARKETING_VERSION: 0.1.0
-        ENABLE_PREVIEWS: NO
-
   GestureHarness:
     type: application
     platform: iOS
@@ -41,14 +16,12 @@ targets:
       - path: App/GestureHarness
     dependencies:
       - package: GestureIMECore
-      - target: GestureKeyboard
-        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.harness
         PRODUCT_NAME: GestureHarness
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Gesture IME Dev
+        INFOPLIST_KEY_CFBundleDisplayName: Gesture Harness
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         SWIFT_VERSION: 6.0
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
@@ -57,11 +30,73 @@ targets:
         MARKETING_VERSION: 0.1.0
         ENABLE_PREVIEWS: NO
 
+  GestureIMEApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/MainApp
+    dependencies:
+      - target: GestureKeyboard
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime
+        PRODUCT_NAME: GestureIME
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Gesture IME
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        SWIFT_VERSION: 6.0
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.2.0
+        ENABLE_PREVIEWS: NO
+
+  GestureKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: App/KeyboardExtension
+    dependencies:
+      - package: GestureIMECore
+    info:
+      path: App/KeyboardExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Gesture IME
+        NSExtension:
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: ja
+            RequestsOpenAccess: false
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.keyboard
+        PRODUCT_NAME: GestureKeyboard
+        SWIFT_VERSION: 6.0
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.2.0
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+
 schemes:
   GestureHarness:
     build:
       targets:
         GestureHarness: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  GestureIME:
+    build:
+      targets:
+        GestureIMEApp: all
         GestureKeyboard: all
     run:
       config: Debug

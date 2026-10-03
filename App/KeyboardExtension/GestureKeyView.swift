@@ -1,40 +1,59 @@
 import UIKit
+import GestureIMECore
 
-final class GestureKeyView: UIControl {
-    let keyID: String
+@MainActor
+protocol GestureKeyViewDelegate: AnyObject {
+    func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [ActionInvocation])
+}
 
-    var onTouchDown: ((CGPoint, CGSize) -> Void)?
-    var onTouchMove: ((CGPoint) -> Void)?
-    var onTouchUp: ((CGPoint) -> Void)?
-    var onTouchCancel: (() -> Void)?
+@MainActor
+final class GestureKeyView: UIView {
+    weak var delegate: GestureKeyViewDelegate?
 
+    private let spec: KeyboardKeySpec
     private let titleLabel = UILabel()
+    private let hintLabel = UILabel()
+    private let policyStore: GesturePolicyStore
 
-    init(keyID: String, title: String) {
-        self.keyID = keyID
+    private var trie: BindingTrie?
+    private var session: GestureSession?
+    private var sessionStart: CFTimeInterval = 0
+
+    init(spec: KeyboardKeySpec, policyStore: GesturePolicyStore) {
+        self.spec = spec
+        self.policyStore = policyStore
         super.init(frame: .zero)
-
+        translatesAutoresizingMaskIntoConstraints = false
         isMultipleTouchEnabled = false
         layer.cornerRadius = 8
         layer.borderWidth = 0.5
         layer.borderColor = UIColor.separator.cgColor
-        backgroundColor = UIColor.secondarySystemBackground
+        backgroundColor = .secondarySystemBackground
 
-        titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 19, weight: .medium)
+        titleLabel.text = spec.title
         titleLabel.textAlignment = .center
-        titleLabel.adjustsFontSizeToFitWidth = true
-        titleLabel.minimumScaleFactor = 0.6
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(titleLabel)
+        titleLabel.font = .systemFont(ofSize: 22, weight: .medium)
+
+        hintLabel.textAlignment = .center
+        hintLabel.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
+        hintLabel.textColor = .secondaryLabel
+        hintLabel.numberOfLines = 1
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, hintLabel])
+        stack.axis = .vertical
+        stack.alignment = .fill
+        stack.spacing = 1
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
 
         NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
-            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
-            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 4),
-            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 48)
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
+
+        trie = try? BindingTrieCompiler.compile(spec.bindingSet, keyID: spec.id)
+        accessibilityLabel = spec.title
     }
 
     required init?(coder: NSCoder) {
@@ -42,29 +61,73 @@ final class GestureKeyView: UIControl {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        isHighlighted = true
-        backgroundColor = UIColor.tertiarySystemFill
-        onTouchDown?(touch.location(in: self), bounds.size)
+        guard touches.count == 1, let touch = touches.first, let trie else { return }
+        let point = touch.location(in: self)
+        sessionStart = touch.timestamp
+        session = GestureSession(
+            keyID: spec.id,
+            profileRevision: "builtin.phase3.v1",
+            trie: trie,
+            policy: policyStore.policy,
+            keySize: GestureSize(width: bounds.width, height: bounds.height),
+            touchDown: GesturePoint(x: point.x, y: point.y),
+            atMs: 0
+        )
+        backgroundColor = .tertiarySystemFill
+        refreshHint()
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        onTouchMove?(touch.location(in: self))
+        guard var active = session, let touch = touches.first else { return }
+        let point = touch.location(in: self)
+        active.move(
+            to: GesturePoint(x: point.x, y: point.y),
+            atMs: elapsedMs(touch)
+        )
+        session = active
+        refreshHint()
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        defer {
-            isHighlighted = false
-            backgroundColor = UIColor.secondarySystemBackground
+        guard var active = session, let touch = touches.first else {
+            resetVisualState()
+            return
         }
-        guard let touch = touches.first else { return }
-        onTouchUp?(touch.location(in: self))
+        let point = touch.location(in: self)
+        active.move(to: GesturePoint(x: point.x, y: point.y), atMs: elapsedMs(touch))
+        let result = active.touchUp(atMs: elapsedMs(touch))
+        session = nil
+        resetVisualState()
+        delegate?.gestureKeyView(self, didDispatch: result.dispatchedActions)
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        isHighlighted = false
-        backgroundColor = UIColor.secondarySystemBackground
-        onTouchCancel?()
+        if var active = session {
+            _ = active.cancel()
+        }
+        session = nil
+        resetVisualState()
+    }
+
+    private func elapsedMs(_ touch: UITouch) -> Int {
+        max(0, Int((touch.timestamp - sessionStart) * 1000))
+    }
+
+    private func refreshHint() {
+        guard let session else {
+            hintLabel.text = nil
+            return
+        }
+        let path = session.path.tokens.map { $0.direction.rawValue.uppercased() }.joined(separator: ",")
+        let eligible = Direction8.canonicalOrder
+            .filter(session.eligibleDirections.contains)
+            .map { $0.rawValue.uppercased() }
+            .joined(separator: " ")
+        hintLabel.text = path.isEmpty ? eligible : "[\(path)]  \(eligible)"
+    }
+
+    private func resetVisualState() {
+        backgroundColor = .secondarySystemBackground
+        hintLabel.text = nil
     }
 }
