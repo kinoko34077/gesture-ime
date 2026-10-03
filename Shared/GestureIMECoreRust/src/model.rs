@@ -99,9 +99,9 @@ pub struct ActionInvocation {
 #[serde(rename_all = "camelCase")]
 pub struct BindingPresentation {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub text: OptionString>,
+    pub text: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub accessibility_label: OptionString>,
+    pub accessibility_label: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -125,10 +125,10 @@ pub struct HoldBehavior {
 #[serde(rename_all = "camelCase")]
 pub struct BindingBehavior {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub presentation: OptionBindingPresentation>,
+    pub presentation: Option<BindingPresentation>,
     pub on_release: Vec<ActionInvocation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hold: OptionHoldBehavior>,
+    pub hold: Option<HoldBehavior>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -152,9 +152,9 @@ pub struct BindingSet {
 pub struct KeyDefinition {
     pub id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub presentation: OptionBindingPresentation>,
+    pub presentation: Option<BindingPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub role: OptionString>,
+    pub role: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -165,9 +165,9 @@ pub struct LayoutPlacement {
     pub row: i64,
     pub column: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub width: Optionf64>,
+    pub width: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub height: Optionf64>,
+    pub height: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -206,5 +206,5 @@ pub struct ProfileBundle {
     pub layers: Vec<Layer>,
     pub macros: Vec<Macro>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub theme: OptionHashMap<String, Value>>,
+    pub theme: Option<HashMap<String, Value>>,
 }
