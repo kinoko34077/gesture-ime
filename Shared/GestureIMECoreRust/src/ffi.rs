@@ -1,5 +1,5 @@
 use crate::{
-    board_map, direction_from_coordinate, ActionInvocation, Board, BoardCoordinate,
+    board_map, direction_from_coordinate, macro_map, ActionInvocation, Board, BoardCoordinate,
     BoardGesturePolicy, BoardProfileCodec, BoardSession, BoardSessionTerminal, Direction8,
     GesturePoint, GestureSize, ProfileBundleV2, ProfileLimits,
 };
@@ -283,6 +283,7 @@ pub fn migrate_profile_to_v2_json(profile_json: String) -> Result<String, Shared
 pub struct SharedCoreRuntime {
     profile: ProfileBundleV2,
     boards: Arc<HashMap<String, Board>>,
+    macros: Arc<HashMap<String, Vec<ActionInvocation>>>,
     persistent_state: Arc<Mutex<HashMap<String, String>>>,
 }
 
@@ -293,9 +294,11 @@ impl SharedCoreRuntime {
         let profile = BoardProfileCodec::decode_and_validate(profile_json.as_bytes())
             .map_err(SharedCoreError::invalid_profile)?;
         let boards = Arc::new(board_map(&profile));
+        let macros = Arc::new(macro_map(&profile));
         Ok(Arc::new(Self {
             profile,
             boards,
+            macros,
             persistent_state: Arc::new(Mutex::new(HashMap::new())),
         }))
     }
@@ -506,6 +509,7 @@ impl SharedCoreRuntime {
             &entry_point,
             profile_revision,
             self.boards.clone(),
+            self.macros.clone(),
             self.persistent_state.clone(),
             policy,
             key_size.into(),
