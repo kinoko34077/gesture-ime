@@ -8,6 +8,7 @@
 // semantics come from GestureIMECoreShared through IOSSharedGestureRuntimeAdapter.
 //
 
+import Foundation
 import SwiftUI
 import AzooKeyUtils
 import KeyboardViews
@@ -370,7 +371,7 @@ private struct SharedGestureFlickKey: View {
                     .fill(fill)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
-                            .stroke(theme.borderColor.color, lineWidth: theme.borderWidth)
+                            .stroke(theme.borderColor.color, lineWidth: CGFloat(theme.borderWidth))
                     )
                     .shadow(color: .black.opacity(0.12), radius: 0.5, x: 0, y: 0.75)
 
@@ -549,7 +550,7 @@ private struct ProductUtilityPanelView: View {
         .background(theme.backgroundColor.color)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(theme.borderColor.color, lineWidth: max(0.5, theme.borderWidth))
+                .stroke(theme.borderColor.color, lineWidth: CGFloat(max(0.5, theme.borderWidth)))
         )
         .padding(8)
     }
