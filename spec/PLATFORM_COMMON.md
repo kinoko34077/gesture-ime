@@ -378,3 +378,18 @@ Shared fixtures test common semantics. Platform-only behavior belongs in platfor
 A Swift and Kotlin implementation are conformant when, for every applicable common fixture, they produce the fixture's expected path/result/validation class under the same explicit policy input.
 
 Semantic parity does not require identical internal types or line-for-line ports.
+
+## Profile v2 board-graph supersession
+
+`gesture-ime.profile.v1` remains a supported compatibility input. New durable authoring/runtime semantics are defined by `gesture-ime.profile.v2` and `spec/BOARD_GRAPH_V2.md`.
+
+For v2:
+
+- Board-local sparse relative coordinates replace GesturePath as the external spatial topology.
+- Repeated BoardTransition is the generic multi-stage primitive; two-stage Direction8 is a compatibility instance, not a schema ceiling.
+- transition lifetime is `persistent` or `transient`;
+- Hold may enter the same Board graph as a non-spatial trigger;
+- shared Rust owns v1-to-Board normalization and all v2 transition semantics;
+- Swift/Kotlin adapters may not redefine the Board graph independently.
+
+The v1 Direction8/GesturePath/BindingTrie sections below remain canonical only for v1 documents and compatibility normalization. Where they conflict with v2 semantics, `BOARD_GRAPH_V2.md` controls v2.
