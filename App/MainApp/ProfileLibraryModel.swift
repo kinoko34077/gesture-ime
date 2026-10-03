@@ -113,6 +113,20 @@ final class ProfileLibraryModel: ObservableObject {
         }
     }
 
+
+    func migrateToV2(profileID: String) {
+        guard let store else { return }
+        do {
+            let source = try store.load(id: profileID)
+            let sourceData = try source.encoded(pretty: true)
+            let migrated = try SharedRuntimeProfileValidator.migrateToV2(sourceData)
+            _ = try store.importProfile(migrated, replaceExisting: true)
+            try reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func document(id: String) throws -> ProfileDocument {
         guard let store else {
             throw ProfileAuthoringError.profileNotFound(id)
