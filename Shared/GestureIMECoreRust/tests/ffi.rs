@@ -352,3 +352,142 @@ fn ffi_layout_projection_tracks_persistent_board_baseline() {
     assert!(updated_key.eligible_directions.contains(&FfiDirection8::N));
     assert!(!updated_key.eligible_directions.contains(&FfiDirection8::E));
 }
+
+
+#[test]
+fn ffi_runtime_expands_v2_macro_release_into_ordered_actions() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v2-board-cardinal.valid.json"))
+            .expect("v2 fixture JSON");
+    profile["macros"] = serde_json::json!([{
+        "id": "macro.sample",
+        "actions": [
+            {"actionID": "text.insert", "arguments": {"text": "A"}},
+            {"actionID": "cursor.move", "arguments": {"offset": 1}}
+        ]
+    }]);
+    profile["boards"][0]["entries"][0]["onRelease"] = serde_json::json!([
+        {"actionID": "macro.run", "arguments": {"macro": "macro.sample"}}
+    ]);
+
+    let runtime = SharedCoreRuntime::new(profile.to_string()).expect("runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "key.a".into(),
+            runtime.profile_revision(),
+            FfiSize { width: 100.0, height: 100.0 },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let final_state = session.touch_up(Some(10)).expect("touch up");
+    let ids = final_state
+        .dispatched_actions
+        .iter()
+        .map(|action| action.action_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(ids, vec!["text.insert", "cursor.move"]);
+    assert!(!ids.contains(&"macro.run"));
+}
+
+#[test]
+fn ffi_runtime_expands_normalized_v1_macro_release() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-diagonal-two-stage.valid.json"))
+            .expect("v1 fixture JSON");
+    profile["macros"] = serde_json::json!([{
+        "id": "macro.sample",
+        "actions": [
+            {"actionID": "text.insert", "arguments": {"text": "V"}},
+            {"actionID": "cursor.move", "arguments": {"offset": -1}}
+        ]
+    }]);
+    profile["bindingSets"][0]["bindings"][0]["behavior"]["onRelease"] = serde_json::json!([
+        {"actionID": "macro.run", "arguments": {"macro": "macro.sample"}}
+    ]);
+
+    let runtime = SharedCoreRuntime::new(profile.to_string()).expect("runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "kana.a".into(),
+            runtime.profile_revision(),
+            FfiSize { width: 100.0, height: 100.0 },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let final_state = session.touch_up(Some(10)).expect("touch up");
+    let ids = final_state
+        .dispatched_actions
+        .iter()
+        .map(|action| action.action_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(ids, vec!["text.insert", "cursor.move"]);
+    assert!(!ids.contains(&"macro.run"));
+}
+
+#[test]
+fn ffi_runtime_expands_v2_macro_for_hold_start_and_repeat() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v2-board-cardinal.valid.json"))
+            .expect("v2 fixture JSON");
+    profile["macros"] = serde_json::json!([{
+        "id": "macro.timed",
+        "actions": [
+            {"actionID": "text.insert", "arguments": {"text": "H"}},
+            {"actionID": "cursor.move", "arguments": {"offset": 1}}
+        ]
+    }]);
+    profile["boards"][0]["entries"][0]["hold"] = serde_json::json!({
+        "delayMs": 100,
+        "onStart": [
+            {"actionID": "macro.run", "arguments": {"macro": "macro.timed"}}
+        ],
+        "repeat": {
+            "intervalMs": 50,
+            "actions": [
+                {"actionID": "macro.run", "arguments": {"macro": "macro.timed"}}
+            ]
+        },
+        "suppressOnReleaseAfterStart": true
+    });
+
+    let runtime = SharedCoreRuntime::new(profile.to_string()).expect("runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "key.a".into(),
+            runtime.profile_revision(),
+            FfiSize { width: 100.0, height: 100.0 },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let started = session.advance_time(100).expect("hold start");
+    let started_ids = started
+        .dispatched_actions
+        .iter()
+        .map(|action| action.action_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(started_ids, vec!["text.insert", "cursor.move"]);
+
+    let repeated = session.advance_time(150).expect("repeat");
+    let repeated_ids = repeated
+        .dispatched_actions
+        .iter()
+        .map(|action| action.action_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        repeated_ids,
+        vec!["text.insert", "cursor.move", "text.insert", "cursor.move"]
+    );
+    assert!(!repeated_ids.contains(&"macro.run"));
+}
