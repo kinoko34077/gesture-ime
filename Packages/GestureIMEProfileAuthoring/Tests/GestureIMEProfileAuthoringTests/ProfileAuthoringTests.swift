@@ -232,6 +232,21 @@ func v2KeyLayoutAndPolicyUseSharedDocumentPath() throws {
     let keys = try document.keys(layerID: "base")
     #expect(keys.map(\.id) == ["key.a"])
 
+    try document.setPlacement(
+        layerID: "base",
+        keyID: "key.a",
+        row: 2,
+        column: 3,
+        width: 1.5,
+        height: 2
+    )
+    let movedKeys = try document.keys(layerID: "base")
+    let moved = try #require(movedKeys.first)
+    #expect(moved.row == 2)
+    #expect(moved.column == 3)
+    #expect(moved.width == 1.5)
+    #expect(moved.height == 2)
+
     try document.setGesturePolicy(
         ProfileGesturePolicy(
             deadZone: 0.2,
