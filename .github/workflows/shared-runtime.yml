@@ -58,11 +58,18 @@ jobs:
         run: |
           OUT="$RUNNER_TEMP/GestureIMECoreSwift"
           SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
-          MODULEMAP="$(find "$OUT" -maxdepth 1 -name '*.modulemap' -print -quit)"
-          cat "$MODULEMAP"
-          head -n 20 "$SWIFT_FILE"
-          swiftc -typecheck \
+          MODULEMAP="$(find "$OUT" -maxdepth 1 -name '*.modulemap' ! -name 'module.modulemap' -print -quit)"
+          cp "$MODULEMAP" "$OUT/module.modulemap"
+
+          echo "--- generated Swift import preamble ---"
+          sed -n '1,80p' "$SWIFT_FILE"
+          echo "--- generated module map ---"
+          cat "$OUT/module.modulemap"
+
+          swiftc \
+            -typecheck \
+            -parse-as-library \
             -I "$OUT" \
-            -Xcc "-I$OUT" \
-            -Xcc "-fmodule-map-file=$MODULEMAP" \
+            -L target/debug \
+            -lgesture_ime_core \
             "$SWIFT_FILE"
