@@ -942,7 +942,13 @@ impl BoardSession {
         self.cancel_holds();
 
         if let Some(transition) = entry.transition {
-            self.apply_transition(transition, point, self.current_time_ms);
+            if !self.apply_transition(transition, point, self.current_time_ms) {
+                // A bounded/failed transition becomes terminal selection for the
+                // remainder of this interaction instead of accumulating retries.
+                self.selected_coordinate = Some(coordinate);
+                self.candidate_coordinate = Some(coordinate);
+                self.hold_locked = true;
+            }
         } else {
             self.selected_coordinate = Some(coordinate);
             self.candidate_coordinate = Some(coordinate);
@@ -960,7 +966,7 @@ impl BoardSession {
                 if due_ms <= target_ms {
                     self.board_hold_due_ms = None;
                     self.entry_hold_due_ms = None;
-                    self.apply_transition(transition, self.last_point, due_ms);
+                    let _ = self.apply_transition(transition, self.last_point, due_ms);
                 }
             }
         }
@@ -1017,7 +1023,7 @@ impl BoardSession {
         if self.selected_coordinate.is_none() {
             if let Some(center) = self.entry_at(BoardCoordinate::ORIGIN).cloned() {
                 if let Some(transition) = center.transition {
-                    self.apply_transition(transition, self.last_point, self.current_time_ms);
+                    let _ = self.apply_transition(transition, self.last_point, self.current_time_ms);
                 }
             }
         }
@@ -1103,13 +1109,13 @@ impl BoardSession {
         transition: BoardTransition,
         point: GesturePoint,
         at_ms: i64,
-    ) {
+    ) -> bool {
         if self.transition_count >= ProfileLimits::BOARD_TRANSITIONS_PER_INTERACTION {
             self.transition_limit_hit = true;
-            return;
+            return false;
         }
         if !self.boards.contains_key(&transition.target_board_ref) {
-            return;
+            return false;
         }
 
         self.transition_count += 1;
@@ -1130,6 +1136,7 @@ impl BoardSession {
         self.hold_started = false;
         self.hold_locked = false;
         self.schedule_holds(at_ms, true);
+        true
     }
 
     fn schedule_holds(&mut self, at_ms: i64, include_board_trigger: bool) {
