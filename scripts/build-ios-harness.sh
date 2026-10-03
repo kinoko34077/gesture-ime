@@ -20,7 +20,7 @@ xcodegen generate --spec project.yml
 xcodebuild \
   -project GestureIME.xcodeproj \
   -scheme GestureHarness \
-  -configuration Debug \
+  -configuration Release \
   -sdk iphoneos \
   -destination 'generic/platform=iOS' \
   -derivedDataPath "$DERIVED_DATA" \
@@ -29,7 +29,7 @@ xcodebuild \
   CODE_SIGN_IDENTITY="" \
   build
 
-APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphoneos/GestureHarness.app"
+APP_PATH="$DERIVED_DATA/Build/Products/Release-iphoneos/GestureHarness.app"
 if [[ ! -d "$APP_PATH" ]]; then
   echo "Expected app bundle missing: $APP_PATH" >&2
   find "$DERIVED_DATA/Build/Products" -maxdepth 3 -type d -name '*.app' -print || true
