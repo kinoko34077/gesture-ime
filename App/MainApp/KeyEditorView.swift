@@ -28,6 +28,10 @@ struct KeyEditorView: View {
         editor.bindings(keyID: key.id)
     }
 
+    private var entryPoint: ProfileBoardEntryPointSummary? {
+        editor.entryPoint(keyID: key.id)
+    }
+
     var body: some View {
         Form {
             Section("Key") {
@@ -50,34 +54,64 @@ struct KeyEditorView: View {
                 }
             }
 
-            Section("Bindings") {
-                ForEach(bindings) { binding in
-                    Button {
-                        editingBinding = binding
-                    } label: {
-                        HStack {
-                            Text(pathLabel(binding.path))
-                                .monospaced()
-                                .frame(width: 80, alignment: .leading)
-                            Text(binding.presentationText ?? binding.actions.first?.actionID ?? "No action")
-                                .foregroundStyle(.primary)
-                            Spacer()
+            if editor.isBoardGraphV2 {
+                Section("Board Entry Point") {
+                    Picker(
+                        "Initial / persistent Board",
+                        selection: Binding(
+                            get: {
+                                entryPoint?.boardID
+                                    ?? editor.boards.first?.id
+                                    ?? ""
+                            },
+                            set: { editor.setEntryPointBoard(keyID: key.id, boardID: $0) }
+                        )
+                    ) {
+                        ForEach(editor.boards.map(\.id), id: \.self) { id in
+                            Text(id).tag(id)
                         }
                     }
-                    .buttonStyle(.plain)
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            editor.removeBinding(keyID: key.id, path: binding.path)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                }
 
-                Button {
-                    addingBinding = true
-                } label: {
-                    Label("Add binding", systemImage: "plus")
+                    if let boardID = entryPoint?.boardID {
+                        NavigationLink("Edit \(boardID)") {
+                            BoardEditorView(editor: editor, boardID: boardID)
+                        }
+                    }
+
+                    Text("Spatial stages are repeated Board transitions from Board-local coordinates; they are not limited to two stages.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Section("Bindings") {
+                    ForEach(bindings) { binding in
+                        Button {
+                            editingBinding = binding
+                        } label: {
+                            HStack {
+                                Text(pathLabel(binding.path))
+                                    .monospaced()
+                                    .frame(width: 80, alignment: .leading)
+                                Text(binding.presentationText ?? binding.actions.first?.actionID ?? "No action")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                editor.removeBinding(keyID: key.id, path: binding.path)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+
+                    Button {
+                        addingBinding = true
+                    } label: {
+                        Label("Add binding", systemImage: "plus")
+                    }
                 }
             }
         }

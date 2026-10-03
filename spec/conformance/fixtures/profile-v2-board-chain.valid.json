@@ -1,0 +1,43 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.chain",
+  "name": "V2 Chain",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "initialCellCommitDistance": 0.4,
+    "subsequentCellCommitDistance": 0.4,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [
+    {"id":"key.test","presentation":{"text":"T"}}
+  ],
+  "layouts": [
+    {"id":"layout.base","placements":[{"keyID":"key.test","row":0,"column":0}]}
+  ],
+  "layers": [
+    {"id":"base","layoutRef":"layout.base"}
+  ],
+  "boards": [
+    {
+      "id":"board.root",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"noop","arguments":{}}]},
+        {"coordinate":{"x":1,"y":0},"presentation":{"text":"E"},"transition":{"targetBoardRef":"board.e","lifetime":"transient"}}
+      ]
+    },
+    {
+      "id":"board.e",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"presentation":{"text":"stage1"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"stage1"}}]},
+        {"coordinate":{"x":0,"y":-1},"presentation":{"text":"two"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"two"}}]}
+      ]
+    }
+  ],
+  "entryPoints": [
+    {"id":"entry.base.key.test","layerID":"base","keyID":"key.test","trigger":"press","boardRef":"board.root"}
+  ],
+  "macros": []
+}

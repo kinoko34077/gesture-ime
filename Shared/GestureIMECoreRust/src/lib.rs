@@ -1,9 +1,11 @@
+pub mod board;
 pub mod ffi;
 pub mod model;
 pub mod session;
 pub mod trie;
 pub mod validation;
 
+pub use board::*;
 pub use ffi::*;
 pub use model::*;
 pub use session::*;

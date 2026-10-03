@@ -122,6 +122,18 @@ final class ProductKeyboardViewModel: ObservableObject {
         panel = nil
     }
 
+    func refreshLayoutFromRuntime() {
+        guard let layerID = layerStack.last else { return }
+        do {
+            layout = try KeyboardLayoutRuntime.compile(
+                sharedRuntime: sharedRuntime,
+                layerID: layerID
+            )
+        } catch {
+            return
+        }
+    }
+
     private func dispatch(_ action: FfiActionInvocation) {
         let arguments = Self.decodeArguments(action.argumentsJson)
 
@@ -274,7 +286,8 @@ struct AzooKeyProductKeyboardRoot: View {
                     policyStore: model.policyStore,
                     gestureCoordinator: model.gestureCoordinator,
                     theme: theme,
-                    onActions: model.dispatch
+                    onActions: model.dispatch,
+                    onSemanticStateChanged: model.refreshLayoutFromRuntime
                 )
             }
             .padding(.horizontal, 5)
@@ -342,6 +355,7 @@ private struct ProductFlickGrid: View {
     let gestureCoordinator: ProductGestureCoordinator
     let theme: AzooKeyTheme
     let onActions: ([FfiActionInvocation]) -> Void
+    let onSemanticStateChanged: () -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -369,7 +383,8 @@ private struct ProductFlickGrid: View {
                         policyStore: policyStore,
                         gestureCoordinator: gestureCoordinator,
                         theme: theme,
-                        onActions: onActions
+                        onActions: onActions,
+                        onSemanticStateChanged: onSemanticStateChanged
                     )
                     .frame(
                         width: CGFloat(key.width) * unitWidth
@@ -396,9 +411,12 @@ private struct SharedGestureFlickKey: View {
     let gestureCoordinator: ProductGestureCoordinator
     let theme: AzooKeyTheme
     let onActions: ([FfiActionInvocation]) -> Void
+    let onSemanticStateChanged: () -> Void
 
     @State private var session: IOSSharedGestureSessionAdapter?
+    @State private var semanticClockTask: Task<Void, Never>?
     @State private var startedAt: TimeInterval?
+    @State private var dispatchedActionCount = 0
     @State private var pressed = false
     @State private var registeredTouch = false
     @State private var gestureToken: ProductGestureCoordinator.Token?
@@ -448,6 +466,9 @@ private struct SharedGestureFlickKey: View {
                     }
             )
             .accessibilityLabel(runtime.title)
+            .onDisappear {
+                finishNativeTouch()
+            }
         }
     }
 
@@ -506,7 +527,9 @@ private struct SharedGestureFlickKey: View {
                     atMs: 0,
                     policyOverride: policyStore.policy
                 )
+                dispatchedActionCount = 0
                 pressed = true
+                startSemanticClock()
             } catch {
                 cancelSemanticSession()
                 return
@@ -514,11 +537,16 @@ private struct SharedGestureFlickKey: View {
         }
 
         guard let session else { return }
-        _ = try? session.move(
-            x: Double(value.location.x),
-            y: Double(value.location.y),
-            atMs: elapsedMs()
-        )
+        do {
+            let result = try session.move(
+                x: Double(value.location.x),
+                y: Double(value.location.y),
+                atMs: elapsedMs()
+            )
+            consumeNewActions(from: result)
+        } catch {
+            cancelSemanticSession()
+        }
     }
 
     private func endGesture(value: DragGesture.Value, size: CGSize) {
@@ -533,13 +561,15 @@ private struct SharedGestureFlickKey: View {
 
         let atMs = elapsedMs()
         do {
-            _ = try session.move(
+            let moved = try session.move(
                 x: Double(value.location.x),
                 y: Double(value.location.y),
                 atMs: atMs
             )
+            consumeNewActions(from: moved)
             let result = try session.touchUp(atMs: atMs)
-            onActions(result.dispatchedActions)
+            consumeNewActions(from: result)
+            onSemanticStateChanged()
         } catch {
             _ = try? session.cancel(atMs: atMs)
         }
@@ -554,6 +584,35 @@ private struct SharedGestureFlickKey: View {
         )
     }
 
+    private func startSemanticClock() {
+        semanticClockTask?.cancel()
+        semanticClockTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(16))
+                guard !Task.isCancelled, let session else { return }
+                do {
+                    let result = try session.advanceTime(toMs: elapsedMs())
+                    consumeNewActions(from: result)
+                } catch {
+                    cancelSemanticSession()
+                    return
+                }
+            }
+        }
+    }
+
+    private func consumeNewActions(from snapshot: FfiSessionSnapshot) {
+        let actions = snapshot.dispatchedActions
+        if actions.count < dispatchedActionCount {
+            dispatchedActionCount = 0
+        }
+        guard actions.count > dispatchedActionCount else { return }
+
+        let newActions = Array(actions.dropFirst(dispatchedActionCount))
+        dispatchedActionCount = actions.count
+        onActions(newActions)
+    }
+
     private func cancelSemanticSession() {
         if let session {
             _ = try? session.cancel(atMs: elapsedMs())
@@ -562,8 +621,11 @@ private struct SharedGestureFlickKey: View {
     }
 
     private func resetSemanticSession() {
+        semanticClockTask?.cancel()
+        semanticClockTask = nil
         session = nil
         startedAt = nil
+        dispatchedActionCount = 0
         pressed = false
     }
 

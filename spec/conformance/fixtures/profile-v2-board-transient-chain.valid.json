@@ -1,0 +1,58 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.transient-chain",
+  "name": "V2 Transient Chain",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.1,
+    "initialCellCommitDistance": 0.3,
+    "subsequentCellCommitDistance": 0.3,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [
+    {"id":"key.test","presentation":{"text":"T"}}
+  ],
+  "layouts": [
+    {"id":"layout.base","placements":[{"keyID":"key.test","row":0,"column":0}]}
+  ],
+  "layers": [
+    {"id":"base","layoutRef":"layout.base"}
+  ],
+  "boards": [
+    {
+      "id":"board.root",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"text.insert","arguments":{"text":"R"}}]},
+        {"coordinate":{"x":1,"y":0},"transition":{"targetBoardRef":"board.t1","lifetime":"transient"}}
+      ]
+    },
+    {
+      "id":"board.t1",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"text.insert","arguments":{"text":"T1"}}]},
+        {"coordinate":{"x":0,"y":-1},"transition":{"targetBoardRef":"board.t2","lifetime":"transient"}},
+        {"coordinate":{"x":0,"y":1},"transition":{"targetBoardRef":"board.p","lifetime":"persistent"}}
+      ]
+    },
+    {
+      "id":"board.t2",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"text.insert","arguments":{"text":"T2"}}]}
+      ]
+    },
+    {
+      "id":"board.p",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"text.insert","arguments":{"text":"P"}}]}
+      ]
+    }
+  ],
+  "entryPoints": [
+    {"id":"entry.test","layerID":"base","keyID":"key.test","trigger":"press","boardRef":"board.root"}
+  ],
+  "macros": []
+}

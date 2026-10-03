@@ -1,7 +1,9 @@
 use crate::{
-    ActionInvocation, BindingTrieCompiler, Direction8, GesturePoint, GesturePolicy, GestureSession,
-    GestureSize, GestureTerminal, ProfileBundle, ProfileCodec,
+    board_map, direction_from_coordinate, ActionInvocation, Board, BoardCoordinate,
+    BoardGesturePolicy, BoardProfileCodec, BoardSession, BoardSessionTerminal, Direction8,
+    GesturePoint, GestureSize, ProfileBundleV2, ProfileLimits,
 };
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -38,12 +40,12 @@ pub enum FfiGestureTerminal {
     Invalidated,
 }
 
-impl From<GestureTerminal> for FfiGestureTerminal {
-    fn from(value: GestureTerminal) -> Self {
+impl From<BoardSessionTerminal> for FfiGestureTerminal {
+    fn from(value: BoardSessionTerminal) -> Self {
         match value {
-            GestureTerminal::Committed => Self::Committed,
-            GestureTerminal::Cancelled => Self::Cancelled,
-            GestureTerminal::Invalidated => Self::Invalidated,
+            BoardSessionTerminal::Committed => Self::Committed,
+            BoardSessionTerminal::Cancelled => Self::Cancelled,
+            BoardSessionTerminal::Invalidated => Self::Invalidated,
         }
     }
 }
@@ -96,26 +98,42 @@ pub struct FfiGesturePolicy {
     pub max_directional_stages: i64,
 }
 
-impl From<GesturePolicy> for FfiGesturePolicy {
-    fn from(value: GesturePolicy) -> Self {
+impl From<BoardGesturePolicy> for FfiGesturePolicy {
+    fn from(value: BoardGesturePolicy) -> Self {
         Self {
             dead_zone: value.dead_zone,
-            stage1_commit_distance: value.stage1_commit_distance,
-            stage2_commit_distance: value.stage2_commit_distance,
+            stage1_commit_distance: value.initial_cell_commit_distance,
+            stage2_commit_distance: value.subsequent_cell_commit_distance,
             angular_hysteresis_degrees: value.angular_hysteresis_degrees,
-            max_directional_stages: value.max_directional_stages,
+            // Compatibility field for existing platform tuning UI. Board runtime itself is
+            // bounded by BOARD_TRANSITIONS_PER_INTERACTION rather than a two-stage ceiling.
+            max_directional_stages: ProfileLimits::BOARD_TRANSITIONS_PER_INTERACTION as i64,
         }
     }
 }
 
-impl From<FfiGesturePolicy> for GesturePolicy {
+impl From<FfiGesturePolicy> for BoardGesturePolicy {
     fn from(value: FfiGesturePolicy) -> Self {
         Self {
             dead_zone: value.dead_zone,
-            stage1_commit_distance: value.stage1_commit_distance,
-            stage2_commit_distance: value.stage2_commit_distance,
+            initial_cell_commit_distance: value.stage1_commit_distance,
+            subsequent_cell_commit_distance: value.stage2_commit_distance,
             angular_hysteresis_degrees: value.angular_hysteresis_degrees,
-            max_directional_stages: value.max_directional_stages,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiBoardCoordinate {
+    pub x: i64,
+    pub y: i64,
+}
+
+impl From<BoardCoordinate> for FfiBoardCoordinate {
+    fn from(value: BoardCoordinate) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
         }
     }
 }
@@ -158,6 +176,7 @@ pub struct FfiKeyLayout {
     pub column: i64,
     pub width: f64,
     pub height: f64,
+    // Compatibility projection for the existing 8-direction keyboard surface.
     pub eligible_directions: Vec<FfiDirection8>,
     pub first_stage_presentations: Vec<FfiDirectionalPresentation>,
 }
@@ -173,13 +192,27 @@ pub struct FfiLayoutSnapshot {
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct FfiSessionSnapshot {
     pub terminal: Option<FfiGestureTerminal>,
+
+    // Compatibility projections for existing clients. They are derived from committed
+    // Board coordinates and are not the v2 semantic authority.
     pub path: Vec<FfiDirection8>,
     pub eligible_directions: Vec<FfiDirection8>,
-    pub anchor: FfiPoint,
     pub candidate_direction: Option<FfiDirection8>,
     pub committed_directional_stages: i64,
+
+    pub anchor: FfiPoint,
     pub commit_anchors: Vec<FfiPoint>,
     pub dispatched_actions: Vec<FfiActionInvocation>,
+
+    // Canonical Board-graph state.
+    pub current_board_id: String,
+    pub persistent_board_id: String,
+    pub eligible_coordinates: Vec<FfiBoardCoordinate>,
+    pub candidate_coordinate: Option<FfiBoardCoordinate>,
+    pub selected_coordinate: Option<FfiBoardCoordinate>,
+    pub committed_coordinates: Vec<FfiBoardCoordinate>,
+    pub board_transition_count: i64,
+    pub transition_limit_hit: bool,
 }
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
@@ -193,14 +226,14 @@ pub enum SharedCoreError {
     MissingLayer { layer_id: String },
     #[error("missing layout for layer: {layer_id}")]
     MissingLayout { layer_id: String },
-    #[error("missing binding set for layer: {layer_id}")]
-    MissingBindingSet { layer_id: String },
     #[error("key is not present in active layer: {key_id}")]
     MissingKey { key_id: String },
     #[error("missing key definition: {key_id}")]
     MissingKeyDefinition { key_id: String },
-    #[error("binding trie error {code}: {detail:?}")]
-    BindingTrie {
+    #[error("missing board entry point for {layer_id}:{key_id}")]
+    MissingEntryPoint { layer_id: String, key_id: String },
+    #[error("board runtime error {code}: {detail:?}")]
+    BoardRuntime {
         code: String,
         detail: Option<String>,
     },
@@ -216,8 +249,8 @@ impl SharedCoreError {
         }
     }
 
-    fn binding_trie(error: crate::ProfileValidationError) -> Self {
-        Self::BindingTrie {
+    fn board_runtime(error: crate::ProfileValidationError) -> Self {
+        Self::BoardRuntime {
             code: error.code.as_str().to_owned(),
             detail: error.detail,
         }
@@ -226,7 +259,7 @@ impl SharedCoreError {
 
 #[uniffi::export]
 pub fn validate_profile_json(profile_json: String) -> FfiValidationResult {
-    match ProfileCodec::decode_and_validate(profile_json.as_bytes()) {
+    match BoardProfileCodec::decode_and_validate(profile_json.as_bytes()) {
         Ok(_) => FfiValidationResult {
             valid: true,
             error_code: None,
@@ -240,18 +273,31 @@ pub fn validate_profile_json(profile_json: String) -> FfiValidationResult {
     }
 }
 
+#[uniffi::export]
+pub fn migrate_profile_to_v2_json(profile_json: String) -> Result<String, SharedCoreError> {
+    BoardProfileCodec::migrate_to_v2_json(profile_json.as_bytes())
+        .map_err(SharedCoreError::invalid_profile)
+}
+
 #[derive(uniffi::Object)]
 pub struct SharedCoreRuntime {
-    profile: ProfileBundle,
+    profile: ProfileBundleV2,
+    boards: Arc<HashMap<String, Board>>,
+    persistent_state: Arc<Mutex<HashMap<String, String>>>,
 }
 
 #[uniffi::export]
 impl SharedCoreRuntime {
     #[uniffi::constructor]
     pub fn new(profile_json: String) -> Result<Arc<Self>, SharedCoreError> {
-        let profile =
-            ProfileCodec::decode_and_validate(profile_json.as_bytes()).map_err(SharedCoreError::invalid_profile)?;
-        Ok(Arc::new(Self { profile }))
+        let profile = BoardProfileCodec::decode_and_validate(profile_json.as_bytes())
+            .map_err(SharedCoreError::invalid_profile)?;
+        let boards = Arc::new(board_map(&profile));
+        Ok(Arc::new(Self {
+            profile,
+            boards,
+            persistent_state: Arc::new(Mutex::new(HashMap::new())),
+        }))
     }
 
     pub fn profile_id(&self) -> String {
@@ -288,14 +334,10 @@ impl SharedCoreRuntime {
                 layer_id: layer_id.clone(),
             })?;
 
-        let binding_set = self
-            .profile
-            .binding_sets
-            .iter()
-            .find(|set| set.id == layer.binding_set_ref)
-            .ok_or_else(|| SharedCoreError::MissingBindingSet {
-                layer_id: layer_id.clone(),
-            })?;
+        let persistent_state = self
+            .persistent_state
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
 
         let mut keys = Vec::with_capacity(layout.placements.len());
         let mut row_count = 0_i64;
@@ -311,52 +353,87 @@ impl SharedCoreRuntime {
                     key_id: placement.key_id.clone(),
                 })?;
 
-            let trie = BindingTrieCompiler::compile(binding_set, &placement.key_id)
-                .map_err(SharedCoreError::binding_trie)?;
+            let entry_point = self
+                .profile
+                .entry_points
+                .iter()
+                .find(|entry| {
+                    entry.layer_id == layer_id
+                        && entry.key_id == placement.key_id
+                        && entry.trigger == "press"
+                });
 
-            let eligible: Vec<FfiDirection8> = Direction8::CANONICAL_ORDER
-                .into_iter()
-                .filter(|direction| trie.root.eligible_directions().contains(direction))
-                .map(Into::into)
-                .collect();
+            let root_board = entry_point.and_then(|entry| {
+                let active_board_id = persistent_state
+                    .get(&entry.id)
+                    .unwrap_or(&entry.board_ref);
+                self.boards.get(active_board_id)
+            });
 
+            let mut eligible_set = HashSet::new();
             let mut first_stage_presentations = Vec::new();
-            for direction in Direction8::CANONICAL_ORDER {
-                let path = crate::GesturePath(vec![crate::GestureToken { direction }]);
-                if let Some(node) = trie.node(&path) {
-                    if let Some(behavior) = &node.behavior {
+
+            if let Some(board) = root_board {
+                for entry in &board.entries {
+                    if entry.coordinate.chebyshev_radius() != 1 {
+                        continue;
+                    }
+                    let Some(direction) = direction_from_coordinate(entry.coordinate) else {
+                        continue;
+                    };
+                    eligible_set.insert(direction);
+                    if let Some(presentation) = &entry.presentation {
                         first_stage_presentations.push(FfiDirectionalPresentation {
                             direction: direction.into(),
-                            text: behavior
-                                .presentation
-                                .as_ref()
-                                .and_then(|presentation| presentation.text.clone()),
-                            accessibility_label: behavior
-                                .presentation
-                                .as_ref()
-                                .and_then(|presentation| presentation.accessibility_label.clone()),
+                            text: presentation.text.clone(),
+                            accessibility_label: presentation.accessibility_label.clone(),
                         });
                     }
                 }
             }
+
+            let eligible_directions = Direction8::CANONICAL_ORDER
+                .into_iter()
+                .filter(|direction| eligible_set.contains(direction))
+                .map(Into::into)
+                .collect();
+
+            first_stage_presentations.sort_by_key(|presentation| {
+                Direction8::CANONICAL_ORDER
+                    .iter()
+                    .position(|direction| FfiDirection8::from(*direction) == presentation.direction)
+                    .unwrap_or(usize::MAX)
+            });
 
             let width = placement.width.unwrap_or(1.0).max(1.0);
             let height = placement.height.unwrap_or(1.0).max(1.0);
             row_count = row_count.max(placement.row + height.ceil() as i64);
             column_count = column_count.max(placement.column + width.ceil() as i64);
 
+            let active_title = root_board
+                .and_then(|board| {
+                    board.entries.iter().find(|entry| {
+                        entry.coordinate == BoardCoordinate::ORIGIN
+                    })
+                })
+                .and_then(|entry| entry.presentation.as_ref())
+                .and_then(|presentation| presentation.text.clone())
+                .or_else(|| {
+                    definition
+                        .presentation
+                        .as_ref()
+                        .and_then(|presentation| presentation.text.clone())
+                });
+
             keys.push(FfiKeyLayout {
                 id: placement.key_id.clone(),
-                title: definition
-                    .presentation
-                    .as_ref()
-                    .and_then(|presentation| presentation.text.clone()),
+                title: active_title,
                 role: definition.role.clone(),
                 row: placement.row,
                 column: placement.column,
                 width,
                 height,
-                eligible_directions: eligible,
+                eligible_directions,
                 first_stage_presentations,
             });
         }
@@ -398,49 +475,63 @@ impl SharedCoreRuntime {
                 layer_id: layer_id.clone(),
             })?;
 
-        if !layout.placements.iter().any(|placement| placement.key_id == key_id) {
+        if !layout
+            .placements
+            .iter()
+            .any(|placement| placement.key_id == key_id)
+        {
             return Err(SharedCoreError::MissingKey { key_id });
         }
 
-        let binding_set = self
+        let entry_point = self
             .profile
-            .binding_sets
+            .entry_points
             .iter()
-            .find(|set| set.id == layer.binding_set_ref)
-            .ok_or_else(|| SharedCoreError::MissingBindingSet {
+            .find(|entry| {
+                entry.layer_id == layer_id
+                    && entry.key_id == key_id
+                    && entry.trigger == "press"
+            })
+            .ok_or_else(|| SharedCoreError::MissingEntryPoint {
                 layer_id: layer_id.clone(),
-            })?;
-
-        let trie =
-            BindingTrieCompiler::compile(binding_set, &key_id).map_err(SharedCoreError::binding_trie)?;
+                key_id: key_id.clone(),
+            })?
+            .clone();
 
         let policy = policy_override
             .map(Into::into)
             .unwrap_or_else(|| self.profile.gesture_policy.clone());
 
+        let session = BoardSession::new(
+            &entry_point,
+            profile_revision,
+            self.boards.clone(),
+            self.persistent_state.clone(),
+            policy,
+            key_size.into(),
+            touch_down.into(),
+            at_ms,
+        )
+        .map_err(SharedCoreError::board_runtime)?;
+
         Ok(Arc::new(SharedGestureSession {
-            inner: Mutex::new(GestureSession::new(
-                key_id,
-                profile_revision,
-                trie,
-                policy,
-                key_size.into(),
-                touch_down.into(),
-                at_ms,
-            )),
+            inner: Mutex::new(session),
         }))
     }
 }
 
 #[derive(uniffi::Object)]
 pub struct SharedGestureSession {
-    inner: Mutex<GestureSession>,
+    inner: Mutex<BoardSession>,
 }
 
 #[uniffi::export]
 impl SharedGestureSession {
     pub fn snapshot(&self) -> Result<FfiSessionSnapshot, SharedCoreError> {
-        let session = self.inner.lock().map_err(|_| SharedCoreError::SessionState)?;
+        let session = self
+            .inner
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
         Ok(snapshot(&session))
     }
 
@@ -449,60 +540,110 @@ impl SharedGestureSession {
         point: FfiPoint,
         at_ms: Option<i64>,
     ) -> Result<FfiSessionSnapshot, SharedCoreError> {
-        let mut session = self.inner.lock().map_err(|_| SharedCoreError::SessionState)?;
+        let mut session = self
+            .inner
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
         session.move_to(point.into(), at_ms);
         Ok(snapshot(&session))
     }
 
     pub fn advance_time(&self, to_ms: i64) -> Result<FfiSessionSnapshot, SharedCoreError> {
-        let mut session = self.inner.lock().map_err(|_| SharedCoreError::SessionState)?;
+        let mut session = self
+            .inner
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
         session.advance_time(to_ms);
         Ok(snapshot(&session))
     }
 
     pub fn touch_up(&self, at_ms: Option<i64>) -> Result<FfiSessionSnapshot, SharedCoreError> {
-        let mut session = self.inner.lock().map_err(|_| SharedCoreError::SessionState)?;
+        let mut session = self
+            .inner
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
         session.touch_up(at_ms);
         Ok(snapshot(&session))
     }
 
     pub fn cancel(&self, at_ms: Option<i64>) -> Result<FfiSessionSnapshot, SharedCoreError> {
-        let mut session = self.inner.lock().map_err(|_| SharedCoreError::SessionState)?;
+        let mut session = self
+            .inner
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
         session.cancel(at_ms);
         Ok(snapshot(&session))
     }
 
     pub fn invalidate(&self, at_ms: Option<i64>) -> Result<FfiSessionSnapshot, SharedCoreError> {
-        let mut session = self.inner.lock().map_err(|_| SharedCoreError::SessionState)?;
+        let mut session = self
+            .inner
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
         session.invalidate(at_ms);
         Ok(snapshot(&session))
     }
 }
 
-fn snapshot(session: &GestureSession) -> FfiSessionSnapshot {
-    let eligible = Direction8::CANONICAL_ORDER
+fn snapshot(session: &BoardSession) -> FfiSessionSnapshot {
+    let path = session
+        .committed_coordinates
+        .iter()
+        .filter_map(|coordinate| direction_from_coordinate(*coordinate))
+        .map(Into::into)
+        .collect();
+
+    let eligible_coordinates = session
+        .eligible_coordinates()
         .into_iter()
-        .filter(|direction| session.eligible_directions().contains(direction))
+        .map(Into::into)
+        .collect::<Vec<_>>();
+
+    let eligible_direction_set = session
+        .eligible_coordinates()
+        .into_iter()
+        .filter_map(direction_from_coordinate)
+        .collect::<HashSet<_>>();
+
+    let eligible_directions = Direction8::CANONICAL_ORDER
+        .into_iter()
+        .filter(|direction| eligible_direction_set.contains(direction))
         .map(Into::into)
         .collect();
 
     FfiSessionSnapshot {
         terminal: session.terminal.map(Into::into),
-        path: session
-            .path
-            .0
-            .iter()
-            .map(|token| token.direction.into())
-            .collect(),
-        eligible_directions: eligible,
+        path,
+        eligible_directions,
         anchor: session.anchor.into(),
-        candidate_direction: session.candidate_direction.map(Into::into),
-        committed_directional_stages: session.committed_directional_stages,
-        commit_anchors: session.commit_anchors.iter().copied().map(Into::into).collect(),
+        candidate_direction: session
+            .candidate_coordinate
+            .and_then(direction_from_coordinate)
+            .map(Into::into),
+        committed_directional_stages: session.committed_coordinates.len() as i64,
+        commit_anchors: session
+            .commit_anchors
+            .iter()
+            .copied()
+            .map(Into::into)
+            .collect(),
         dispatched_actions: session
             .dispatched_actions
             .iter()
             .map(Into::into)
             .collect(),
+        current_board_id: session.current_board_id.clone(),
+        persistent_board_id: session.persistent_board_id.clone(),
+        eligible_coordinates,
+        candidate_coordinate: session.candidate_coordinate.map(Into::into),
+        selected_coordinate: session.selected_coordinate.map(Into::into),
+        committed_coordinates: session
+            .committed_coordinates
+            .iter()
+            .copied()
+            .map(Into::into)
+            .collect(),
+        board_transition_count: session.transition_count as i64,
+        transition_limit_hit: session.transition_limit_hit,
     }
 }

@@ -38,3 +38,10 @@ Canonical comparisons cover:
 - semantic action dispatch presence/absence.
 
 Rendering, haptic waveform, native event identity, timer implementation, and OS lifecycle details are not compared here.
+
+
+## Board-graph v2 fixtures
+
+Profile v2 fixtures are indexed separately by `board-graph-v2.manifest.json` while the v2 runtime is introduced. They cover sparse relative coordinates, chained local-origin resets, Hold transitions, persistent/transient lifetimes, and duplicate-coordinate validation.
+
+After the shared Rust v2 path is active, these fixtures become executable cross-platform conformance evidence. Existing v1 fixtures remain regression requirements and verify compatibility normalization.

@@ -124,3 +124,148 @@ func cloneAndActiveProfileMetadataRoundTrip() throws {
     try store.delete(id: "user.clone")
     #expect(try store.activeProfileID() == nil)
 }
+
+
+private let validV2Profile = """
+{
+  "schema":"gesture-ime.profile.v2",
+  "id":"test.v2",
+  "name":"V2",
+  "version":1,
+  "gesturePolicy":{
+    "deadZone":0.1,
+    "initialCellCommitDistance":0.3,
+    "subsequentCellCommitDistance":0.4,
+    "angularHysteresisDegrees":8,
+    "futurePolicyField":"keep"
+  },
+  "keyDefinitions":[
+    {"id":"key.a","presentation":{"text":"あ"},"futureKey":"keep"}
+  ],
+  "layouts":[
+    {"id":"layout.base","placements":[{"keyID":"key.a","row":0,"column":0}]}
+  ],
+  "layers":[{"id":"base","layoutRef":"layout.base"}],
+  "boards":[
+    {
+      "id":"board.root",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"presentation":{"text":"あ"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"あ"}}],"futureEntry":"keep"}
+      ],
+      "futureBoard":"keep"
+    },
+    {
+      "id":"board.next",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[]
+    }
+  ],
+  "entryPoints":[
+    {"id":"entry.base.a","layerID":"base","keyID":"key.a","trigger":"press","boardRef":"board.root"}
+  ],
+  "macros":[],
+  "futureTopLevel":{"keep":true}
+}
+"""
+
+@Test
+func v2BoardEditingPreservesUnknownFieldsAndSupportsTransitions() throws {
+    var document = try ProfileDocument(jsonString: validV2Profile)
+    #expect(document.isBoardGraphV2)
+
+    let policy = try document.gesturePolicy()
+    #expect(policy.stage1CommitDistance == 0.3)
+    #expect(policy.stage2CommitDistance == 0.4)
+
+    let entryPointValue = try document.entryPoint(layerID: "base", keyID: "key.a")
+    let entryPoint = try #require(entryPointValue)
+    #expect(entryPoint.boardID == "board.root")
+
+    try document.upsertBoardEntry(
+        boardID: "board.root",
+        originalCoordinate: nil,
+        coordinate: ProfileBoardCoordinate(x: 1, y: 0),
+        presentationText: "E",
+        actions: [],
+        transition: ProfileBoardTransitionDraft(
+            targetBoardID: "board.next",
+            lifetime: .transient
+        )
+    )
+    try document.setBoardHoldTransition(
+        boardID: "board.root",
+        delayMs: 350,
+        transition: ProfileBoardTransitionDraft(
+            targetBoardID: "board.next",
+            lifetime: .persistent
+        )
+    )
+
+    let entries = try document.boardEntries(boardID: "board.root")
+    let east = try #require(entries.first(where: { $0.coordinate == .init(x: 1, y: 0) }))
+    #expect(east.transition?.targetBoardID == "board.next")
+    #expect(east.transition?.lifetime == .transient)
+
+    let holdValue = try document.boardHoldTrigger(boardID: "board.root")
+    let hold = try #require(holdValue)
+    #expect(hold.delayMs == 350)
+    #expect(hold.transition.lifetime == .persistent)
+
+    let data = try document.encoded(pretty: false)
+    let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    #expect((object["futureTopLevel"] as? [String: Any])?["keep"] as? Bool == true)
+    let boards = try #require(object["boards"] as? [[String: Any]])
+    let root = try #require(boards.first(where: { $0["id"] as? String == "board.root" }))
+    #expect(root["futureBoard"] as? String == "keep")
+    let encodedEntries = try #require(root["entries"] as? [[String: Any]])
+    let center = try #require(encodedEntries.first(where: {
+        let coordinate = $0["coordinate"] as? [String: Any]
+        return coordinate?["x"] as? Int == 0 && coordinate?["y"] as? Int == 0
+    }))
+    #expect(center["futureEntry"] as? String == "keep")
+}
+
+@Test
+func v2KeyLayoutAndPolicyUseSharedDocumentPath() throws {
+    var document = try ProfileDocument(jsonString: validV2Profile)
+    let keys = try document.keys(layerID: "base")
+    #expect(keys.map(\.id) == ["key.a"])
+
+    try document.setPlacement(
+        layerID: "base",
+        keyID: "key.a",
+        row: 2,
+        column: 3,
+        width: 1.5,
+        height: 2
+    )
+    let movedKeys = try document.keys(layerID: "base")
+    let moved = try #require(movedKeys.first)
+    #expect(moved.row == 2)
+    #expect(moved.column == 3)
+    #expect(moved.width == 1.5)
+    #expect(moved.height == 2)
+
+    try document.setGesturePolicy(
+        ProfileGesturePolicy(
+            deadZone: 0.2,
+            stage1CommitDistance: 0.5,
+            stage2CommitDistance: 0.6,
+            angularHysteresisDegrees: 9,
+            maxDirectionalStages: 16
+        )
+    )
+    let updated = try document.gesturePolicy()
+    #expect(updated.deadZone == 0.2)
+    #expect(updated.stage1CommitDistance == 0.5)
+    #expect(updated.stage2CommitDistance == 0.6)
+
+    let data = try document.encoded(pretty: false)
+    let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let policy = try #require(object["gesturePolicy"] as? [String: Any])
+    #expect(policy["initialCellCommitDistance"] as? Double == 0.5)
+    #expect(policy["subsequentCellCommitDistance"] as? Double == 0.6)
+    #expect(policy["maxDirectionalStages"] == nil)
+    #expect(policy["futurePolicyField"] as? String == "keep")
+}

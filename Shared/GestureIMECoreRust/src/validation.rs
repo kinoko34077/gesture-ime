@@ -15,6 +15,11 @@ pub enum ProfileValidationCode {
     LimitBindingsPerKey,
     LimitBindingsTotal,
     LimitTrieNodes,
+    LimitBoards,
+    LimitBoardEntries,
+    LimitEntryPoints,
+    LimitBoardTriggers,
+    LimitBoardTransitions,
     PathDepth,
     LimitMacros,
     LimitActions,
@@ -23,6 +28,7 @@ pub enum ProfileValidationCode {
     DuplicateId,
     MissingReference,
     DuplicateBindingPath,
+    DuplicateBoardCoordinate,
     UnknownAction,
     InvalidActionArguments,
     MacroNesting,
@@ -42,6 +48,11 @@ impl ProfileValidationCode {
             Self::LimitBindingsPerKey => "E_LIMIT_BINDINGS_PER_KEY",
             Self::LimitBindingsTotal => "E_LIMIT_BINDINGS_TOTAL",
             Self::LimitTrieNodes => "E_LIMIT_TRIE_NODES",
+            Self::LimitBoards => "E_LIMIT_BOARDS",
+            Self::LimitBoardEntries => "E_LIMIT_BOARD_ENTRIES",
+            Self::LimitEntryPoints => "E_LIMIT_ENTRY_POINTS",
+            Self::LimitBoardTriggers => "E_LIMIT_BOARD_TRIGGERS",
+            Self::LimitBoardTransitions => "E_LIMIT_BOARD_TRANSITIONS",
             Self::PathDepth => "E_PATH_DEPTH",
             Self::LimitMacros => "E_LIMIT_MACROS",
             Self::LimitActions => "E_LIMIT_ACTIONS",
@@ -50,6 +61,7 @@ impl ProfileValidationCode {
             Self::DuplicateId => "E_DUPLICATE_ID",
             Self::MissingReference => "E_MISSING_REFERENCE",
             Self::DuplicateBindingPath => "E_DUPLICATE_BINDING_PATH",
+            Self::DuplicateBoardCoordinate => "E_DUPLICATE_BOARD_COORDINATE",
             Self::UnknownAction => "E_UNKNOWN_ACTION",
             Self::InvalidActionArguments => "E_INVALID_ACTION_ARGUMENTS",
             Self::MacroNesting => "E_MACRO_NESTING",
@@ -90,6 +102,11 @@ impl ProfileLimits {
     pub const BINDINGS_PER_KEY: usize = 128;
     pub const BINDINGS_TOTAL: usize = 8192;
     pub const TRIE_NODES: usize = 16384;
+    pub const BOARDS: usize = 16384;
+    pub const BOARD_ENTRIES_PER_BOARD: usize = 256;
+    pub const ENTRY_POINTS: usize = 8192;
+    pub const BOARD_TRIGGERS_PER_BOARD: usize = 16;
+    pub const BOARD_TRANSITIONS_PER_INTERACTION: usize = 16;
     pub const PATH_DEPTH: usize = 2;
     pub const MACROS: usize = 128;
     pub const ENDPOINT_ACTIONS: usize = 16;
@@ -343,7 +360,7 @@ impl ProfileValidator {
     }
 }
 
-fn check_limit(
+pub(crate) fn check_limit(
     actual: usize,
     limit: usize,
     code: ProfileValidationCode,
@@ -355,7 +372,7 @@ fn check_limit(
     }
 }
 
-fn validate_unique_ids<'a>(
+pub(crate) fn validate_unique_ids<'a>(
     values: impl Iterator<Item = &'a str>,
 ) -> Result<(), ProfileValidationError> {
     let mut seen = HashSet::new();
@@ -367,7 +384,7 @@ fn validate_unique_ids<'a>(
     Ok(())
 }
 
-fn validate_presentation(
+pub(crate) fn validate_presentation(
     presentation: Option<&BindingPresentation>,
     owner: &str,
 ) -> Result<(), ProfileValidationError> {
@@ -388,7 +405,7 @@ fn validate_presentation(
     Ok(())
 }
 
-fn validate_dimension(value: Option<f64>, owner: &str) -> Result<(), ProfileValidationError> {
+pub(crate) fn validate_dimension(value: Option<f64>, owner: &str) -> Result<(), ProfileValidationError> {
     if let Some(value) = value {
         if !value.is_finite() || value <= 0.0 || value > 32.0 {
             return Err(ProfileValidationError::new(
@@ -425,7 +442,7 @@ fn validate_gesture_policy(policy: &GesturePolicy) -> Result<(), ProfileValidati
     }
 }
 
-fn validate_actions(
+pub(crate) fn validate_actions(
     actions: &[ActionInvocation],
     in_macro: bool,
     layer_ids: &HashSet<&str>,
@@ -618,7 +635,7 @@ fn get_i64(arguments: &Map<String, Value>, key: &str) -> Option<i64> {
     arguments.get(key)?.as_i64()
 }
 
-fn is_valid_id(value: &str) -> bool {
+pub(crate) fn is_valid_id(value: &str) -> bool {
     let bytes = value.as_bytes();
     if bytes.is_empty() || bytes.len() > 128 || !bytes[0].is_ascii_alphanumeric() {
         return false;

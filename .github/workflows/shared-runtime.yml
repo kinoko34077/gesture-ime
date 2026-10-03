@@ -102,6 +102,9 @@ jobs:
           DYLD_LIBRARY_PATH="$PWD/target/debug" \
             "$BIN" "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
 
+          DYLD_LIBRARY_PATH="$PWD/target/debug" \
+            "$BIN" "../../spec/conformance/fixtures/profile-v2-board-chain.valid.json"
+
           PRODUCT_SMOKE="../../Platforms/iOS/SharedRuntime/ProductProfileSharedRuntimeSmoke.swift"
           PRODUCT_BIN="$RUNNER_TEMP/product-profile-swift-smoke"
           swiftc \
@@ -195,6 +198,13 @@ jobs:
             -classpath "$JAR:$JNA_JAR" \
             net.kinotch.gestureime.shared.SharedRuntimeKotlinSmoke \
             "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
+
+          LD_LIBRARY_PATH="$PWD/target/debug" \
+            kotlin \
+            -J-Djna.library.path="$PWD/target/debug" \
+            -classpath "$JAR:$JNA_JAR" \
+            net.kinotch.gestureime.shared.SharedRuntimeKotlinSmoke \
+            "../../spec/conformance/fixtures/profile-v2-board-chain.valid.json"
 
           LD_LIBRARY_PATH="$PWD/target/debug" \
             kotlin \
