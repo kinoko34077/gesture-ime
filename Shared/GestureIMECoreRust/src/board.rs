@@ -889,7 +889,7 @@ mod tests {
         let profile = BoardProfileCodec::decode_any_to_v2(V1_TWO_STAGE).unwrap();
         assert_eq!(profile.schema, "gesture-ime.profile.v2");
         assert!(!profile.boards.is_empty());
-        let root = profile.root_board_for_key("base", "test.gesture").unwrap();
+        let root = profile.root_board_for_key("base", "kana.a").unwrap();
         let root_board = profile.board(root).unwrap();
         let east = root_board
             .entries
