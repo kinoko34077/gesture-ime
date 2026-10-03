@@ -88,10 +88,6 @@ final class AzooKeyCompositionBridge {
         !composingText.isEmpty
     }
 
-    func setTextDocumentProxy(_ proxy: any UITextDocumentProxy) {
-        displayedTextManager.setTextDocumentProxy(.mainProxy(proxy))
-    }
-
     func insert(_ text: String) {
         guard !text.isEmpty else { return }
 
