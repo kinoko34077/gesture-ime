@@ -515,6 +515,7 @@ pub fn normalize_v1_profile(
 ) -> Result<ProfileBundleV2, ProfileValidationError> {
     let mut boards = Vec::new();
     let mut entry_points = Vec::new();
+    let mut generated_compat_semantics: HashSet<(String, String)> = HashSet::new();
 
     for layer in &profile.layers {
         let layout = profile
@@ -547,105 +548,115 @@ pub fn normalize_v1_profile(
         semantic_key_ids.dedup();
 
         for key_id in semantic_key_ids {
-            // Reuse the accepted compiler as a compatibility preflight.
-            BindingTrieCompiler::compile(binding_set, &key_id)?;
+            let semantic_key = (binding_set.id.clone(), key_id.clone());
 
-            let mut nodes: HashMap<Vec<Direction8>, PrefixNode> = HashMap::new();
-            nodes.entry(Vec::new()).or_default();
+            if generated_compat_semantics.insert(semantic_key) {
+                // Reuse the accepted compiler as a compatibility preflight.
+                BindingTrieCompiler::compile(binding_set, &key_id)?;
 
-            for binding in binding_set
-                .bindings
-                .iter()
-                .filter(|binding| binding.key_id == key_id)
-            {
-                let path: Vec<Direction8> =
-                    binding.path.0.iter().map(|token| token.direction).collect();
-                nodes.entry(path.clone()).or_default().behavior =
-                    Some(binding.behavior.clone());
+                let mut nodes: HashMap<Vec<Direction8>, PrefixNode> = HashMap::new();
+                nodes.entry(Vec::new()).or_default();
 
-                for index in 0..path.len() {
-                    let parent = path[..index].to_vec();
-                    let child = path[index];
-                    nodes.entry(parent).or_default().children.insert(child);
-                    nodes.entry(path[..=index].to_vec()).or_default();
-                }
-            }
+                for binding in binding_set
+                    .bindings
+                    .iter()
+                    .filter(|binding| binding.key_id == key_id)
+                {
+                    let path: Vec<Direction8> =
+                        binding.path.0.iter().map(|token| token.direction).collect();
+                    nodes.entry(path.clone()).or_default().behavior =
+                        Some(binding.behavior.clone());
 
-            let mut prefixes: Vec<Vec<Direction8>> = nodes.keys().cloned().collect();
-            prefixes.sort_by(|lhs, rhs| {
-                lhs.len().cmp(&rhs.len()).then_with(|| {
-                    direction_path_key(lhs).cmp(&direction_path_key(rhs))
-                })
-            });
-
-            for prefix in &prefixes {
-                let node = nodes.get(prefix).expect("prefix node");
-                let board_id = compat_board_id(&layer.id, &key_id, prefix);
-                let mut entries = Vec::new();
-
-                if let Some(behavior) = &node.behavior {
-                    entries.push(BoardEntry {
-                        coordinate: BoardCoordinate::ORIGIN,
-                        presentation: behavior.presentation.clone(),
-                        on_release: behavior.on_release.clone(),
-                        hold: behavior.hold.clone(),
-                        transition: None,
-                    });
-                }
-
-                let mut children: Vec<Direction8> = node.children.iter().copied().collect();
-                children.sort_by_key(|direction| direction_rank(*direction));
-
-                for direction in children {
-                    let mut child_prefix = prefix.clone();
-                    child_prefix.push(direction);
-                    let child_node = nodes
-                        .get(&child_prefix)
-                        .expect("child prefix node");
-                    let coordinate = coordinate_from_direction(direction);
-
-                    if child_node.children.is_empty() {
-                        let behavior = child_node.behavior.clone().unwrap_or(BindingBehavior {
-                            presentation: None,
-                            on_release: Vec::new(),
-                            hold: None,
-                        });
-                        entries.push(BoardEntry {
-                            coordinate,
-                            presentation: behavior.presentation,
-                            on_release: behavior.on_release,
-                            hold: behavior.hold,
-                            transition: None,
-                        });
-                    } else {
-                        entries.push(BoardEntry {
-                            coordinate,
-                            presentation: child_node
-                                .behavior
-                                .as_ref()
-                                .and_then(|behavior| behavior.presentation.clone()),
-                            on_release: Vec::new(),
-                            hold: None,
-                            transition: Some(BoardTransition {
-                                target_board_ref: compat_board_id(
-                                    &layer.id,
-                                    &key_id,
-                                    &child_prefix,
-                                ),
-                                lifetime: BoardTransitionLifetime::Transient,
-                            }),
-                        });
+                    for index in 0..path.len() {
+                        let parent = path[..index].to_vec();
+                        let child = path[index];
+                        nodes.entry(parent).or_default().children.insert(child);
+                        nodes.entry(path[..=index].to_vec()).or_default();
                     }
                 }
 
-                boards.push(Board {
-                    id: board_id,
-                    selection_policy: BoardSelectionPolicy {
-                        kind: "relativeCoordinate".into(),
-                    },
-                    entries,
-                    triggers: Vec::new(),
+                let mut prefixes: Vec<Vec<Direction8>> = nodes
+                    .iter()
+                    .filter(|(prefix, node)| prefix.is_empty() || !node.children.is_empty())
+                    .map(|(prefix, _)| prefix.clone())
+                    .collect();
+                prefixes.sort_by(|lhs, rhs| {
+                    lhs.len().cmp(&rhs.len()).then_with(|| {
+                        direction_path_key(lhs).cmp(&direction_path_key(rhs))
+                    })
                 });
+
+                for prefix in &prefixes {
+                    let node = nodes.get(prefix).expect("prefix node");
+                    let board_id = compat_board_id(&binding_set.id, &key_id, prefix);
+                    let mut entries = Vec::new();
+
+                    if let Some(behavior) = &node.behavior {
+                        entries.push(BoardEntry {
+                            coordinate: BoardCoordinate::ORIGIN,
+                            presentation: behavior.presentation.clone(),
+                            on_release: behavior.on_release.clone(),
+                            hold: behavior.hold.clone(),
+                            transition: None,
+                        });
+                    }
+
+                    let mut children: Vec<Direction8> =
+                        node.children.iter().copied().collect();
+                    children.sort_by_key(|direction| direction_rank(*direction));
+
+                    for direction in children {
+                        let mut child_prefix = prefix.clone();
+                        child_prefix.push(direction);
+                        let child_node = nodes
+                            .get(&child_prefix)
+                            .expect("child prefix node");
+                        let coordinate = coordinate_from_direction(direction);
+
+                        if child_node.children.is_empty() {
+                            let behavior =
+                                child_node.behavior.clone().unwrap_or(BindingBehavior {
+                                    presentation: None,
+                                    on_release: Vec::new(),
+                                    hold: None,
+                                });
+                            entries.push(BoardEntry {
+                                coordinate,
+                                presentation: behavior.presentation,
+                                on_release: behavior.on_release,
+                                hold: behavior.hold,
+                                transition: None,
+                            });
+                        } else {
+                            entries.push(BoardEntry {
+                                coordinate,
+                                presentation: child_node
+                                    .behavior
+                                    .as_ref()
+                                    .and_then(|behavior| behavior.presentation.clone()),
+                                on_release: Vec::new(),
+                                hold: None,
+                                transition: Some(BoardTransition {
+                                    target_board_ref: compat_board_id(
+                                        &binding_set.id,
+                                        &key_id,
+                                        &child_prefix,
+                                    ),
+                                    lifetime: BoardTransitionLifetime::Transient,
+                                }),
+                            });
+                        }
+                    }
+
+                    boards.push(Board {
+                        id: board_id,
+                        selection_policy: BoardSelectionPolicy {
+                            kind: "relativeCoordinate".into(),
+                        },
+                        entries,
+                        triggers: Vec::new(),
+                    });
+                }
             }
 
             entry_points.push(BoardEntryPoint {
@@ -653,7 +664,7 @@ pub fn normalize_v1_profile(
                 layer_id: layer.id.clone(),
                 key_id: key_id.clone(),
                 trigger: "press".into(),
-                board_ref: compat_board_id(&layer.id, &key_id, &[]),
+                board_ref: compat_board_id(&binding_set.id, &key_id, &[]),
             });
         }
     }
@@ -732,9 +743,9 @@ pub fn direction_from_coordinate(coordinate: BoardCoordinate) -> Option<Directio
     }
 }
 
-fn compat_board_id(layer_id: &str, key_id: &str, prefix: &[Direction8]) -> String {
+fn compat_board_id(scope_id: &str, key_id: &str, prefix: &[Direction8]) -> String {
     let raw = format!(
-        "board|{layer_id}|{key_id}|{}",
+        "board|{scope_id}|{key_id}|{}",
         prefix
             .iter()
             .map(|direction| format!("{direction:?}"))
