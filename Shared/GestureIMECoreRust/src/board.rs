@@ -50,13 +50,13 @@ pub struct BoardTransition {
 pub struct BoardEntry {
     pub coordinate: BoardCoordinate,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub presentation: OptionBindingPresentation>,
+    pub presentation: Option<BindingPresentation>,
     #[serde(default)]
     pub on_release: Vec<ActionInvocation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hold: OptionHoldBehavior>,
+    pub hold: Option<HoldBehavior>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub transition: OptionBoardTransition>,
+    pub transition: Option<BoardTransition>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -65,7 +65,7 @@ pub struct BoardTrigger {
     #[serde(rename = "type")]
     pub trigger_type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub delay_ms: Optioni64>,
+    pub delay_ms: Option<i64>,
     pub transition: BoardTransition,
 }
 
@@ -128,7 +128,7 @@ pub struct ProfileBundleV2 {
     pub entry_points: Vec<BoardEntryPoint>,
     pub macros: Vec<Macro>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub theme: OptionHashMap<String, Value>>,
+    pub theme: Option<HashMap<String, Value>>,
 }
 
 pub struct BoardProfileCodec;
