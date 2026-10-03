@@ -10,7 +10,7 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
     private var layoutRuntime: KeyboardLayoutRuntime?
     private var policyStore: GesturePolicyStore?
-    private var composition: AzooKeyCompositionController?
+    private var composition: AzooKeyCompositionBridge?
     private var keyViews: [ObjectIdentifier: GestureKeyView] = [:]
     private var touchingKeys = Set<ObjectIdentifier>()
     private var blockedByMultitouch = false
@@ -24,11 +24,11 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         view.addSubview(candidateBar)
         view.addSubview(keyboardGrid)
 
-        let composition = AzooKeyCompositionController(proxy: textDocumentProxy)
-        composition.onSnapshotChanged = { [weak self] snapshot in
+        let composition = AzooKeyCompositionBridge(proxy: textDocumentProxy)
+        composition.onCandidatesChanged = { [weak self] snapshots in
             self?.candidateBar.render(
-                candidates: snapshot.candidates,
-                selectedIndex: snapshot.selectedIndex
+                candidates: snapshots.map(\.text),
+                selectedIndex: snapshots.first(where: \.selected)?.index
             )
         }
         candidateBar.onCandidateSelected = { [weak composition] index in
@@ -158,7 +158,7 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
         case "text.directInsert":
             if let text = action.arguments["text"]?.stringValue {
-                composition?.insert(text, direct: true)
+                composition?.directInsert(text)
             }
 
         case "edit.delete":
@@ -168,11 +168,11 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
         case "cursor.move":
             if let offset = action.arguments["offset"]?.intValue {
-                composition?.moveCursor(offset: offset)
+                composition?.moveCursor(offset)
             }
 
         case "conversion.commit":
-            composition?.commit()
+            composition?.commitSelectionOrRaw()
 
         case "conversion.selectCandidate":
             if let index = action.arguments["index"]?.intValue {
