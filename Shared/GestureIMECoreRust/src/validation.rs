@@ -372,7 +372,7 @@ pub(crate) fn check_limit(
     }
 }
 
-fn validate_unique_ids<'a>(
+pub(crate) fn validate_unique_ids<'a>(
     values: impl Iterator<Item = &'a str>,
 ) -> Result<(), ProfileValidationError> {
     let mut seen = HashSet::new();
