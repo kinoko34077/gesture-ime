@@ -2,6 +2,7 @@ import Foundation
 
 struct KeyboardKeyRuntime: Identifiable {
     let id: String
+    let layerID: String
     let title: String
     let role: String?
     let firstStagePresentation: [String: String]
@@ -13,6 +14,7 @@ struct KeyboardKeyRuntime: Identifiable {
 
 struct KeyboardLayoutRuntime {
     let sharedRuntime: IOSSharedGestureRuntimeAdapter
+    let layerID: String
     let keys: [KeyboardKeyRuntime]
     let rowCount: Int
     let columnCount: Int
@@ -21,6 +23,13 @@ struct KeyboardLayoutRuntime {
 
     static func compile(profileJSON: String, layerID: String = "base") throws -> KeyboardLayoutRuntime {
         let sharedRuntime = try IOSSharedGestureRuntimeAdapter(profileJSON: profileJSON)
+        return try compile(sharedRuntime: sharedRuntime, layerID: layerID)
+    }
+
+    static func compile(
+        sharedRuntime: IOSSharedGestureRuntimeAdapter,
+        layerID: String
+    ) throws -> KeyboardLayoutRuntime {
         let layout = try sharedRuntime.compileLayout(layerID: layerID)
 
         let keys = layout.keys.map { key in
@@ -32,6 +41,7 @@ struct KeyboardLayoutRuntime {
 
             return KeyboardKeyRuntime(
                 id: key.id,
+                layerID: layerID,
                 title: key.title ?? key.id,
                 role: key.role,
                 firstStagePresentation: presentations,
@@ -44,6 +54,7 @@ struct KeyboardLayoutRuntime {
 
         return KeyboardLayoutRuntime(
             sharedRuntime: sharedRuntime,
+            layerID: layerID,
             keys: keys,
             rowCount: Int(layout.rowCount),
             columnCount: Int(layout.columnCount),

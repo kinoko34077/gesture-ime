@@ -130,6 +130,7 @@ final class GestureKeyView: UIView {
 
         do {
             session = try sharedRuntime.beginSession(
+                layerID: runtime.layerID,
                 keyID: runtime.id,
                 keyWidth: Double(bounds.width),
                 keyHeight: Double(bounds.height),

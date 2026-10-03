@@ -9,6 +9,7 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
     private var layoutRuntime: KeyboardLayoutRuntime?
     private var policyStore: GesturePolicyStore?
+    private var layerStack: [String] = ["base"]
     private var composition: AzooKeyCompositionBridge?
     private var keyViews: [ObjectIdentifier: GestureKeyView] = [:]
     private var touchingKeys = Set<ObjectIdentifier>()
@@ -75,6 +76,10 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
     }
 
     private func installKeyboard(runtime: KeyboardLayoutRuntime, store: GesturePolicyStore) {
+        touchingKeys.removeAll()
+        blockedByMultitouch = false
+        keyViews.removeAll()
+
         var items: [KeyboardGridView.Item] = []
 
         for keyRuntime in runtime.keys {
@@ -173,6 +178,19 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
                 composition?.moveCursor(offset)
             }
 
+        case "layer.set":
+            if let layer = arguments["layer"] as? String {
+                setLayer(layer)
+            }
+
+        case "layer.push":
+            if let layer = arguments["layer"] as? String {
+                pushLayer(layer)
+            }
+
+        case "layer.pop":
+            popLayer()
+
         case "conversion.commit":
             composition?.commitSelectionOrRaw()
 
@@ -215,6 +233,56 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         if let value = value as? Int { return value }
         if let value = value as? NSNumber { return value.intValue }
         return nil
+    }
+
+    private func setLayer(_ layerID: String) {
+        guard let current = layoutRuntime, let store = policyStore else { return }
+        do {
+            let runtime = try KeyboardLayoutRuntime.compile(
+                sharedRuntime: current.sharedRuntime,
+                layerID: layerID
+            )
+            layerStack = [layerID]
+            layoutRuntime = runtime
+            installKeyboard(runtime: runtime, store: store)
+        } catch {
+            installError("Layer switch failed: \(layerID)\n\(error)")
+        }
+    }
+
+    private func pushLayer(_ layerID: String) {
+        guard layerStack.count < 16,
+              let current = layoutRuntime,
+              let store = policyStore else { return }
+        do {
+            let runtime = try KeyboardLayoutRuntime.compile(
+                sharedRuntime: current.sharedRuntime,
+                layerID: layerID
+            )
+            layerStack.append(layerID)
+            layoutRuntime = runtime
+            installKeyboard(runtime: runtime, store: store)
+        } catch {
+            installError("Layer push failed: \(layerID)\n\(error)")
+        }
+    }
+
+    private func popLayer() {
+        guard layerStack.count > 1 else { return }
+        layerStack.removeLast()
+        guard let layerID = layerStack.last,
+              let current = layoutRuntime,
+              let store = policyStore else { return }
+        do {
+            let runtime = try KeyboardLayoutRuntime.compile(
+                sharedRuntime: current.sharedRuntime,
+                layerID: layerID
+            )
+            layoutRuntime = runtime
+            installKeyboard(runtime: runtime, store: store)
+        } catch {
+            installError("Layer pop failed: \(layerID)\n\(error)")
+        }
     }
 
     private func showTuning() {
