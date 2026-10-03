@@ -24,6 +24,32 @@ fn ffi_validation_preserves_canonical_error_code() {
 }
 
 #[test]
+fn ffi_validation_rejects_v2_board_entry_without_meaningful_member() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v2-board-cardinal.valid.json"))
+            .expect("v2 fixture JSON");
+    profile["boards"][0]["entries"][0] = serde_json::json!({
+        "coordinate": {"x": 0, "y": 0}
+    });
+
+    let result = validate_profile_json(profile.to_string());
+    assert!(!result.valid, "schema-invalid BoardEntry must fail activation");
+    assert_eq!(result.error_code.as_deref(), Some("E_UNSUPPORTED_SCHEMA"));
+}
+
+#[test]
+fn ffi_validation_rejects_v2_coordinate_unknown_member() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v2-board-cardinal.valid.json"))
+            .expect("v2 fixture JSON");
+    profile["boards"][0]["entries"][0]["coordinate"]["z"] = serde_json::json!(0);
+
+    let result = validate_profile_json(profile.to_string());
+    assert!(!result.valid, "coordinate additionalProperties must fail activation");
+    assert_eq!(result.error_code.as_deref(), Some("E_UNSUPPORTED_SCHEMA"));
+}
+
+#[test]
 fn ffi_runtime_drives_two_stage_session_without_platform_semantics() {
     let runtime = SharedCoreRuntime::new(fixture("profile-diagonal-two-stage.valid.json"))
         .expect("runtime");
