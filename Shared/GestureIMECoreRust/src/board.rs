@@ -159,14 +159,15 @@ impl BoardProfileCodec {
                 let legacy = ProfileCodec::decode_and_validate(bytes)?;
                 normalize_v1_profile(&legacy)?
             }
-            "gesture-ime.profile.v2" => serde_json::from_value::<ProfileBundleV2>(value).map_err(
-                |error| {
+            "gesture-ime.profile.v2" => {
+                validate_v2_structural_contract(&value)?;
+                serde_json::from_value::<ProfileBundleV2>(value).map_err(|error| {
                     ProfileValidationError::new(
                         ProfileValidationCode::UnsupportedSchema,
                         Some(error.to_string()),
                     )
-                },
-            )?,
+                })?
+            }
             _ => {
                 return Err(ProfileValidationError::simple(
                     ProfileValidationCode::UnsupportedSchema,
@@ -187,6 +188,45 @@ impl BoardProfileCodec {
             )
         })
     }
+}
+
+fn validate_v2_structural_contract(value: &Value) -> Result<(), ProfileValidationError> {
+    let Some(boards) = value.get("boards").and_then(Value::as_array) else {
+        return Ok(());
+    };
+
+    for board in boards {
+        let Some(entries) = board.get("entries").and_then(Value::as_array) else {
+            continue;
+        };
+
+        for entry in entries {
+            let Some(object) = entry.as_object() else {
+                continue;
+            };
+
+            let has_meaningful_member = ["presentation", "onRelease", "hold", "transition"]
+                .iter()
+                .any(|key| object.contains_key(*key));
+            if !has_meaningful_member {
+                return Err(ProfileValidationError::new(
+                    ProfileValidationCode::UnsupportedSchema,
+                    Some("boardEntry requires presentation, onRelease, hold, or transition".into()),
+                ));
+            }
+
+            if let Some(coordinate) = object.get("coordinate").and_then(Value::as_object) {
+                if coordinate.keys().any(|key| key != "x" && key != "y") {
+                    return Err(ProfileValidationError::new(
+                        ProfileValidationCode::UnsupportedSchema,
+                        Some("boardEntry.coordinate contains an unknown member".into()),
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub struct BoardProfileValidator;
