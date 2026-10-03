@@ -98,10 +98,10 @@ pub struct ActionInvocation {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct BindingPresentation {
-    #[serde(default)]
-    pub text: Option<String>,
-    #[serde(default)]
-    pub accessibility_label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: OptionString>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accessibility_label: OptionString>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -116,7 +116,7 @@ pub struct RepeatBehavior {
 pub struct HoldBehavior {
     pub delay_ms: i64,
     pub on_start: Vec<ActionInvocation>,
-    #[serde(rename = "repeat", default)]
+    #[serde(rename = "repeat", default, skip_serializing_if = "Option::is_none")]
     pub repeat_behavior: Option<RepeatBehavior>,
     pub suppress_on_release_after_start: bool,
 }
@@ -124,11 +124,11 @@ pub struct HoldBehavior {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BindingBehavior {
-    #[serde(default)]
-    pub presentation: Option<BindingPresentation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presentation: OptionBindingPresentation>,
     pub on_release: Vec<ActionInvocation>,
-    #[serde(default)]
-    pub hold: Option<HoldBehavior>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hold: OptionHoldBehavior>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -151,10 +151,10 @@ pub struct BindingSet {
 #[serde(rename_all = "camelCase")]
 pub struct KeyDefinition {
     pub id: String,
-    #[serde(default)]
-    pub presentation: Option<BindingPresentation>,
-    #[serde(default)]
-    pub role: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presentation: OptionBindingPresentation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: OptionString>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -164,10 +164,10 @@ pub struct LayoutPlacement {
     pub key_id: String,
     pub row: i64,
     pub column: i64,
-    #[serde(default)]
-    pub width: Option<f64>,
-    #[serde(default)]
-    pub height: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Optionf64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Optionf64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -205,6 +205,6 @@ pub struct ProfileBundle {
     pub binding_sets: Vec<BindingSet>,
     pub layers: Vec<Layer>,
     pub macros: Vec<Macro>,
-    #[serde(default)]
-    pub theme: Option<HashMap<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: OptionHashMap<String, Value>>,
 }
