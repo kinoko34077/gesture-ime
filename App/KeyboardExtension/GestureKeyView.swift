@@ -1,11 +1,10 @@
 import UIKit
-import GestureIMECore
 
 @MainActor
 protocol GestureKeyViewDelegate: AnyObject {
     func gestureKeyViewShouldBegin(_ keyView: GestureKeyView) -> Bool
     func gestureKeyViewDidEndTouch(_ keyView: GestureKeyView)
-    func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [ActionInvocation])
+    func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [FfiActionInvocation])
 }
 
 @MainActor
@@ -13,13 +12,14 @@ final class GestureKeyView: UIView {
     weak var delegate: GestureKeyViewDelegate?
 
     private let runtime: KeyboardKeyRuntime
+    private let sharedRuntime: IOSSharedGestureRuntimeAdapter
     private let profileRevision: String
     private let policyStore: GesturePolicyStore
 
     private let titleLabel = UILabel()
-    private var directionLabels: [Direction8: UILabel] = [:]
+    private var directionLabels: [String: UILabel] = [:]
 
-    private var session: GestureSession?
+    private var session: IOSSharedGestureSessionAdapter?
     private var sessionStart: TimeInterval = 0
     private var ownsNativeTouch = false
 
@@ -27,8 +27,14 @@ final class GestureKeyView: UIView {
         runtime.role == "control" ? .secondarySystemFill : .systemBackground
     }
 
-    init(runtime: KeyboardKeyRuntime, profileRevision: String, policyStore: GesturePolicyStore) {
+    init(
+        runtime: KeyboardKeyRuntime,
+        sharedRuntime: IOSSharedGestureRuntimeAdapter,
+        profileRevision: String,
+        policyStore: GesturePolicyStore
+    ) {
         self.runtime = runtime
+        self.sharedRuntime = sharedRuntime
         self.profileRevision = profileRevision
         self.policyStore = policyStore
         super.init(frame: .zero)
@@ -50,8 +56,8 @@ final class GestureKeyView: UIView {
         titleLabel.minimumScaleFactor = 0.6
         addSubview(titleLabel)
 
-        for direction in [Direction8.w, .n, .e, .s] {
-            guard let text = oneStageLabel(direction), !text.isEmpty else { continue }
+        for direction in ["w", "n", "e", "s"] {
+            guard let text = runtime.firstStagePresentation[direction], !text.isEmpty else { continue }
             let label = UILabel()
             label.text = text
             label.textAlignment = .center
@@ -85,25 +91,25 @@ final class GestureKeyView: UIView {
         let hintWidth = max(24, bounds.width * 0.28)
         let hintHeight: CGFloat = 20
 
-        directionLabels[.n]?.frame = CGRect(
+        directionLabels["n"]?.frame = CGRect(
             x: (bounds.width - hintWidth) / 2,
             y: 3,
             width: hintWidth,
             height: hintHeight
         )
-        directionLabels[.s]?.frame = CGRect(
+        directionLabels["s"]?.frame = CGRect(
             x: (bounds.width - hintWidth) / 2,
             y: bounds.height - hintHeight - 3,
             width: hintWidth,
             height: hintHeight
         )
-        directionLabels[.w]?.frame = CGRect(
+        directionLabels["w"]?.frame = CGRect(
             x: 3,
             y: (bounds.height - hintHeight) / 2,
             width: hintWidth,
             height: hintHeight
         )
-        directionLabels[.e]?.frame = CGRect(
+        directionLabels["e"]?.frame = CGRect(
             x: bounds.width - hintWidth - 3,
             y: (bounds.height - hintHeight) / 2,
             width: hintWidth,
@@ -121,44 +127,65 @@ final class GestureKeyView: UIView {
 
         let point = touch.location(in: self)
         sessionStart = touch.timestamp
-        session = GestureSession(
-            keyID: runtime.id,
-            profileRevision: profileRevision,
-            trie: runtime.trie,
-            policy: policyStore.policy,
-            keySize: GestureSize(width: Double(bounds.width), height: Double(bounds.height)),
-            touchDown: GesturePoint(x: Double(point.x), y: Double(point.y)),
-            atMs: 0
-        )
-        backgroundColor = .tertiarySystemFill
+
+        do {
+            session = try sharedRuntime.beginSession(
+                keyID: runtime.id,
+                keyWidth: Double(bounds.width),
+                keyHeight: Double(bounds.height),
+                touchX: Double(point.x),
+                touchY: Double(point.y),
+                atMs: 0,
+                policyOverride: policyStore.policy
+            )
+            backgroundColor = .tertiarySystemFill
+        } catch {
+            session = nil
+            resetVisualState()
+        }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard var active = session, let touch = touches.first else { return }
+        guard let active = session, let touch = touches.first else { return }
         let point = touch.location(in: self)
-        active.move(
-            to: GesturePoint(x: Double(point.x), y: Double(point.y)),
-            atMs: elapsedMs(touch)
-        )
-        session = active
+        do {
+            _ = try active.move(
+                x: Double(point.x),
+                y: Double(point.y),
+                atMs: elapsedMs(touch)
+            )
+        } catch {
+            _ = try? active.cancel(atMs: elapsedMs(touch))
+            session = nil
+            resetVisualState()
+        }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         defer { finishNativeTouch() }
-        guard var active = session, let touch = touches.first else {
+        guard let active = session, let touch = touches.first else {
             resetVisualState()
             return
         }
 
         let point = touch.location(in: self)
-        active.move(
-            to: GesturePoint(x: Double(point.x), y: Double(point.y)),
-            atMs: elapsedMs(touch)
-        )
-        let result = active.touchUp(atMs: elapsedMs(touch))
-        session = nil
-        resetVisualState()
-        delegate?.gestureKeyView(self, didDispatch: result.dispatchedActions)
+        let atMs = elapsedMs(touch)
+
+        do {
+            _ = try active.move(
+                x: Double(point.x),
+                y: Double(point.y),
+                atMs: atMs
+            )
+            let result = try active.touchUp(atMs: atMs)
+            session = nil
+            resetVisualState()
+            delegate?.gestureKeyView(self, didDispatch: result.dispatchedActions)
+        } catch {
+            _ = try? active.cancel(atMs: atMs)
+            session = nil
+            resetVisualState()
+        }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -167,19 +194,11 @@ final class GestureKeyView: UIView {
     }
 
     func cancelCurrentGesture() {
-        if var active = session {
-            _ = active.cancel()
+        if let active = session {
+            _ = try? active.cancel()
         }
         session = nil
         resetVisualState()
-    }
-
-    private func oneStageLabel(_ direction: Direction8) -> String? {
-        runtime.trie
-            .node(for: GesturePath([GestureToken(direction: direction)]))?
-            .behavior?
-            .presentation?
-            .text
     }
 
     private func finishNativeTouch() {
@@ -189,8 +208,8 @@ final class GestureKeyView: UIView {
         }
     }
 
-    private func elapsedMs(_ touch: UITouch) -> Int {
-        max(0, Int((touch.timestamp - sessionStart) * 1000))
+    private func elapsedMs(_ touch: UITouch) -> Int64 {
+        max(0, Int64((touch.timestamp - sessionStart) * 1000))
     }
 
     private func resetVisualState() {

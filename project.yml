@@ -67,8 +67,9 @@ targets:
           - Resources
       - path: App/KeyboardExtension/Resources
         buildPhase: resources
+      - path: Platforms/iOS/SharedRuntime/IOSSharedGestureRuntimeAdapter.swift
+      - path: .build/GestureIMECoreSharedIOS/Sources
     dependencies:
-      - package: GestureIMECore
       - package: AzooKeyCore
         product: KeyboardViews
       - package: AzooKeyCore
@@ -100,6 +101,18 @@ targets:
         MARKETING_VERSION: 0.2.0
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
+        SWIFT_INCLUDE_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/.build/GestureIMECoreSharedIOS/FFI"
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/.build/GestureIMECoreSharedIOS/FFI"
+        LIBRARY_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/.build/GestureIMECoreSharedIOS/Lib"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lgesture_ime_core"
 
 schemes:
   GestureHarness:

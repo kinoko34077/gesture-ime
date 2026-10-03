@@ -1,11 +1,10 @@
 import Foundation
-import GestureIMECore
 
 struct KeyboardKeyRuntime: Identifiable {
     let id: String
     let title: String
     let role: String?
-    let trie: BindingTrie
+    let firstStagePresentation: [String: String]
     let row: Int
     let column: Int
     let width: Int
@@ -13,47 +12,44 @@ struct KeyboardKeyRuntime: Identifiable {
 }
 
 struct KeyboardLayoutRuntime {
+    let sharedRuntime: IOSSharedGestureRuntimeAdapter
     let keys: [KeyboardKeyRuntime]
     let rowCount: Int
     let columnCount: Int
     let profileRevision: String
-    let defaultPolicy: GesturePolicy
+    let defaultPolicy: FfiGesturePolicy
 
-    static func compile(profile: ProfileBundle, layerID: String = "base") throws -> KeyboardLayoutRuntime {
-        guard let layer = profile.layers.first(where: { $0.id == layerID }),
-              let layout = profile.layouts.first(where: { $0.id == layer.layoutRef }),
-              let bindingSet = profile.bindingSets.first(where: { $0.id == layer.bindingSetRef }) else {
-            throw ProfileValidationError(.missingReference, layerID)
-        }
+    static func compile(profileJSON: String, layerID: String = "base") throws -> KeyboardLayoutRuntime {
+        let sharedRuntime = try IOSSharedGestureRuntimeAdapter(profileJSON: profileJSON)
+        let layout = try sharedRuntime.compileLayout(layerID: layerID)
 
-        let keyDefinitions = Dictionary(uniqueKeysWithValues: profile.keyDefinitions.map { ($0.id, $0) })
+        let keys = layout.keys.map { key in
+            let presentations = Dictionary(
+                uniqueKeysWithValues: key.firstStagePresentations.compactMap { presentation in
+                    guard let text = presentation.text, !text.isEmpty else { return nil }
+                    return (String(describing: presentation.direction).lowercased(), text)
+                }
+            )
 
-        let keys = try layout.placements.map { placement in
-            guard let definition = keyDefinitions[placement.keyID] else {
-                throw ProfileValidationError(.missingReference, placement.keyID)
-            }
-            let trie = try BindingTrieCompiler.compile(bindingSet, keyID: placement.keyID)
             return KeyboardKeyRuntime(
-                id: placement.keyID,
-                title: definition.presentation?.text ?? placement.keyID,
-                role: definition.role,
-                trie: trie,
-                row: placement.row,
-                column: placement.column,
-                width: max(1, Int((placement.width ?? 1).rounded())),
-                height: max(1, Int((placement.height ?? 1).rounded()))
+                id: key.id,
+                title: key.title ?? key.id,
+                role: key.role,
+                firstStagePresentation: presentations,
+                row: Int(key.row),
+                column: Int(key.column),
+                width: max(1, Int(key.width.rounded())),
+                height: max(1, Int(key.height.rounded()))
             )
         }
 
-        let columnCount = keys.map { $0.column + $0.width }.max() ?? 1
-        let rowCount = keys.map { $0.row + $0.height }.max() ?? 1
-
         return KeyboardLayoutRuntime(
+            sharedRuntime: sharedRuntime,
             keys: keys,
-            rowCount: rowCount,
-            columnCount: columnCount,
-            profileRevision: "\(profile.id):\(profile.version)",
-            defaultPolicy: profile.gesturePolicy
+            rowCount: Int(layout.rowCount),
+            columnCount: Int(layout.columnCount),
+            profileRevision: sharedRuntime.profileRevision,
+            defaultPolicy: sharedRuntime.defaultPolicy()
         )
     }
 }

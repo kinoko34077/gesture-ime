@@ -1,5 +1,4 @@
 import UIKit
-import GestureIMECore
 
 @MainActor
 final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegate {
@@ -37,8 +36,8 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         self.composition = composition
 
         do {
-            let profile = try BuiltInProfileLoader.load()
-            let runtime = try KeyboardLayoutRuntime.compile(profile: profile)
+            let profileJSON = try BuiltInProfileLoader.loadJSON()
+            let runtime = try KeyboardLayoutRuntime.compile(profileJSON: profileJSON)
             let store = GesturePolicyStore(defaultPolicy: runtime.defaultPolicy)
             layoutRuntime = runtime
             policyStore = store
@@ -81,6 +80,7 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         for keyRuntime in runtime.keys {
             let key = GestureKeyView(
                 runtime: keyRuntime,
+                sharedRuntime: runtime.sharedRuntime,
                 profileRevision: runtime.profileRevision,
                 policyStore: store
             )
@@ -142,32 +142,34 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         }
     }
 
-    func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [ActionInvocation]) {
+    func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [FfiActionInvocation]) {
         guard !blockedByMultitouch else { return }
         for action in actions {
             dispatch(action)
         }
     }
 
-    private func dispatch(_ action: ActionInvocation) {
-        switch action.actionID {
+    private func dispatch(_ action: FfiActionInvocation) {
+        let arguments = Self.decodeArguments(action.argumentsJson)
+
+        switch action.actionId {
         case "text.insert":
-            if let text = action.arguments["text"]?.stringValue {
+            if let text = arguments["text"] as? String {
                 composition?.insert(text)
             }
 
         case "text.directInsert":
-            if let text = action.arguments["text"]?.stringValue {
+            if let text = arguments["text"] as? String {
                 composition?.directInsert(text)
             }
 
         case "edit.delete":
-            if let count = action.arguments["count"]?.intValue, count > 0 {
+            if let count = Self.intArgument(arguments["count"]), count > 0 {
                 composition?.deleteBackward(count: count)
             }
 
         case "cursor.move":
-            if let offset = action.arguments["offset"]?.intValue {
+            if let offset = Self.intArgument(arguments["offset"]) {
                 composition?.moveCursor(offset)
             }
 
@@ -175,7 +177,7 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
             composition?.commitSelectionOrRaw()
 
         case "conversion.selectCandidate":
-            if let index = action.arguments["index"]?.intValue {
+            if let index = Self.intArgument(arguments["index"]) {
                 composition?.selectCandidate(at: index)
             }
 
@@ -188,18 +190,31 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
             dismissKeyboard()
 
         case "panel.open":
-            guard let panel = action.arguments["panel"]?.stringValue else { return }
+            guard let panel = arguments["panel"] as? String else { return }
             if panel == "tuning" {
                 showTuning()
             } else {
-                // Mode/emoji/symbol panels are intentionally routed through
-                // the azooKey product integration seam rather than redefined
-                // in Gesture/Profile semantics.
+                // Non-tuning panels are owned by the product UI/tab integration seam.
             }
 
         default:
             break
         }
+    }
+
+    private static func decodeArguments(_ json: String) -> [String: Any] {
+        guard let data = json.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data),
+              let dictionary = object as? [String: Any] else {
+            return [:]
+        }
+        return dictionary
+    }
+
+    private static func intArgument(_ value: Any?) -> Int? {
+        if let value = value as? Int { return value }
+        if let value = value as? NSNumber { return value.intValue }
+        return nil
     }
 
     private func showTuning() {
