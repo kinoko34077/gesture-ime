@@ -112,6 +112,81 @@ fn ffi_validation_rejects_v2_explicit_null_for_non_nullable_optional_members() {
 }
 
 #[test]
+fn ffi_runtime_exposes_precommit_candidate_and_hysteresis_before_distance_commit() {
+    let runtime = SharedCoreRuntime::new(fixture("profile-diagonal-two-stage.valid.json"))
+        .expect("runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "kana.a".into(),
+            runtime.profile_revision(),
+            FfiSize {
+                width: 100.0,
+                height: 100.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let east = session
+        .move_to(
+            FfiPoint {
+                x: 18.793852,
+                y: -6.840403,
+            },
+            None,
+        )
+        .expect("east precommit candidate");
+    assert!(east.path.is_empty());
+    assert_eq!(east.candidate_direction, Some(FfiDirection8::E));
+    assert_eq!(
+        east.candidate_coordinate,
+        Some(FfiBoardCoordinate { x: 1, y: 0 })
+    );
+
+    let retained = session
+        .move_to(
+            FfiPoint {
+                x: 18.270909,
+                y: -8.134733,
+            },
+            None,
+        )
+        .expect("hysteresis retain");
+    assert!(retained.path.is_empty());
+    assert_eq!(retained.candidate_direction, Some(FfiDirection8::E));
+
+    let switched = session
+        .move_to(
+            FfiPoint {
+                x: 17.320508,
+                y: -10.0,
+            },
+            None,
+        )
+        .expect("hysteresis switch");
+    assert!(switched.path.is_empty());
+    assert_eq!(switched.candidate_direction, Some(FfiDirection8::Ne));
+
+    let committed = session
+        .move_to(
+            FfiPoint {
+                x: 38.971143,
+                y: -22.5,
+            },
+            None,
+        )
+        .expect("distance commit");
+    assert_eq!(committed.path, vec![FfiDirection8::Ne]);
+    assert_eq!(
+        committed.committed_coordinates,
+        vec![FfiBoardCoordinate { x: 1, y: -1 }]
+    );
+}
+
+#[test]
 fn ffi_runtime_drives_two_stage_session_without_platform_semantics() {
     let runtime = SharedCoreRuntime::new(fixture("profile-diagonal-two-stage.valid.json"))
         .expect("runtime");
