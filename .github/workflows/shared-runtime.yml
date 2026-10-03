@@ -43,7 +43,14 @@ jobs:
         run: |
           OUT="$RUNNER_TEMP/GestureIMECoreSwift"
           mkdir -p "$OUT"
-          cargo run --bin uniffi-bindgen --             generate target/debug/libgesture_ime_core.dylib             --language swift             --out-dir "$OUT"
+          cargo run --bin uniffi-bindgen -- \
+            target/debug/libgesture_ime_core.dylib \
+            "$OUT" \
+            --swift-sources \
+            --headers \
+            --modulemap \
+            --module-name GestureIMECoreRust \
+            --modulemap-filename GestureIMECoreRust.modulemap
           find "$OUT" -maxdepth 1 -type f -print
           test -n "$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
           test -n "$(find "$OUT" -maxdepth 1 -name '*.h' -print -quit)"
