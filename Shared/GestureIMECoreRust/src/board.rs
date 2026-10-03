@@ -1,6 +1,6 @@
 use crate::model::{
-    ActionInvocation, BindingBehavior, BindingPresentation, Direction8, KeyDefinition, Layout, Macro,
-    ProfileBundle, RepeatBehavior,
+    ActionInvocation, BindingBehavior, BindingPresentation, Direction8, GesturePoint, GestureSize,
+    GestureTerminal, KeyDefinition, Layout, Macro, ProfileBundle, RepeatBehavior,
 };
 use crate::trie::{BindingTrieCompiler, BindingTrieNode};
 use crate::validation::{
@@ -842,6 +842,385 @@ impl BoardContextState {
     }
 }
 
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoardGestureSessionResult {
+    pub terminal: GestureTerminal,
+    pub dispatched_actions: Vec<ActionInvocation>,
+    pub persistent_board: String,
+    pub current_board: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct BoardGestureSession {
+    profile: std::sync::Arc<BoardProfileV2>,
+    pub profile_revision: String,
+    pub context: BoardContextState,
+    pub key_size: GestureSize,
+    pub selected_coordinate: BoardCoordinate,
+    pub anchor: GesturePoint,
+    pub last_point: GesturePoint,
+    pub candidate_direction: Option<Direction8>,
+    pub committed_coordinates: Vec<BoardCoordinate>,
+    pub commit_anchors: Vec<GesturePoint>,
+    pub terminal: Option<GestureTerminal>,
+    pub dispatched_actions: Vec<ActionInvocation>,
+
+    current_time_ms: i64,
+    hold_due_ms: Option<i64>,
+    repeat_due_ms: Option<i64>,
+    hold_started: bool,
+    hold_locked: bool,
+    selection_locked: bool,
+}
+
+impl BoardGestureSession {
+    pub fn new(
+        profile: std::sync::Arc<BoardProfileV2>,
+        profile_revision: impl Into<String>,
+        context: BoardContextState,
+        key_size: GestureSize,
+        touch_down: GesturePoint,
+        at_ms: i64,
+    ) -> Self {
+        let mut session = Self {
+            profile,
+            profile_revision: profile_revision.into(),
+            context,
+            key_size,
+            selected_coordinate: BoardCoordinate::CENTER,
+            anchor: touch_down,
+            last_point: touch_down,
+            candidate_direction: None,
+            committed_coordinates: Vec::new(),
+            commit_anchors: Vec::new(),
+            terminal: None,
+            dispatched_actions: Vec::new(),
+            current_time_ms: at_ms,
+            hold_due_ms: None,
+            repeat_due_ms: None,
+            hold_started: false,
+            hold_locked: false,
+            selection_locked: false,
+        };
+        session.schedule_current_hold(at_ms);
+        session
+    }
+
+    pub fn eligible_directions(&self) -> HashSet<Direction8> {
+        if self.terminal.is_some() || self.hold_locked || self.selection_locked {
+            return HashSet::new();
+        }
+        let Some(board) = self.profile.board(&self.context.current_board) else {
+            return HashSet::new();
+        };
+        board
+            .entries
+            .iter()
+            .filter_map(|entry| {
+                if entry.coordinate == BoardCoordinate::CENTER {
+                    None
+                } else {
+                    direction_for_unit_coordinate(entry.coordinate)
+                }
+            })
+            .collect()
+    }
+
+    pub fn move_to(
+        &mut self,
+        point: GesturePoint,
+        at_ms: Option<i64>,
+    ) -> Result<(), ProfileValidationError> {
+        if self.terminal.is_some() {
+            return Ok(());
+        }
+        if let Some(at_ms) = at_ms {
+            self.advance_time(at_ms)?;
+        }
+        self.last_point = point;
+        if self.hold_locked || self.selection_locked {
+            return Ok(());
+        }
+
+        let scale = self.key_size.minimum_dimension();
+        if !scale.is_finite() || scale <= 0.0 {
+            return Ok(());
+        }
+
+        let dx = point.x - self.anchor.x;
+        let dy = point.y - self.anchor.y;
+        let normalized = dx.hypot(dy) / scale;
+        if normalized < self.profile.gesture_policy.dead_zone {
+            self.candidate_direction = None;
+            return Ok(());
+        }
+
+        let eligible = self.eligible_directions();
+        if eligible.is_empty() {
+            self.candidate_direction = None;
+            return Ok(());
+        }
+
+        let angle = Self::angle_degrees(dx, dy);
+        let nearest = eligible.into_iter().min_by(|lhs, rhs| {
+            let lhs_distance = Self::angular_distance(angle, lhs.center_degrees());
+            let rhs_distance = Self::angular_distance(angle, rhs.center_degrees());
+            lhs_distance
+                .total_cmp(&rhs_distance)
+                .then_with(|| Self::rank(*lhs).cmp(&Self::rank(*rhs)))
+        });
+        let Some(nearest) = nearest else {
+            return Ok(());
+        };
+
+        match self.candidate_direction {
+            Some(current) if current != nearest => {
+                let nearest_distance =
+                    Self::angular_distance(angle, nearest.center_degrees());
+                let current_distance =
+                    Self::angular_distance(angle, current.center_degrees());
+                if nearest_distance + self.profile.gesture_policy.angular_hysteresis_degrees
+                    < current_distance
+                {
+                    self.candidate_direction = Some(nearest);
+                }
+            }
+            None => self.candidate_direction = Some(nearest),
+            _ => {}
+        }
+
+        let threshold = if self.committed_coordinates.is_empty() {
+            self.profile.gesture_policy.initial_commit_distance
+        } else {
+            self.profile.gesture_policy.continuation_commit_distance
+        };
+
+        let Some(direction) = self.candidate_direction else {
+            return Ok(());
+        };
+        if normalized < threshold {
+            return Ok(());
+        }
+        let coordinate = coordinate_for_direction(direction);
+        let entry = self
+            .current_entry(coordinate)
+            .cloned()
+            .ok_or_else(|| {
+                ProfileValidationError::new(
+                    ProfileValidationCode::MissingReference,
+                    Some(format!(
+                        "{}:{},{}",
+                        self.context.current_board, coordinate.x, coordinate.y
+                    )),
+                )
+            })?;
+
+        self.cancel_hold_schedule();
+        self.committed_coordinates.push(coordinate);
+        self.commit_anchors.push(point);
+        self.anchor = point;
+        self.selected_coordinate = coordinate;
+        self.candidate_direction = None;
+
+        if let Some(transition) = &entry.transition {
+            self.dispatched_actions
+                .extend(entry.on_transition.clone().unwrap_or_default());
+            let profile = std::sync::Arc::clone(&self.profile);
+            self.context.apply_transition(&profile, transition)?;
+            self.selected_coordinate = BoardCoordinate::CENTER;
+            self.selection_locked = false;
+            self.hold_started = false;
+            self.hold_locked = false;
+            self.schedule_current_hold(self.current_time_ms);
+        } else {
+            self.selection_locked = true;
+            self.schedule_current_hold(self.current_time_ms);
+        }
+
+        Ok(())
+    }
+
+    pub fn advance_time(&mut self, target_ms: i64) -> Result<(), ProfileValidationError> {
+        if self.terminal.is_some() || target_ms < self.current_time_ms {
+            return Ok(());
+        }
+
+        if let Some(due_ms) = self.hold_due_ms {
+            if due_ms <= target_ms && !self.hold_started {
+                let hold = self
+                    .current_entry(self.selected_coordinate)
+                    .and_then(|entry| entry.hold.clone());
+                if let Some(hold) = hold {
+                    self.dispatched_actions
+                        .extend(hold.on_start.clone().unwrap_or_default());
+                    self.candidate_direction = None;
+
+                    if let Some(transition) = &hold.transition {
+                        let profile = std::sync::Arc::clone(&self.profile);
+                        self.context.apply_transition(&profile, transition)?;
+                        self.anchor = self.last_point;
+                        self.selected_coordinate = BoardCoordinate::CENTER;
+                        self.selection_locked = false;
+                        self.hold_started = false;
+                        self.hold_locked = false;
+                        self.repeat_due_ms = None;
+                        self.hold_due_ms = None;
+                        self.current_time_ms = target_ms;
+                        self.schedule_current_hold(target_ms);
+                        return Ok(());
+                    }
+
+                    self.hold_started = true;
+                    self.hold_locked = true;
+                    if let Some(repeating) = &hold.repeat_behavior {
+                        self.repeat_due_ms = Some(due_ms + repeating.interval_ms);
+                    }
+                }
+            }
+        }
+
+        if self.hold_started {
+            if let Some(repeating) = self
+                .current_entry(self.selected_coordinate)
+                .and_then(|entry| entry.hold.as_ref())
+                .and_then(|hold| hold.repeat_behavior.as_ref())
+                .cloned()
+            {
+                while let Some(due_ms) = self.repeat_due_ms {
+                    if due_ms > target_ms || self.terminal.is_some() {
+                        break;
+                    }
+                    self.dispatched_actions.extend(repeating.actions.clone());
+                    self.repeat_due_ms = Some(due_ms + repeating.interval_ms);
+                }
+            }
+        }
+
+        self.current_time_ms = target_ms;
+        Ok(())
+    }
+
+    pub fn touch_up(
+        &mut self,
+        at_ms: Option<i64>,
+    ) -> Result<BoardGestureSessionResult, ProfileValidationError> {
+        if let Some(at_ms) = at_ms {
+            self.advance_time(at_ms)?;
+        }
+        if self.terminal.is_some() {
+            return Ok(self.result());
+        }
+
+        let entry = self.current_entry(self.selected_coordinate).cloned();
+        if let Some(entry) = entry {
+            if let Some(transition) = &entry.transition {
+                self.dispatched_actions
+                    .extend(entry.on_transition.clone().unwrap_or_default());
+                let profile = std::sync::Arc::clone(&self.profile);
+                self.context.apply_transition(&profile, transition)?;
+                self.selected_coordinate = BoardCoordinate::CENTER;
+            } else {
+                let suppress_release = self.hold_started
+                    && entry
+                        .hold
+                        .as_ref()
+                        .is_some_and(|hold| hold.suppress_on_release_after_start);
+                if !suppress_release {
+                    self.dispatched_actions
+                        .extend(entry.on_release.unwrap_or_default());
+                }
+                self.context.complete_transient_chain();
+            }
+        } else {
+            self.context.complete_transient_chain();
+        }
+
+        self.terminal = Some(GestureTerminal::Committed);
+        self.cancel_hold_schedule();
+        Ok(self.result())
+    }
+
+    pub fn cancel(
+        &mut self,
+        at_ms: Option<i64>,
+    ) -> Result<BoardGestureSessionResult, ProfileValidationError> {
+        if let Some(at_ms) = at_ms {
+            self.advance_time(at_ms)?;
+        }
+        if self.terminal.is_none() {
+            self.context.cancel_transient_chain();
+            self.terminal = Some(GestureTerminal::Cancelled);
+            self.cancel_hold_schedule();
+        }
+        Ok(self.result())
+    }
+
+    pub fn invalidate(
+        &mut self,
+        at_ms: Option<i64>,
+    ) -> Result<BoardGestureSessionResult, ProfileValidationError> {
+        if let Some(at_ms) = at_ms {
+            self.advance_time(at_ms)?;
+        }
+        if self.terminal.is_none() {
+            self.context.cancel_transient_chain();
+            self.terminal = Some(GestureTerminal::Invalidated);
+            self.cancel_hold_schedule();
+        }
+        Ok(self.result())
+    }
+
+    fn current_entry(&self, coordinate: BoardCoordinate) -> Option<&BoardEntry> {
+        self.profile
+            .board(&self.context.current_board)?
+            .entries
+            .iter()
+            .find(|entry| entry.coordinate == coordinate)
+    }
+
+    fn schedule_current_hold(&mut self, at_ms: i64) {
+        self.hold_started = false;
+        self.hold_locked = false;
+        self.repeat_due_ms = None;
+        self.hold_due_ms = self
+            .current_entry(self.selected_coordinate)
+            .and_then(|entry| entry.hold.as_ref())
+            .map(|hold| at_ms + hold.delay_ms);
+    }
+
+    fn cancel_hold_schedule(&mut self) {
+        self.hold_due_ms = None;
+        self.repeat_due_ms = None;
+    }
+
+    fn result(&self) -> BoardGestureSessionResult {
+        BoardGestureSessionResult {
+            terminal: self.terminal.unwrap_or(GestureTerminal::Cancelled),
+            dispatched_actions: self.dispatched_actions.clone(),
+            persistent_board: self.context.persistent_board.clone(),
+            current_board: self.context.current_board.clone(),
+        }
+    }
+
+    fn rank(direction: Direction8) -> usize {
+        Direction8::CANONICAL_ORDER
+            .iter()
+            .position(|candidate| *candidate == direction)
+            .unwrap_or(usize::MAX)
+    }
+
+    fn angle_degrees(dx: f64, dy: f64) -> f64 {
+        let raw = dy.atan2(dx).to_degrees();
+        if raw < 0.0 { raw + 360.0 } else { raw }
+    }
+
+    fn angular_distance(lhs: f64, rhs: f64) -> f64 {
+        let delta = (lhs - rhs).abs() % 360.0;
+        delta.min(360.0 - delta)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -939,5 +1318,123 @@ mod tests {
         assert_eq!(context.persistent_board, "board.root");
         context.select(&profile, BoardCoordinate::CENTER).unwrap();
         assert_eq!(context.current_board, "board.root");
+    }
+
+    #[test]
+    fn gesture_session_chains_board_transition_with_anchor_reset() {
+        let profile = std::sync::Arc::new(
+            BoardProfileCodec::decode_v2_and_validate(V2_CARDINAL).unwrap(),
+        );
+        let context = BoardContextState::new(&profile, "base", "kana.a").unwrap();
+        let mut session = BoardGestureSession::new(
+            profile,
+            "r1",
+            context,
+            GestureSize { width: 1.0, height: 1.0 },
+            GesturePoint { x: 0.0, y: 0.0 },
+            0,
+        );
+
+        session
+            .move_to(GesturePoint { x: 0.5, y: 0.0 }, Some(10))
+            .unwrap();
+        assert_eq!(session.context.current_board, "board.kana.a.e");
+        assert_eq!(session.anchor, GesturePoint { x: 0.5, y: 0.0 });
+        assert_eq!(session.eligible_directions(), HashSet::from([Direction8::N]));
+
+        session
+            .move_to(GesturePoint { x: 0.5, y: -0.5 }, Some(20))
+            .unwrap();
+        assert_eq!(
+            session.committed_coordinates,
+            vec![BoardCoordinate { x: 1, y: 0 }, BoardCoordinate { x: 0, y: -1 }]
+        );
+        let result = session.touch_up(Some(30)).unwrap();
+        assert_eq!(result.terminal, GestureTerminal::Committed);
+        assert_eq!(result.current_board, "board.kana.a");
+        assert_eq!(result.dispatched_actions.len(), 1);
+        assert_eq!(result.dispatched_actions[0].action_id, "text.insert");
+        assert_eq!(
+            result.dispatched_actions[0]
+                .arguments
+                .get("text")
+                .and_then(Value::as_str),
+            Some("ゑ")
+        );
+    }
+
+    #[test]
+    fn gesture_session_release_after_transition_uses_target_center_endpoint() {
+        let profile = std::sync::Arc::new(
+            BoardProfileCodec::decode_v2_and_validate(V2_CARDINAL).unwrap(),
+        );
+        let context = BoardContextState::new(&profile, "base", "kana.a").unwrap();
+        let mut session = BoardGestureSession::new(
+            profile,
+            "r1",
+            context,
+            GestureSize { width: 1.0, height: 1.0 },
+            GesturePoint { x: 0.0, y: 0.0 },
+            0,
+        );
+        session
+            .move_to(GesturePoint { x: 0.5, y: 0.0 }, Some(10))
+            .unwrap();
+        let result = session.touch_up(Some(11)).unwrap();
+        assert_eq!(
+            result.dispatched_actions[0]
+                .arguments
+                .get("text")
+                .and_then(Value::as_str),
+            Some("え")
+        );
+        assert_eq!(result.current_board, "board.kana.a");
+    }
+
+    #[test]
+    fn gesture_session_hold_can_transition_then_release_target_center() {
+        let profile = std::sync::Arc::new(
+            BoardProfileCodec::decode_v2_and_validate(V2_LIFETIME).unwrap(),
+        );
+        let context = BoardContextState::new(&profile, "base", "key.mode").unwrap();
+        let mut session = BoardGestureSession::new(
+            profile,
+            "r1",
+            context,
+            GestureSize { width: 1.0, height: 1.0 },
+            GesturePoint { x: 0.0, y: 0.0 },
+            0,
+        );
+        session.advance_time(450).unwrap();
+        assert_eq!(session.context.current_board, "board.hold");
+        let result = session.touch_up(Some(451)).unwrap();
+        assert_eq!(result.current_board, "board.root");
+        assert_eq!(
+            result.dispatched_actions[0]
+                .arguments
+                .get("text")
+                .and_then(Value::as_str),
+            Some("H")
+        );
+    }
+
+    #[test]
+    fn wider_sparse_coordinates_are_not_misclassified_as_direction8() {
+        let profile = std::sync::Arc::new(
+            BoardProfileCodec::decode_v2_and_validate(V2_CARDINAL).unwrap(),
+        );
+        let mut context = BoardContextState::new(&profile, "base", "kana.a").unwrap();
+        context
+            .select(&profile, BoardCoordinate { x: 1, y: 0 })
+            .unwrap();
+        let session = BoardGestureSession::new(
+            profile,
+            "r1",
+            context,
+            GestureSize { width: 1.0, height: 1.0 },
+            GesturePoint { x: 0.0, y: 0.0 },
+            0,
+        );
+        assert_eq!(session.eligible_directions(), HashSet::from([Direction8::N]));
     }
 }
