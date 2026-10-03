@@ -541,7 +541,7 @@ pub fn normalize_v1_profile(
         let mut semantic_key_ids = layout
             .placements
             .iter()
-            .map(|placement| key_id.clone())
+            .map(|placement| placement.key_id.clone())
             .collect::<Vec<_>>();
         semantic_key_ids.sort();
         semantic_key_ids.dedup();
@@ -556,7 +556,7 @@ pub fn normalize_v1_profile(
             for binding in binding_set
                 .bindings
                 .iter()
-                .filter(|binding| binding.key_id == placement.key_id)
+                .filter(|binding| binding.key_id == key_id)
             {
                 let path: Vec<Direction8> =
                     binding.path.0.iter().map(|token| token.direction).collect();
