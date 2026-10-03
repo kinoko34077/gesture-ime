@@ -1414,7 +1414,7 @@ fn angular_distance(lhs: f64, rhs: f64) -> f64 {
     delta.min(360.0 - delta)
 }
 
-pub fn macro_map(profile: &ProfileBundleV2) -> HashMap<String, Vec<ActionInvocation>> {
+pub(crate) fn macro_map(profile: &ProfileBundleV2) -> HashMap<String, Vec<ActionInvocation>> {
     profile
         .macros
         .iter()
