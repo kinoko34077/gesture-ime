@@ -1,5 +1,6 @@
 use gesture_ime_core::{
-    validate_profile_json, FfiDirection8, FfiPoint, FfiSize, SharedCoreRuntime,
+    migrate_profile_to_v2_json, validate_profile_json, FfiBoardCoordinate, FfiDirection8,
+    FfiPoint, FfiSize, SharedCoreRuntime,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -90,4 +91,63 @@ fn ffi_runtime_exposes_profile_owned_layout_and_direction_hints() {
         .find(|presentation| presentation.direction == FfiDirection8::E)
         .expect("east presentation");
     assert_eq!(e.text.as_deref(), Some("え"));
+}
+
+
+#[test]
+fn ffi_validation_accepts_profile_v2_and_migrates_v1() {
+    let v2 = fixture("profile-v2-board-chain.valid.json");
+    let validation = validate_profile_json(v2.clone());
+    assert!(validation.valid, "{:?}", validation.detail);
+
+    let migrated = migrate_profile_to_v2_json(fixture("profile-diagonal-two-stage.valid.json"))
+        .expect("migrate v1");
+    assert!(migrated.contains("\"schema\": \"gesture-ime.profile.v2\""));
+    let migrated_validation = validate_profile_json(migrated);
+    assert!(migrated_validation.valid, "{:?}", migrated_validation.detail);
+}
+
+#[test]
+fn ffi_v2_snapshot_exposes_board_state_and_local_origin_reset() {
+    let runtime = SharedCoreRuntime::new(fixture("profile-v2-board-chain.valid.json"))
+        .expect("v2 runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "key.test".into(),
+            runtime.profile_revision(),
+            FfiSize {
+                width: 100.0,
+                height: 100.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("v2 session");
+
+    let first = session
+        .move_to(FfiPoint { x: 50.0, y: 0.0 }, Some(10))
+        .expect("first board transition");
+    assert_eq!(first.current_board_id, "board.e");
+    assert_eq!(first.persistent_board_id, "board.root");
+    assert_eq!(
+        first.committed_coordinates,
+        vec![FfiBoardCoordinate { x: 1, y: 0 }]
+    );
+    assert_eq!(first.board_transition_count, 1);
+    assert_eq!(first.anchor, FfiPoint { x: 50.0, y: 0.0 });
+
+    let second = session
+        .move_to(FfiPoint { x: 50.0, y: -50.0 }, Some(20))
+        .expect("second board selection");
+    assert_eq!(
+        second.selected_coordinate,
+        Some(FfiBoardCoordinate { x: 0, y: -1 })
+    );
+
+    let final_state = session.touch_up(Some(30)).expect("touch up");
+    assert_eq!(final_state.current_board_id, "board.root");
+    assert_eq!(final_state.dispatched_actions.len(), 1);
+    assert_eq!(final_state.dispatched_actions[0].action_id, "text.insert");
 }
