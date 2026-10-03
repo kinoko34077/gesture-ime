@@ -153,7 +153,7 @@ final class ProductKeyboardViewModel: ObservableObject {
                 if count > 0 {
                     composition.deleteBackward(count: count)
                 } else {
-                    composition.commitSelectionOrRaw()
+                    composition.deleteForward(count: -count)
                 }
             }
 

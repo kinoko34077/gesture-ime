@@ -151,6 +151,30 @@ final class AzooKeyCompositionBridge {
         }
     }
 
+    func deleteForward(count: Int) {
+        guard count > 0 else { return }
+
+        if composingText.isEmpty {
+            displayedTextManager.deleteForward(count: count)
+            return
+        }
+
+        selectedCandidateIndex = nil
+        composingText.deleteForwardFromCursorPosition(count: count)
+        displayedTextManager.updateComposingText(
+            composingText: composingText,
+            newLiveConversionText: nil
+        )
+
+        if composingText.isEmpty {
+            displayedTextManager.stopComposition()
+            clearCandidates()
+            Task { await worker.stopComposition() }
+        } else {
+            refreshCandidates()
+        }
+    }
+
     func moveCursor(_ offset: Int) {
         guard offset != 0 else { return }
         commitSelectionOrRaw()
