@@ -305,7 +305,7 @@ impl BoardProfileValidator {
                 if !key_ids.contains(placement.key_id.as_str()) {
                     return Err(ProfileValidationError::new(
                         ProfileValidationCode::MissingReference,
-                        Some(placement.key_id.clone()),
+                        Some(key_id.clone()),
                     ));
                 }
                 if !(0..=255).contains(&placement.row)
@@ -538,9 +538,17 @@ pub fn normalize_v1_profile(
                 )
             })?;
 
-        for placement in &layout.placements {
+        let mut semantic_key_ids = layout
+            .placements
+            .iter()
+            .map(|placement| key_id.clone())
+            .collect::<Vec<_>>();
+        semantic_key_ids.sort();
+        semantic_key_ids.dedup();
+
+        for key_id in semantic_key_ids {
             // Reuse the accepted compiler as a compatibility preflight.
-            BindingTrieCompiler::compile(binding_set, &placement.key_id)?;
+            BindingTrieCompiler::compile(binding_set, &key_id)?;
 
             let mut nodes: HashMap<Vec<Direction8>, PrefixNode> = HashMap::new();
             nodes.entry(Vec::new()).or_default();
@@ -572,7 +580,7 @@ pub fn normalize_v1_profile(
 
             for prefix in &prefixes {
                 let node = nodes.get(prefix).expect("prefix node");
-                let board_id = compat_board_id(&layer.id, &placement.key_id, prefix);
+                let board_id = compat_board_id(&layer.id, &key_id, prefix);
                 let mut entries = Vec::new();
 
                 if let Some(behavior) = &node.behavior {
@@ -621,7 +629,7 @@ pub fn normalize_v1_profile(
                             transition: Some(BoardTransition {
                                 target_board_ref: compat_board_id(
                                     &layer.id,
-                                    &placement.key_id,
+                                    &key_id,
                                     &child_prefix,
                                 ),
                                 lifetime: BoardTransitionLifetime::Transient,
@@ -641,11 +649,11 @@ pub fn normalize_v1_profile(
             }
 
             entry_points.push(BoardEntryPoint {
-                id: compat_entry_point_id(&layer.id, &placement.key_id),
+                id: compat_entry_point_id(&layer.id, &key_id),
                 layer_id: layer.id.clone(),
-                key_id: placement.key_id.clone(),
+                key_id: key_id.clone(),
                 trigger: "press".into(),
-                board_ref: compat_board_id(&layer.id, &placement.key_id, &[]),
+                board_ref: compat_board_id(&layer.id, &key_id, &[]),
             });
         }
     }
