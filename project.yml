@@ -1,0 +1,41 @@
+name: GestureIME
+options:
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  GestureIMECore:
+    path: Packages/GestureIMECore
+
+targets:
+  GestureHarness:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/GestureHarness
+    dependencies:
+      - package: GestureIMECore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.harness
+        PRODUCT_NAME: GestureHarness
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Gesture Harness
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        SWIFT_VERSION: 6.0
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+        ENABLE_PREVIEWS: NO
+
+schemes:
+  GestureHarness:
+    build:
+      targets:
+        GestureHarness: all
+    run:
+      config: Debug
+    archive:
+      config: Release

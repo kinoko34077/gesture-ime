@@ -1,0 +1,47 @@
+name: iOS Harness Device Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "App/GestureHarness/**"
+      - "Packages/GestureIMECore/**"
+      - "project.yml"
+      - "scripts/build-ios-harness.sh"
+      - ".github/workflows/ios-harness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-device-ipa:
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Swift core tests
+        working-directory: Packages/GestureIMECore
+        run: swift test
+
+      - name: Build unsigned device IPA
+        env:
+          DERIVED_DATA: ${{ runner.temp }}/GestureHarnessDerivedData
+          ARTIFACT_DIR: ${{ runner.temp }}/GestureHarnessArtifact
+        run: bash scripts/build-ios-harness.sh
+
+      - name: Upload sideload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GestureHarness-unsigned
+          path: ${{ runner.temp }}/GestureHarnessArtifact/GestureHarness-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
