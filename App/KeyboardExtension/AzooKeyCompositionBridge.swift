@@ -80,6 +80,10 @@ final class AzooKeyCompositionBridge {
         displayedTextManager.setTextDocumentProxy(.mainProxy(proxy))
     }
 
+    func setTextDocumentProxy(_ proxy: any UITextDocumentProxy) {
+        displayedTextManager.setTextDocumentProxy(.mainProxy(proxy))
+    }
+
     var isComposing: Bool {
         !composingText.isEmpty
     }
