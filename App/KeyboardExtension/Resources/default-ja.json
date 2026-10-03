@@ -133,7 +133,7 @@
     {
       "id": "mode.alpha",
       "presentation": {
-        "text": "ABC"
+        "text": "あA"
       },
       "role": "control"
     },
@@ -2367,7 +2367,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "1"
                 }
@@ -2389,7 +2389,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "☆"
                 }
@@ -2411,7 +2411,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "♪"
                 }
@@ -2433,7 +2433,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "→"
                 }
@@ -2451,7 +2451,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "2"
                 }
@@ -2473,7 +2473,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "¥"
                 }
@@ -2495,7 +2495,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "$"
                 }
@@ -2517,7 +2517,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "€"
                 }
@@ -2535,7 +2535,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "3"
                 }
@@ -2557,7 +2557,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "%"
                 }
@@ -2579,7 +2579,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "°"
                 }
@@ -2601,7 +2601,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "#"
                 }
@@ -2619,7 +2619,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "4"
                 }
@@ -2641,7 +2641,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "○"
                 }
@@ -2663,7 +2663,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "＊"
                 }
@@ -2685,7 +2685,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "・"
                 }
@@ -2703,7 +2703,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "5"
                 }
@@ -2725,7 +2725,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "+"
                 }
@@ -2747,7 +2747,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "×"
                 }
@@ -2769,7 +2769,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "÷"
                 }
@@ -2787,7 +2787,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "6"
                 }
@@ -2809,7 +2809,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "<"
                 }
@@ -2831,7 +2831,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "="
                 }
@@ -2853,7 +2853,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": ">"
                 }
@@ -2871,7 +2871,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "7"
                 }
@@ -2893,7 +2893,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "「"
                 }
@@ -2915,7 +2915,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "」"
                 }
@@ -2937,7 +2937,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": ":"
                 }
@@ -2955,7 +2955,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "8"
                 }
@@ -2977,7 +2977,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "〒"
                 }
@@ -2999,7 +2999,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "々"
                 }
@@ -3021,7 +3021,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "〆"
                 }
@@ -3039,7 +3039,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "9"
                 }
@@ -3061,7 +3061,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "^"
                 }
@@ -3083,7 +3083,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "|"
                 }
@@ -3105,7 +3105,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "\\"
                 }
@@ -3123,7 +3123,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "0"
                 }
@@ -3145,7 +3145,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "〜"
                 }
@@ -3167,7 +3167,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "…"
                 }
@@ -3189,7 +3189,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "・"
                 }
@@ -3207,7 +3207,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "."
                 }
@@ -3229,7 +3229,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "，"
                 }
@@ -3251,7 +3251,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "-"
                 }
@@ -3273,7 +3273,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "/"
                 }
@@ -3295,7 +3295,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "・"
                 }
@@ -3498,7 +3498,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "@"
                 }
@@ -3520,7 +3520,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "#"
                 }
@@ -3542,7 +3542,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "/"
                 }
@@ -3564,7 +3564,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "&"
                 }
@@ -3586,7 +3586,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "_"
                 }
@@ -3604,7 +3604,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "ABC"
                 }
@@ -3626,7 +3626,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "B"
                 }
@@ -3648,7 +3648,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "C"
                 }
@@ -3670,7 +3670,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "A"
                 }
@@ -3688,7 +3688,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "DEF"
                 }
@@ -3710,7 +3710,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "E"
                 }
@@ -3732,7 +3732,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "F"
                 }
@@ -3754,7 +3754,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "D"
                 }
@@ -3772,7 +3772,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "GHI"
                 }
@@ -3794,7 +3794,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "H"
                 }
@@ -3816,7 +3816,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "I"
                 }
@@ -3838,7 +3838,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "G"
                 }
@@ -3856,7 +3856,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "JKL"
                 }
@@ -3878,7 +3878,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "K"
                 }
@@ -3900,7 +3900,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "L"
                 }
@@ -3922,7 +3922,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "J"
                 }
@@ -3940,7 +3940,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "MNO"
                 }
@@ -3962,7 +3962,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "N"
                 }
@@ -3984,7 +3984,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "O"
                 }
@@ -4006,7 +4006,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "M"
                 }
@@ -4024,7 +4024,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "PQRS"
                 }
@@ -4046,7 +4046,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "Q"
                 }
@@ -4068,7 +4068,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "R"
                 }
@@ -4090,7 +4090,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "S"
                 }
@@ -4112,7 +4112,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "P"
                 }
@@ -4130,7 +4130,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "TUV"
                 }
@@ -4152,7 +4152,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "U"
                 }
@@ -4174,7 +4174,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "V"
                 }
@@ -4196,7 +4196,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "T"
                 }
@@ -4214,7 +4214,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "WXYZ"
                 }
@@ -4236,7 +4236,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "X"
                 }
@@ -4258,7 +4258,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "Y"
                 }
@@ -4280,7 +4280,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "Z"
                 }
@@ -4302,7 +4302,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "W"
                 }
@@ -4320,7 +4320,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "'"
                 }
@@ -4342,7 +4342,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "\""
                 }
@@ -4364,7 +4364,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "("
                 }
@@ -4386,7 +4386,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": ")"
                 }
@@ -4408,7 +4408,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "’"
                 }
@@ -4426,7 +4426,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "."
                 }
@@ -4448,7 +4448,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": ","
                 }
@@ -4470,7 +4470,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "?"
                 }
@@ -4492,7 +4492,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "!"
                 }
@@ -4514,7 +4514,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "-"
                 }
@@ -4717,7 +4717,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "「"
                 }
@@ -4739,7 +4739,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "『"
                 }
@@ -4761,7 +4761,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "【"
                 }
@@ -4783,7 +4783,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "（"
                 }
@@ -4805,7 +4805,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "［"
                 }
@@ -4823,7 +4823,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "→"
                 }
@@ -4845,7 +4845,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "←"
                 }
@@ -4867,7 +4867,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "↑"
                 }
@@ -4889,7 +4889,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "↓"
                 }
@@ -4911,7 +4911,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "↔"
                 }
@@ -4929,7 +4929,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "☆"
                 }
@@ -4951,7 +4951,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "★"
                 }
@@ -4973,7 +4973,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "♪"
                 }
@@ -4995,7 +4995,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "※"
                 }
@@ -5017,7 +5017,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "＊"
                 }
@@ -5035,7 +5035,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "+"
                 }
@@ -5057,7 +5057,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "−"
                 }
@@ -5079,7 +5079,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "×"
                 }
@@ -5101,7 +5101,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "÷"
                 }
@@ -5123,7 +5123,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "="
                 }
@@ -5141,7 +5141,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "<"
                 }
@@ -5163,7 +5163,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": ">"
                 }
@@ -5185,7 +5185,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "≠"
                 }
@@ -5207,7 +5207,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "≒"
                 }
@@ -5229,7 +5229,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "≦"
                 }
@@ -5247,7 +5247,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "¥"
                 }
@@ -5269,7 +5269,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "$"
                 }
@@ -5291,7 +5291,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "€"
                 }
@@ -5313,7 +5313,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "£"
                 }
@@ -5335,7 +5335,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "¢"
                 }
@@ -5353,7 +5353,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "！"
                 }
@@ -5375,7 +5375,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "？"
                 }
@@ -5397,7 +5397,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "‼"
                 }
@@ -5419,7 +5419,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "⁉"
                 }
@@ -5441,7 +5441,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "…"
                 }
@@ -5459,7 +5459,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "ー"
                 }
@@ -5481,7 +5481,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "〜"
                 }
@@ -5503,7 +5503,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "・"
                 }
@@ -5525,7 +5525,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "—"
                 }
@@ -5547,7 +5547,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "―"
                 }
@@ -5565,7 +5565,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "○"
                 }
@@ -5587,7 +5587,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "●"
                 }
@@ -5609,7 +5609,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "□"
                 }
@@ -5631,7 +5631,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "■"
                 }
@@ -5653,7 +5653,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "△"
                 }
@@ -5671,7 +5671,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "「"
                 }
@@ -5693,7 +5693,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "」"
                 }
@@ -5715,7 +5715,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "『"
                 }
@@ -5737,7 +5737,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "』"
                 }
@@ -5759,7 +5759,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "“"
                 }
@@ -5777,7 +5777,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "。"
                 }
@@ -5799,7 +5799,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "、"
                 }
@@ -5821,7 +5821,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "："
                 }
@@ -5843,7 +5843,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "；"
                 }
@@ -5865,7 +5865,7 @@
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "text.directInsert",
                 "arguments": {
                   "text": "・"
                 }
