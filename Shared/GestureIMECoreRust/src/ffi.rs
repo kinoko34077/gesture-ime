@@ -143,6 +143,34 @@ pub struct FfiValidationResult {
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiDirectionalPresentation {
+    pub direction: FfiDirection8,
+    pub text: Option<String>,
+    pub accessibility_label: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiKeyLayout {
+    pub id: String,
+    pub title: Option<String>,
+    pub role: Option<String>,
+    pub row: i64,
+    pub column: i64,
+    pub width: f64,
+    pub height: f64,
+    pub eligible_directions: Vec<FfiDirection8>,
+    pub first_stage_presentations: Vec<FfiDirectionalPresentation>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiLayoutSnapshot {
+    pub layer_id: String,
+    pub row_count: i64,
+    pub column_count: i64,
+    pub keys: Vec<FfiKeyLayout>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct FfiSessionSnapshot {
     pub terminal: Option<FfiGestureTerminal>,
     pub path: Vec<FfiDirection8>,
@@ -163,10 +191,14 @@ pub enum SharedCoreError {
     },
     #[error("missing layer: {layer_id}")]
     MissingLayer { layer_id: String },
+    #[error("missing layout for layer: {layer_id}")]
+    MissingLayout { layer_id: String },
     #[error("missing binding set for layer: {layer_id}")]
     MissingBindingSet { layer_id: String },
     #[error("key is not present in active layer: {key_id}")]
     MissingKey { key_id: String },
+    #[error("missing key definition: {key_id}")]
+    MissingKeyDefinition { key_id: String },
     #[error("binding trie error {code}: {detail:?}")]
     BindingTrie {
         code: String,
@@ -234,6 +266,109 @@ impl SharedCoreRuntime {
         self.profile.gesture_policy.clone().into()
     }
 
+    pub fn compile_layout(
+        &self,
+        layer_id: String,
+    ) -> Result<FfiLayoutSnapshot, SharedCoreError> {
+        let layer = self
+            .profile
+            .layers
+            .iter()
+            .find(|layer| layer.id == layer_id)
+            .ok_or_else(|| SharedCoreError::MissingLayer {
+                layer_id: layer_id.clone(),
+            })?;
+
+        let layout = self
+            .profile
+            .layouts
+            .iter()
+            .find(|layout| layout.id == layer.layout_ref)
+            .ok_or_else(|| SharedCoreError::MissingLayout {
+                layer_id: layer_id.clone(),
+            })?;
+
+        let binding_set = self
+            .profile
+            .binding_sets
+            .iter()
+            .find(|set| set.id == layer.binding_set_ref)
+            .ok_or_else(|| SharedCoreError::MissingBindingSet {
+                layer_id: layer_id.clone(),
+            })?;
+
+        let mut keys = Vec::with_capacity(layout.placements.len());
+        let mut row_count = 0_i64;
+        let mut column_count = 0_i64;
+
+        for placement in &layout.placements {
+            let definition = self
+                .profile
+                .key_definitions
+                .iter()
+                .find(|definition| definition.id == placement.key_id)
+                .ok_or_else(|| SharedCoreError::MissingKeyDefinition {
+                    key_id: placement.key_id.clone(),
+                })?;
+
+            let trie = BindingTrieCompiler::compile(binding_set, &placement.key_id)
+                .map_err(SharedCoreError::binding_trie)?;
+
+            let eligible: Vec<FfiDirection8> = Direction8::CANONICAL_ORDER
+                .into_iter()
+                .filter(|direction| trie.root.eligible_directions().contains(direction))
+                .map(Into::into)
+                .collect();
+
+            let mut first_stage_presentations = Vec::new();
+            for direction in Direction8::CANONICAL_ORDER {
+                let path = crate::GesturePath(vec![crate::GestureToken { direction }]);
+                if let Some(node) = trie.node(&path) {
+                    if let Some(behavior) = &node.behavior {
+                        first_stage_presentations.push(FfiDirectionalPresentation {
+                            direction: direction.into(),
+                            text: behavior
+                                .presentation
+                                .as_ref()
+                                .and_then(|presentation| presentation.text.clone()),
+                            accessibility_label: behavior
+                                .presentation
+                                .as_ref()
+                                .and_then(|presentation| presentation.accessibility_label.clone()),
+                        });
+                    }
+                }
+            }
+
+            let width = placement.width.unwrap_or(1.0).max(1.0);
+            let height = placement.height.unwrap_or(1.0).max(1.0);
+            row_count = row_count.max(placement.row + height.ceil() as i64);
+            column_count = column_count.max(placement.column + width.ceil() as i64);
+
+            keys.push(FfiKeyLayout {
+                id: placement.key_id.clone(),
+                title: definition
+                    .presentation
+                    .as_ref()
+                    .and_then(|presentation| presentation.text.clone()),
+                role: definition.role.clone(),
+                row: placement.row,
+                column: placement.column,
+                width,
+                height,
+                eligible_directions: eligible,
+                first_stage_presentations,
+            });
+        }
+
+        Ok(FfiLayoutSnapshot {
+            layer_id,
+            row_count,
+            column_count,
+            keys,
+        })
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn create_session(
         &self,
@@ -259,7 +394,7 @@ impl SharedCoreRuntime {
             .layouts
             .iter()
             .find(|layout| layout.id == layer.layout_ref)
-            .ok_or_else(|| SharedCoreError::MissingLayer {
+            .ok_or_else(|| SharedCoreError::MissingLayout {
                 layer_id: layer_id.clone(),
             })?;
 
