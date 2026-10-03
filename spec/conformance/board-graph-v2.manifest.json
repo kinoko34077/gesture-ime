@@ -1,0 +1,41 @@
+{
+  "schema": "gesture-ime.board-graph-conformance.v2",
+  "fixtures": [
+    {
+      "file": "fixtures/profile-v2-board-cardinal.valid.json",
+      "kind": "profile-v2",
+      "expect": "valid",
+      "assertions": {
+        "entryPoint": "entry.base.key.a",
+        "rootBoard": "board.a",
+        "coordinates": [[0,0],[-1,0],[0,-1],[1,0],[0,1]]
+      }
+    },
+    {
+      "file": "fixtures/profile-v2-board-chain.valid.json",
+      "kind": "profile-v2",
+      "expect": "valid",
+      "assertions": {
+        "pathCoordinates": [[1,0],[0,-1]],
+        "localOriginResets": true,
+        "finalActionID": "text.insert"
+      }
+    },
+    {
+      "file": "fixtures/profile-v2-board-lifetime.valid.json",
+      "kind": "profile-v2",
+      "expect": "valid",
+      "assertions": {
+        "holdTransition": "transient",
+        "persistentTransition": true,
+        "transientReturnsToPersistentBaseline": true
+      }
+    },
+    {
+      "file": "fixtures/profile-v2-duplicate-coordinate.invalid.json",
+      "kind": "profile-v2",
+      "expect": "invalid",
+      "error": "E_DUPLICATE_BOARD_COORDINATE"
+    }
+  ]
+}
