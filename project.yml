@@ -11,6 +11,9 @@ packages:
     path: Vendor/azooKey/AzooKeyCore
   AzooKeyKanaKanjiConverter:
     url: https://github.com/azooKey/AzooKeyKanaKanjiConverter
+    exactVersion: 0.11.2
+  AzooKeyKanaKanjiConverter:
+    url: https://github.com/azooKey/AzooKeyKanaKanjiConverter
     exactVersion: 0.11.1
 
 targets:
