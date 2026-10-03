@@ -36,6 +36,12 @@ struct ContentView: View {
                 }
             }
 
+            Text(model.mode == .cardinal
+                 ? "中央の「あ」から N / E / S / W へドラッグ。"
+                 : "中央の「あ」から8方向へドラッグ。Eが1段目で確定した後は、新しいanchorから E または N へ続けると [E,E] / [E,N]。")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
             slider("Dead zone", value: $model.deadZone, range: 0.05...0.35)
             slider("Stage 1", value: $model.stage1Distance, range: 0.20...0.90)
             slider("Stage 2", value: $model.stage2Distance, range: 0.20...1.20)
