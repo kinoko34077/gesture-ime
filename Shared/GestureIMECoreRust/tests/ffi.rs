@@ -185,7 +185,7 @@ fn ffi_layout_projection_tracks_persistent_board_baseline() {
 
     let updated = runtime.compile_layout("base".into()).expect("updated layout");
     let updated_key = &updated.keys[0];
-    assert_eq!(updated_key.title.as_deref(), Some("P"));
+    assert_eq!(updated_key.title.as_deref(), Some("T"));
     assert!(updated_key.eligible_directions.contains(&FfiDirection8::N));
     assert!(!updated_key.eligible_directions.contains(&FfiDirection8::E));
 }
