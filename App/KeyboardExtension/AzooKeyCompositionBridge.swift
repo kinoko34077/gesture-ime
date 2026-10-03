@@ -52,8 +52,15 @@ actor AzooKeyConversionWorker {
         return converter.requestCandidates(composing, options: options).mainResults
     }
 
-    func selected(_ candidate: Candidate) {
+    func complete(_ candidate: Candidate, nextComposing: ComposingText?) -> [Candidate] {
         converter.setCompletedData(candidate)
+
+        if let nextComposing, !nextComposing.isEmpty {
+            return converter.requestCandidates(nextComposing, options: options).mainResults
+        }
+
+        converter.stopComposition()
+        return []
     }
 
     func stopComposition() {
@@ -152,8 +159,20 @@ final class AzooKeyCompositionBridge {
 
     func selectCandidate(at index: Int) {
         guard candidates.indices.contains(index) else { return }
-        let candidate = candidates[index]
+        completeCandidate(candidates[index], commitRemainder: false)
+    }
 
+    func commitSelectionOrRaw() {
+        if let selectedCandidateIndex,
+           candidates.indices.contains(selectedCandidateIndex) {
+            completeCandidate(candidates[selectedCandidateIndex], commitRemainder: true)
+            return
+        }
+
+        commitRawRemainder()
+    }
+
+    private func completeCandidate(_ candidate: Candidate, commitRemainder: Bool) {
         composingText.prefixComplete(composingCount: candidate.composingCount)
         displayedTextManager.updateComposingText(
             composingText: composingText,
@@ -162,27 +181,43 @@ final class AzooKeyCompositionBridge {
         )
 
         revision += 1
+        let expectedRevision = revision
         selectedCandidateIndex = nil
-        Task { await worker.selected(candidate) }
 
-        if composingText.isEmpty {
+        if commitRemainder, !composingText.isEmpty {
+            let raw = composingText.convertTarget
+            let empty = ComposingText()
+            displayedTextManager.updateComposingText(
+                composingText: empty,
+                completedPrefix: raw,
+                isSelected: false
+            )
+            composingText = empty
+        }
+
+        let nextSnapshot = composingText.isEmpty ? nil : composingText
+
+        if nextSnapshot == nil {
             displayedTextManager.stopComposition()
             clearCandidates()
-            Task { await worker.stopComposition() }
-        } else {
-            refreshCandidates()
+        }
+
+        Task { [weak self] in
+            guard let self else { return }
+            let result = await worker.complete(candidate, nextComposing: nextSnapshot)
+            guard revision == expectedRevision else { return }
+
+            if nextSnapshot == nil {
+                return
+            }
+
+            candidates = result
+            selectedCandidateIndex = nil
+            publishCandidates()
         }
     }
 
-    func commitSelectionOrRaw() {
-        if let selectedCandidateIndex,
-           candidates.indices.contains(selectedCandidateIndex) {
-            selectCandidate(at: selectedCandidateIndex)
-            if composingText.isEmpty {
-                return
-            }
-        }
-
+    private func commitRawRemainder() {
         guard !composingText.isEmpty else { return }
 
         let raw = composingText.convertTarget
