@@ -12,7 +12,8 @@ on:
       - "Packages/GestureIMECore/**"
       - "Packages/GestureIMEProfileAuthoring/**"
       - "spec/**"
-      - "scripts/check-product-delete-contract.py"\n      - ".github/workflows/shared-core.yml"
+      - "scripts/check-product-delete-contract.py"
+      - ".github/workflows/shared-core.yml"
 
 permissions:
   contents: read
