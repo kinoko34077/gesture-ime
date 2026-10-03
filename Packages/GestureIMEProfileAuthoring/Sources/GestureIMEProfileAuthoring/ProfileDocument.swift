@@ -223,11 +223,11 @@ public struct ProfileDocument: Equatable, Sendable {
         width: Double,
         height: Double
     ) throws {
-        let references = try layerReferences(layerID: layerID)
+        let layoutRef = try layoutReference(layerID: layerID)
         var rootObject = try topObject()
         var layouts = try mutableArray(in: rootObject, named: "layouts")
-        guard let layoutIndex = layouts.firstIndex(where: { $0.objectValue?["id"]?.stringValue == references.layoutRef }) else {
-            throw ProfileAuthoringError.missingReference(references.layoutRef)
+        guard let layoutIndex = layouts.firstIndex(where: { $0.objectValue?["id"]?.stringValue == layoutRef }) else {
+            throw ProfileAuthoringError.missingReference(layoutRef)
         }
 
         var layout = layouts[layoutIndex].objectValue ?? [:]
