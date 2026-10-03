@@ -71,8 +71,8 @@ final class HarnessViewModel: ObservableObject {
                 profileRevision: mode.rawValue,
                 trie: trie,
                 policy: policy,
-                keySize: GestureSize(width: keySize.width, height: keySize.height),
-                touchDown: GesturePoint(x: start.x, y: start.y)
+                keySize: GestureSize(width: Double(keySize.width), height: Double(keySize.height)),
+                touchDown: GesturePoint(x: Double(start.x), y: Double(start.y))
             )
             refresh()
         } catch {
@@ -84,7 +84,7 @@ final class HarnessViewModel: ObservableObject {
     func move(to point: CGPoint) {
         guard tracking, var active = session else { return }
         trace.append(point)
-        active.move(to: GesturePoint(x: point.x, y: point.y))
+        active.move(to: GesturePoint(x: Double(point.x), y: Double(point.y)))
         session = active
         refresh()
     }
@@ -92,7 +92,7 @@ final class HarnessViewModel: ObservableObject {
     func end(at point: CGPoint) {
         guard tracking, var active = session else { return }
         trace.append(point)
-        active.move(to: GesturePoint(x: point.x, y: point.y))
+        active.move(to: GesturePoint(x: Double(point.x), y: Double(point.y)))
         let result = active.touchUp()
         session = active
         tracking = false
@@ -133,8 +133,8 @@ final class HarnessViewModel: ObservableObject {
 
     private func refresh() {
         guard let active = session else { return }
-        anchor = CGPoint(x: active.anchor.x, y: active.anchor.y)
-        commitAnchors = active.commitAnchors.map { CGPoint(x: $0.x, y: $0.y) }
+        anchor = CGPoint(x: CGFloat(active.anchor.x), y: CGFloat(active.anchor.y))
+        commitAnchors = active.commitAnchors.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
         pathText = "[" + active.path.tokens.map { $0.direction.rawValue.uppercased() }.joined(separator: ",") + "]"
         candidateText = active.candidateDirection?.rawValue.uppercased() ?? "—"
         eligibleDirections = Direction8.canonicalOrder.filter(active.eligibleDirections.contains)
