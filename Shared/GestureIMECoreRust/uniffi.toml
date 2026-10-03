@@ -1,0 +1,6 @@
+[bindings.swift]
+cdylib_name = "gesture_ime_core"
+module_name = "GestureIMECoreShared"
+ffi_module_name = "gesture_ime_coreFFI"
+ffi_module_filename = "gesture_ime_coreFFI"
+omit_argument_labels = false

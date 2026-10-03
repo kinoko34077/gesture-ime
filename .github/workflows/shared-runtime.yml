@@ -1,0 +1,201 @@
+name: Shared Rust Runtime
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "Shared/GestureIMECoreRust/**"
+      - "Platforms/iOS/SharedRuntime/**"
+      - "Platforms/Android/SharedRuntime/**"
+      - "spec/conformance/**"
+      - ".github/workflows/shared-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rust-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+      - name: Canonical Rust tests
+        working-directory: Shared/GestureIMECoreRust
+        run: cargo test
+
+  swift-binding:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchains
+        run: |
+          rustc --version
+          cargo --version
+          swift --version
+      - name: Build UniFFI library
+        working-directory: Shared/GestureIMECoreRust
+        run: cargo build
+      - name: Generate Swift binding
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          mkdir -p "$OUT"
+          cargo run --bin uniffi-bindgen -- \
+            target/debug/libgesture_ime_core.dylib \
+            "$OUT" \
+            --swift-sources \
+            --headers \
+            --modulemap \
+            --module-name gesture_ime_coreFFI \
+            --modulemap-filename gesture_ime_coreFFI.modulemap
+          find "$OUT" -maxdepth 1 -type f -print
+          test -n "$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          test -n "$(find "$OUT" -maxdepth 1 -name '*.h' -print -quit)"
+          test -n "$(find "$OUT" -maxdepth 1 -name '*.modulemap' -print -quit)"
+      - name: Typecheck generated Swift binding
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          MODULEMAP="$(find "$OUT" -maxdepth 1 -name '*.modulemap' ! -name 'module.modulemap' -print -quit)"
+          cp "$MODULEMAP" "$OUT/module.modulemap"
+
+          echo "--- generated Swift import preamble ---"
+          sed -n '1,80p' "$SWIFT_FILE"
+          echo "--- generated module map ---"
+          cat "$OUT/module.modulemap"
+
+          swiftc \
+            -typecheck \
+            -parse-as-library \
+            -I "$OUT" \
+            -L target/debug \
+            -lgesture_ime_core \
+            "$SWIFT_FILE"
+
+      - name: Run committed Swift adapter smoke
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          ADAPTER="../../Platforms/iOS/SharedRuntime/IOSSharedGestureRuntimeAdapter.swift"
+          SMOKE="../../Platforms/iOS/SharedRuntime/SharedRuntimeSwiftSmoke.swift"
+          BIN="$RUNNER_TEMP/shared-runtime-swift-smoke"
+
+          swiftc \
+            -I "$OUT" \
+            -L target/debug \
+            -lgesture_ime_core \
+            -Xlinker -rpath \
+            -Xlinker "$PWD/target/debug" \
+            "$SWIFT_FILE" \
+            "$ADAPTER" \
+            "$SMOKE" \
+            -o "$BIN"
+
+          DYLD_LIBRARY_PATH="$PWD/target/debug" \
+            "$BIN" "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
+
+      - name: Cross-check iOS adapter target
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          rustup target add aarch64-apple-ios
+          cargo build --release --target aarch64-apple-ios
+          test -s target/aarch64-apple-ios/release/libgesture_ime_core.a
+
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          ADAPTER="../../Platforms/iOS/SharedRuntime/IOSSharedGestureRuntimeAdapter.swift"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+
+          swiftc \
+            -typecheck \
+            -parse-as-library \
+            -target arm64-apple-ios17.0 \
+            -sdk "$SDK" \
+            -I "$OUT" \
+            "$SWIFT_FILE" \
+            "$ADAPTER"
+
+
+  kotlin-binding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchains
+        run: |
+          rustc --version
+          cargo --version
+          java -version
+          kotlinc -version
+          mvn -version
+      - name: Build UniFFI library
+        working-directory: Shared/GestureIMECoreRust
+        run: cargo build
+      - name: Generate Kotlin binding
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreKotlin"
+          mkdir -p "$OUT"
+          cargo run --bin uniffi-bindgen-generic -- \
+            generate \
+            --library \
+            --language kotlin \
+            --out-dir "$OUT" \
+            target/debug/libgesture_ime_core.so
+          find "$OUT" -type f -print
+          test -n "$(find "$OUT" -name '*.kt' -print -quit)"
+      - name: Compile generated Kotlin binding and committed adapter
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreKotlin"
+          JNA_DIR="$RUNNER_TEMP/jna"
+          mkdir -p "$JNA_DIR"
+          mvn -q dependency:copy \
+            -Dartifact=net.java.dev.jna:jna:5.12.1 \
+            -DoutputDirectory="$JNA_DIR"
+          JNA_JAR="$(find "$JNA_DIR" -name 'jna-*.jar' -print -quit)"
+          mapfile -t KOTLIN_FILES < <(find "$OUT" -name '*.kt' -print)
+          ADAPTER="../../Platforms/Android/SharedRuntime/AndroidSharedGestureRuntimeAdapter.kt"
+          SMOKE="../../Platforms/Android/SharedRuntime/SharedRuntimeKotlinSmoke.kt"
+          JAR="$RUNNER_TEMP/gesture-ime-core-bindings.jar"
+
+          kotlinc "${KOTLIN_FILES[@]}" "$ADAPTER" "$SMOKE" \
+            -classpath "$JNA_JAR" \
+            -d "$JAR"
+          test -s "$JAR"
+
+          LD_LIBRARY_PATH="$PWD/target/debug" \
+            kotlin \
+            -J-Djna.library.path="$PWD/target/debug" \
+            -classpath "$JAR:$JNA_JAR" \
+            net.kinotch.gestureime.shared.SharedRuntimeKotlinSmoke \
+            "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
+
+      - name: Cross-build shared core for Android arm64
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          rustup target add aarch64-linux-android
+
+          NDK="${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_ROOT:-}}"
+          if [[ -z "$NDK" && -n "${ANDROID_SDK_ROOT:-}" ]]; then
+            NDK="$(find "$ANDROID_SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n 1)"
+          fi
+          if [[ -z "$NDK" || ! -d "$NDK" ]]; then
+            echo "Android NDK not found" >&2
+            exit 20
+          fi
+
+          LINKER="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          test -x "$LINKER"
+
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$LINKER" \
+            cargo build --release --target aarch64-linux-android
+
+          test -s target/aarch64-linux-android/release/libgesture_ime_core.so
