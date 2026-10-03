@@ -151,3 +151,41 @@ fn ffi_v2_snapshot_exposes_board_state_and_local_origin_reset() {
     assert_eq!(final_state.dispatched_actions.len(), 1);
     assert_eq!(final_state.dispatched_actions[0].action_id, "text.insert");
 }
+
+
+#[test]
+fn ffi_layout_projection_tracks_persistent_board_baseline() {
+    let runtime = SharedCoreRuntime::new(fixture("profile-v2-board-lifetime.valid.json"))
+        .expect("runtime");
+
+    let initial = runtime.compile_layout("base".into()).expect("initial layout");
+    let initial_key = &initial.keys[0];
+    assert!(initial_key.eligible_directions.contains(&FfiDirection8::E));
+
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "key.test".into(),
+            runtime.profile_revision(),
+            FfiSize {
+                width: 100.0,
+                height: 100.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let transitioned = session
+        .move_to(FfiPoint { x: 50.0, y: 0.0 }, Some(10))
+        .expect("persistent transition");
+    assert_eq!(transitioned.persistent_board_id, "board.persistent");
+    session.touch_up(Some(20)).expect("touch up");
+
+    let updated = runtime.compile_layout("base".into()).expect("updated layout");
+    let updated_key = &updated.keys[0];
+    assert_eq!(updated_key.title.as_deref(), Some("P"));
+    assert!(updated_key.eligible_directions.contains(&FfiDirection8::N));
+    assert!(!updated_key.eligible_directions.contains(&FfiDirection8::E));
+}
