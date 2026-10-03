@@ -258,3 +258,60 @@ fn cyclic_board_graph_is_runtime_bounded_per_interaction() {
             <= ProfileLimits::BOARD_TRANSITIONS_PER_INTERACTION + 1
     );
 }
+
+
+#[test]
+fn transient_chain_returns_directly_to_persistent_baseline() {
+    let (_profile, _state, mut session) =
+        new_session("profile-v2-board-transient-chain.valid.json");
+
+    session.move_to(GesturePoint { x: 40.0, y: 0.0 }, Some(10));
+    assert_eq!(session.current_board_id, "board.t1");
+    assert_eq!(session.persistent_board_id, "board.root");
+
+    session.move_to(GesturePoint { x: 40.0, y: -40.0 }, Some(20));
+    assert_eq!(session.current_board_id, "board.t2");
+    assert_eq!(session.persistent_board_id, "board.root");
+
+    session.touch_up(Some(30));
+    assert_eq!(session.current_board_id, "board.root");
+    assert_eq!(
+        session.dispatched_actions.last().unwrap().arguments["text"],
+        "T2"
+    );
+}
+
+#[test]
+fn persistent_transition_from_transient_board_replaces_baseline() {
+    let (profile, state, mut first) =
+        new_session("profile-v2-board-transient-chain.valid.json");
+    let entry = profile.entry_points.first().unwrap().clone();
+    let boards = Arc::new(board_map(&profile));
+
+    first.move_to(GesturePoint { x: 40.0, y: 0.0 }, Some(10));
+    assert_eq!(first.current_board_id, "board.t1");
+    assert_eq!(first.persistent_board_id, "board.root");
+
+    first.move_to(GesturePoint { x: 40.0, y: 40.0 }, Some(20));
+    assert_eq!(first.current_board_id, "board.p");
+    assert_eq!(first.persistent_board_id, "board.p");
+    first.touch_up(Some(30));
+    assert_eq!(first.current_board_id, "board.p");
+
+    let second = BoardSession::new(
+        &entry,
+        "after-promotion",
+        boards,
+        state,
+        profile.gesture_policy,
+        GestureSize {
+            width: 100.0,
+            height: 100.0,
+        },
+        GesturePoint { x: 0.0, y: 0.0 },
+        100,
+    )
+    .expect("second session");
+    assert_eq!(second.current_board_id, "board.p");
+    assert_eq!(second.persistent_board_id, "board.p");
+}
