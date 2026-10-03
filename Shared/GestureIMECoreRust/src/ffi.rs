@@ -279,6 +279,70 @@ pub fn migrate_profile_to_v2_json(profile_json: String) -> Result<String, Shared
         .map_err(SharedCoreError::invalid_profile)
 }
 
+fn expand_runtime_macros(profile: &mut ProfileBundleV2) -> Result<(), SharedCoreError> {
+    let macros = profile
+        .macros
+        .iter()
+        .map(|macro_item| (macro_item.id.clone(), macro_item.actions.clone()))
+        .collect::<HashMap<_, _>>();
+
+    for board in &mut profile.boards {
+        for entry in &mut board.entries {
+            entry.on_release = expand_action_batch(&entry.on_release, &macros)?;
+
+            if let Some(hold) = &mut entry.hold {
+                hold.on_start = expand_action_batch(&hold.on_start, &macros)?;
+                if let Some(repeating) = &mut hold.repeat_behavior {
+                    repeating.actions = expand_action_batch(&repeating.actions, &macros)?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn expand_action_batch(
+    actions: &[ActionInvocation],
+    macros: &HashMap<String, Vec<ActionInvocation>>,
+) -> Result<Vec<ActionInvocation>, SharedCoreError> {
+    let mut expanded = Vec::new();
+
+    for action in actions {
+        if action.action_id != "macro.run" {
+            expanded.push(action.clone());
+            continue;
+        }
+
+        let macro_id = action
+            .arguments
+            .get("macro")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| SharedCoreError::InvalidProfile {
+                code: "E_INVALID_ACTION_ARGUMENTS".into(),
+                detail: Some("macro.run".into()),
+            })?;
+
+        let body = macros
+            .get(macro_id)
+            .ok_or_else(|| SharedCoreError::InvalidProfile {
+                code: "E_MISSING_REFERENCE".into(),
+                detail: Some(macro_id.to_owned()),
+            })?;
+
+        if body.iter().any(|nested| nested.action_id == "macro.run") {
+            return Err(SharedCoreError::InvalidProfile {
+                code: "E_MACRO_NESTING".into(),
+                detail: Some(macro_id.to_owned()),
+            });
+        }
+
+        expanded.extend(body.iter().cloned());
+    }
+
+    Ok(expanded)
+}
+
 #[derive(uniffi::Object)]
 pub struct SharedCoreRuntime {
     profile: ProfileBundleV2,
@@ -290,8 +354,9 @@ pub struct SharedCoreRuntime {
 impl SharedCoreRuntime {
     #[uniffi::constructor]
     pub fn new(profile_json: String) -> Result<Arc<Self>, SharedCoreError> {
-        let profile = BoardProfileCodec::decode_and_validate(profile_json.as_bytes())
+        let mut profile = BoardProfileCodec::decode_and_validate(profile_json.as_bytes())
             .map_err(SharedCoreError::invalid_profile)?;
+        expand_runtime_macros(&mut profile)?;
         let boards = Arc::new(board_map(&profile));
         Ok(Arc::new(Self {
             profile,
