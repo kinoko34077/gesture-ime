@@ -3,7 +3,7 @@ import GestureIMECore
 
 @MainActor
 final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegate {
-    private let keyboardStack = UIStackView()
+    private let keyboardGrid = KeyboardGridView()
     private var tuningPanel: TuningPanelView?
     private var heightConstraint: NSLayoutConstraint?
 
@@ -15,13 +15,10 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
 
-        keyboardStack.axis = .vertical
-        keyboardStack.spacing = 5
-        keyboardStack.distribution = .fillEqually
-        keyboardStack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(keyboardStack)
+        keyboardGrid.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(keyboardGrid)
 
         do {
             let profile = try BuiltInProfileLoader.load()
@@ -38,33 +35,42 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         heightConstraint?.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
-            keyboardStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 5),
-            keyboardStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -5),
-            keyboardStack.topAnchor.constraint(equalTo: view.topAnchor, constant: 5),
-            keyboardStack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -5),
+            keyboardGrid.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 5),
+            keyboardGrid.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -5),
+            keyboardGrid.topAnchor.constraint(equalTo: view.topAnchor, constant: 5),
+            keyboardGrid.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -5),
             heightConstraint!
         ])
     }
 
     private func installKeyboard(runtime: KeyboardLayoutRuntime, store: GesturePolicyStore) {
-        for row in runtime.rows {
-            let rowStack = UIStackView()
-            rowStack.axis = .horizontal
-            rowStack.spacing = 5
-            rowStack.distribution = .fillEqually
+        var items: [KeyboardGridView.Item] = []
 
-            for keyRuntime in row {
-                let key = GestureKeyView(
-                    runtime: keyRuntime,
-                    profileRevision: runtime.profileRevision,
-                    policyStore: store
+        for keyRuntime in runtime.keys {
+            let key = GestureKeyView(
+                runtime: keyRuntime,
+                profileRevision: runtime.profileRevision,
+                policyStore: store
+            )
+            key.delegate = self
+            keyViews[ObjectIdentifier(key)] = key
+
+            items.append(
+                KeyboardGridView.Item(
+                    view: key,
+                    row: keyRuntime.row,
+                    column: keyRuntime.column,
+                    width: keyRuntime.width,
+                    height: keyRuntime.height
                 )
-                key.delegate = self
-                keyViews[ObjectIdentifier(key)] = key
-                rowStack.addArrangedSubview(key)
-            }
-            keyboardStack.addArrangedSubview(rowStack)
+            )
         }
+
+        keyboardGrid.install(
+            items,
+            rowCount: runtime.rowCount,
+            columnCount: runtime.columnCount
+        )
     }
 
     private func installError(_ message: String) {
@@ -73,7 +79,14 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         label.textAlignment = .center
         label.font = .systemFont(ofSize: 12)
         label.text = "Profile load failed\n\(message)"
-        keyboardStack.addArrangedSubview(label)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            label.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -12)
+        ])
     }
 
     func gestureKeyViewShouldBegin(_ keyView: GestureKeyView) -> Bool {
@@ -130,8 +143,12 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
             dismissKeyboard()
 
         case "panel.open":
-            if action.arguments["panel"]?.stringValue == "tuning" {
+            guard let panel = action.arguments["panel"]?.stringValue else { return }
+            if panel == "tuning" {
                 showTuning()
+            } else {
+                // The azooKey product bridge owns normal mode/emoji/symbol panels.
+                // Until that bridge is active, do not reinterpret panel IDs locally.
             }
 
         default:
@@ -141,7 +158,7 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
     private func showTuning() {
         guard tuningPanel == nil, let policyStore else { return }
-        keyboardStack.isHidden = true
+        keyboardGrid.isHidden = true
 
         let panel = TuningPanelView(store: policyStore)
         panel.onClose = { [weak self] in self?.hideTuning() }
@@ -159,6 +176,6 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
     private func hideTuning() {
         tuningPanel?.removeFromSuperview()
         tuningPanel = nil
-        keyboardStack.isHidden = false
+        keyboardGrid.isHidden = false
     }
 }
