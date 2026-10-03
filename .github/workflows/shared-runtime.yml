@@ -6,6 +6,7 @@ on:
     paths:
       - "Shared/GestureIMECoreRust/**"
       - "Platforms/iOS/SharedRuntime/**"
+      - "Platforms/Android/SharedRuntime/**"
       - "spec/conformance/**"
       - ".github/workflows/shared-runtime.yml"
 
@@ -150,7 +151,7 @@ jobs:
             target/debug/libgesture_ime_core.so
           find "$OUT" -type f -print
           test -n "$(find "$OUT" -name '*.kt' -print -quit)"
-      - name: Compile generated Kotlin binding
+      - name: Compile generated Kotlin binding and committed adapter
         working-directory: Shared/GestureIMECoreRust
         run: |
           OUT="$RUNNER_TEMP/GestureIMECoreKotlin"
@@ -161,7 +162,40 @@ jobs:
             -DoutputDirectory="$JNA_DIR"
           JNA_JAR="$(find "$JNA_DIR" -name 'jna-*.jar' -print -quit)"
           mapfile -t KOTLIN_FILES < <(find "$OUT" -name '*.kt' -print)
-          kotlinc "${KOTLIN_FILES[@]}" \
+          ADAPTER="../../Platforms/Android/SharedRuntime/AndroidSharedGestureRuntimeAdapter.kt"
+          SMOKE="../../Platforms/Android/SharedRuntime/SharedRuntimeKotlinSmoke.kt"
+          JAR="$RUNNER_TEMP/gesture-ime-core-bindings.jar"
+
+          kotlinc "${KOTLIN_FILES[@]}" "$ADAPTER" "$SMOKE" \
             -classpath "$JNA_JAR" \
-            -d "$RUNNER_TEMP/gesture-ime-core-bindings.jar"
-          test -s "$RUNNER_TEMP/gesture-ime-core-bindings.jar"
+            -d "$JAR"
+          test -s "$JAR"
+
+          LD_LIBRARY_PATH="$PWD/target/debug" \
+            kotlin \
+            -J-Djna.library.path="$PWD/target/debug" \
+            -classpath "$JAR:$JNA_JAR" \
+            net.kinotch.gestureime.shared.SharedRuntimeKotlinSmoke \
+            "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
+
+      - name: Cross-build shared core for Android arm64
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          rustup target add aarch64-linux-android
+
+          NDK="${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_ROOT:-}}"
+          if [[ -z "$NDK" && -n "${ANDROID_SDK_ROOT:-}" ]]; then
+            NDK="$(find "$ANDROID_SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n 1)"
+          fi
+          if [[ -z "$NDK" || ! -d "$NDK" ]]; then
+            echo "Android NDK not found" >&2
+            exit 20
+          fi
+
+          LINKER="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          test -x "$LINKER"
+
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$LINKER" \
+            cargo build --release --target aarch64-linux-android
+
+          test -s target/aarch64-linux-android/release/libgesture_ime_core.so
