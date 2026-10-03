@@ -178,7 +178,8 @@ func v2BoardEditingPreservesUnknownFieldsAndSupportsTransitions() throws {
     #expect(policy.stage1CommitDistance == 0.3)
     #expect(policy.stage2CommitDistance == 0.4)
 
-    let entryPoint = try #require(document.entryPoint(layerID: "base", keyID: "key.a"))
+    let entryPointValue = try document.entryPoint(layerID: "base", keyID: "key.a")
+    let entryPoint = try #require(entryPointValue)
     #expect(entryPoint.boardID == "board.root")
 
     try document.upsertBoardEntry(
@@ -206,7 +207,8 @@ func v2BoardEditingPreservesUnknownFieldsAndSupportsTransitions() throws {
     #expect(east.transition?.targetBoardID == "board.next")
     #expect(east.transition?.lifetime == .transient)
 
-    let hold = try #require(document.boardHoldTrigger(boardID: "board.root"))
+    let holdValue = try document.boardHoldTrigger(boardID: "board.root")
+    let hold = try #require(holdValue)
     #expect(hold.delayMs == 350)
     #expect(hold.transition.lifetime == .persistent)
 
