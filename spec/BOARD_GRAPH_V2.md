@@ -90,9 +90,10 @@ A BoardEntry contains:
 - `coordinate`
 - optional `presentation`
 - optional `onRelease` Actions
+- optional legacy-compatible `hold` behavior (delay/onStart/repeat/suppress-on-release), preserving ordinary held-key behavior such as delete repeat
 - optional `transition`
 
-At least one of presentation, actions, or transition must be meaningful for authored entries; validation may reject semantically empty entries.
+At least one of presentation, release/hold actions, or transition must be meaningful for authored entries; validation may reject semantically empty entries.
 
 ### Terminal selection
 
