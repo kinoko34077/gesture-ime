@@ -1,7 +1,7 @@
 import Foundation
 
 public struct ProfileDocument: Equatable, Sendable {
-    private var root: JSONNode
+    var root: JSONNode
 
     public init(data: Data) throws {
         let object = try JSONSerialization.jsonObject(with: data)
@@ -53,6 +53,14 @@ public struct ProfileDocument: Equatable, Sendable {
         try setTopLevel("version", .integer(1))
     }
 
+    public var schemaID: String {
+        root.objectValue?["schema"]?.stringValue ?? ""
+    }
+
+    public var isBoardGraphV2: Bool {
+        schemaID == "gesture-ime.profile.v2"
+    }
+
     public func gesturePolicy() throws -> ProfileGesturePolicy {
         let object = try topObject()
         guard let policy = object["gesturePolicy"]?.objectValue else {
@@ -60,12 +68,33 @@ public struct ProfileDocument: Equatable, Sendable {
         }
         guard
             let deadZone = policy["deadZone"]?.doubleValue,
-            let stage1 = policy["stage1CommitDistance"]?.doubleValue,
-            let stage2 = policy["stage2CommitDistance"]?.doubleValue,
-            let hysteresis = policy["angularHysteresisDegrees"]?.doubleValue,
-            let stages = policy["maxDirectionalStages"]?.intValue
+            let hysteresis = policy["angularHysteresisDegrees"]?.doubleValue
         else {
             throw ProfileAuthoringError.invalidJSON("Invalid gesturePolicy")
+        }
+
+        if isBoardGraphV2 {
+            guard
+                let initial = policy["initialCellCommitDistance"]?.doubleValue,
+                let subsequent = policy["subsequentCellCommitDistance"]?.doubleValue
+            else {
+                throw ProfileAuthoringError.invalidJSON("Invalid v2 gesturePolicy")
+            }
+            return ProfileGesturePolicy(
+                deadZone: deadZone,
+                stage1CommitDistance: initial,
+                stage2CommitDistance: subsequent,
+                angularHysteresisDegrees: hysteresis,
+                maxDirectionalStages: 16
+            )
+        }
+
+        guard
+            let stage1 = policy["stage1CommitDistance"]?.doubleValue,
+            let stage2 = policy["stage2CommitDistance"]?.doubleValue,
+            let stages = policy["maxDirectionalStages"]?.intValue
+        else {
+            throw ProfileAuthoringError.invalidJSON("Invalid v1 gesturePolicy")
         }
         return ProfileGesturePolicy(
             deadZone: deadZone,
@@ -80,10 +109,18 @@ public struct ProfileDocument: Equatable, Sendable {
         var rootObject = try topObject()
         var object = rootObject["gesturePolicy"]?.objectValue ?? [:]
         object["deadZone"] = .decimal(policy.deadZone)
-        object["stage1CommitDistance"] = .decimal(policy.stage1CommitDistance)
-        object["stage2CommitDistance"] = .decimal(policy.stage2CommitDistance)
         object["angularHysteresisDegrees"] = .decimal(policy.angularHysteresisDegrees)
-        object["maxDirectionalStages"] = .integer(Int64(policy.maxDirectionalStages))
+        if isBoardGraphV2 {
+            object["initialCellCommitDistance"] = .decimal(policy.stage1CommitDistance)
+            object["subsequentCellCommitDistance"] = .decimal(policy.stage2CommitDistance)
+            object.removeValue(forKey: "stage1CommitDistance")
+            object.removeValue(forKey: "stage2CommitDistance")
+            object.removeValue(forKey: "maxDirectionalStages")
+        } else {
+            object["stage1CommitDistance"] = .decimal(policy.stage1CommitDistance)
+            object["stage2CommitDistance"] = .decimal(policy.stage2CommitDistance)
+            object["maxDirectionalStages"] = .integer(Int64(policy.maxDirectionalStages))
+        }
         rootObject["gesturePolicy"] = .object(object)
         root = .object(rootObject)
     }
@@ -93,8 +130,8 @@ public struct ProfileDocument: Equatable, Sendable {
     }
 
     public func keys(layerID: String) throws -> [ProfileKeySummary] {
-        let references = try layerReferences(layerID: layerID)
-        let layout = try objectInArray(named: "layouts", id: references.layoutRef)
+        let layoutRef = try layoutReference(layerID: layerID)
+        let layout = try objectInArray(named: "layouts", id: layoutRef)
         let placements = layout["placements"]?.arrayValue ?? []
         let definitions = try array(named: "keyDefinitions")
         let definitionMap = Dictionary(
@@ -324,6 +361,14 @@ public struct ProfileDocument: Equatable, Sendable {
             throw ProfileAuthoringError.missingReference(id)
         }
         return object
+    }
+
+    private func layoutReference(layerID: String) throws -> String {
+        let layer = try objectInArray(named: "layers", id: layerID)
+        guard let layoutRef = layer["layoutRef"]?.stringValue else {
+            throw ProfileAuthoringError.invalidJSON("Layer \(layerID) is missing layoutRef")
+        }
+        return layoutRef
     }
 
     private func layerReferences(layerID: String) throws -> (layoutRef: String, bindingSetRef: String) {
