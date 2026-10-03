@@ -8,6 +8,7 @@ on:
       - "Platforms/iOS/SharedRuntime/**"
       - "Platforms/Android/SharedRuntime/**"
       - "spec/conformance/**"
+      - "App/KeyboardExtension/Resources/default-ja.json"
       - ".github/workflows/shared-runtime.yml"
 
 permissions:
@@ -101,6 +102,22 @@ jobs:
           DYLD_LIBRARY_PATH="$PWD/target/debug" \
             "$BIN" "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
 
+          PRODUCT_SMOKE="../../Platforms/iOS/SharedRuntime/ProductProfileSharedRuntimeSmoke.swift"
+          PRODUCT_BIN="$RUNNER_TEMP/product-profile-swift-smoke"
+          swiftc \
+            -I "$OUT" \
+            -L target/debug \
+            -lgesture_ime_core \
+            -Xlinker -rpath \
+            -Xlinker "$PWD/target/debug" \
+            "$SWIFT_FILE" \
+            "$ADAPTER" \
+            "$PRODUCT_SMOKE" \
+            -o "$PRODUCT_BIN"
+
+          DYLD_LIBRARY_PATH="$PWD/target/debug" \
+            "$PRODUCT_BIN" "../../App/KeyboardExtension/Resources/default-ja.json"
+
       - name: Cross-check iOS adapter target
         working-directory: Shared/GestureIMECoreRust
         run: |
@@ -164,9 +181,10 @@ jobs:
           mapfile -t KOTLIN_FILES < <(find "$OUT" -name '*.kt' -print)
           ADAPTER="../../Platforms/Android/SharedRuntime/AndroidSharedGestureRuntimeAdapter.kt"
           SMOKE="../../Platforms/Android/SharedRuntime/SharedRuntimeKotlinSmoke.kt"
+          PRODUCT_SMOKE="../../Platforms/Android/SharedRuntime/ProductProfileSharedRuntimeSmoke.kt"
           JAR="$RUNNER_TEMP/gesture-ime-core-bindings.jar"
 
-          kotlinc "${KOTLIN_FILES[@]}" "$ADAPTER" "$SMOKE" \
+          kotlinc "${KOTLIN_FILES[@]}" "$ADAPTER" "$SMOKE" "$PRODUCT_SMOKE" \
             -classpath "$JNA_JAR" \
             -d "$JAR"
           test -s "$JAR"
@@ -177,6 +195,13 @@ jobs:
             -classpath "$JAR:$JNA_JAR" \
             net.kinotch.gestureime.shared.SharedRuntimeKotlinSmoke \
             "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
+
+          LD_LIBRARY_PATH="$PWD/target/debug" \
+            kotlin \
+            -J-Djna.library.path="$PWD/target/debug" \
+            -classpath "$JAR:$JNA_JAR" \
+            net.kinotch.gestureime.shared.ProductProfileSharedRuntimeSmoke \
+            "../../App/KeyboardExtension/Resources/default-ja.json"
 
       - name: Cross-build shared core for Android arm64
         working-directory: Shared/GestureIMECoreRust
