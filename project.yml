@@ -9,6 +9,31 @@ packages:
     path: Packages/GestureIMECore
 
 targets:
+  GestureKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: App/KeyboardExtension
+        excludes:
+          - Resources
+    resources:
+      - path: App/KeyboardExtension/Resources
+    dependencies:
+      - package: GestureIMECore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.harness.keyboard
+        PRODUCT_NAME: GestureKeyboard
+        INFOPLIST_FILE: App/KeyboardExtension/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_VERSION: 6.0
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+        ENABLE_PREVIEWS: NO
+
   GestureHarness:
     type: application
     platform: iOS
@@ -16,12 +41,14 @@ targets:
       - path: App/GestureHarness
     dependencies:
       - package: GestureIMECore
+      - target: GestureKeyboard
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.harness
         PRODUCT_NAME: GestureHarness
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Gesture Harness
+        INFOPLIST_KEY_CFBundleDisplayName: Gesture IME Dev
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         SWIFT_VERSION: 6.0
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
@@ -35,6 +62,7 @@ schemes:
     build:
       targets:
         GestureHarness: all
+        GestureKeyboard: all
     run:
       config: Debug
     archive:
