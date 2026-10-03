@@ -7,6 +7,7 @@ on:
       - "App/MainApp/**"
       - "App/KeyboardExtension/**"
       - "Packages/GestureIMECore/**"
+      - "Packages/GestureIMEProfileAuthoring/**"
       - "Shared/GestureIMECoreRust/**"
       - "Platforms/iOS/SharedRuntime/**"
       - "project.yml"
@@ -42,6 +43,10 @@ jobs:
 
       - name: Swift reference regression
         working-directory: Packages/GestureIMECore
+        run: swift test
+
+      - name: Profile authoring tests
+        working-directory: Packages/GestureIMEProfileAuthoring
         run: swift test
 
       - name: Build unsigned keyboard IPA
