@@ -276,6 +276,8 @@ On cancel:
 - cancel pending hold/repeat work immediately;
 - return terminal `cancelled` with an empty semantic-action result.
 
+The terminal guarantee is prospective: semantic actions already dispatched while the session was valid before the cancel event are not retroactively revoked. From the cancel transition onward, that session may dispatch nothing further. A conformance case expecting zero total dispatch must therefore cancel before any configured hold action could validly fire.
+
 V0 unsupported multitouch rule: if a conflicting second touch arrives while a session is active, cancel the active session and ignore new gesture starts until the interaction returns to zero active touches.
 
 ### 9.2 Invalidate
