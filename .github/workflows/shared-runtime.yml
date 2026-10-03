@@ -75,3 +75,48 @@ jobs:
             -L target/debug \
             -lgesture_ime_core \
             "$SWIFT_FILE"
+
+
+  kotlin-binding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchains
+        run: |
+          rustc --version
+          cargo --version
+          java -version
+          kotlinc -version
+          mvn -version
+      - name: Build UniFFI library
+        working-directory: Shared/GestureIMECoreRust
+        run: cargo build
+      - name: Generate Kotlin binding
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreKotlin"
+          mkdir -p "$OUT"
+          cargo run --bin uniffi-bindgen-generic -- \
+            generate \
+            --library \
+            --language kotlin \
+            --out-dir "$OUT" \
+            target/debug/libgesture_ime_core.so
+          find "$OUT" -type f -print
+          test -n "$(find "$OUT" -name '*.kt' -print -quit)"
+      - name: Compile generated Kotlin binding
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreKotlin"
+          JNA_DIR="$RUNNER_TEMP/jna"
+          mkdir -p "$JNA_DIR"
+          mvn -q dependency:copy \
+            -Dartifact=net.java.dev.jna:jna:5.12.1 \
+            -DoutputDirectory="$JNA_DIR"
+          JNA_JAR="$(find "$JNA_DIR" -name 'jna-*.jar' -print -quit)"
+          mapfile -t KOTLIN_FILES < <(find "$OUT" -name '*.kt' -print)
+          kotlinc "${KOTLIN_FILES[@]}" \
+            -classpath "$JNA_JAR" \
+            -d "$RUNNER_TEMP/gesture-ime-core-bindings.jar"
+          test -s "$RUNNER_TEMP/gesture-ime-core-bindings.jar"
