@@ -23,6 +23,47 @@ enum ProductUtilityPanel: String, Identifiable {
 }
 
 @MainActor
+final class ProductGestureCoordinator {
+    struct Token: Equatable {
+        let touchID: UUID
+        let generation: UInt64
+    }
+
+    private var activeTouches: Set<UUID> = []
+    private var generation: UInt64 = 0
+    private var blockedByMultitouch = false
+
+    func begin(touchID: UUID) -> Token? {
+        guard !activeTouches.contains(touchID) else { return nil }
+
+        activeTouches.insert(touchID)
+        if blockedByMultitouch || activeTouches.count > 1 {
+            if !blockedByMultitouch {
+                generation &+= 1
+            }
+            blockedByMultitouch = true
+            return nil
+        }
+
+        return Token(touchID: touchID, generation: generation)
+    }
+
+    func isValid(_ token: Token) -> Bool {
+        !blockedByMultitouch
+            && token.generation == generation
+            && activeTouches.count == 1
+            && activeTouches.contains(token.touchID)
+    }
+
+    func end(touchID: UUID) {
+        activeTouches.remove(touchID)
+        if activeTouches.isEmpty {
+            blockedByMultitouch = false
+        }
+    }
+}
+
+@MainActor
 final class ProductKeyboardViewModel: ObservableObject {
     @Published private(set) var layout: KeyboardLayoutRuntime
     @Published private(set) var candidates: [CompositionCandidateSnapshot] = []
@@ -30,6 +71,7 @@ final class ProductKeyboardViewModel: ObservableObject {
 
     let policyStore: GesturePolicyStore
     let composition: AzooKeyCompositionBridge
+    let gestureCoordinator = ProductGestureCoordinator()
 
     private let sharedRuntime: IOSSharedGestureRuntimeAdapter
     private(set) var layerStack: [String]
@@ -230,6 +272,7 @@ struct AzooKeyProductKeyboardRoot: View {
                 ProductFlickGrid(
                     layout: model.layout,
                     policyStore: model.policyStore,
+                    gestureCoordinator: model.gestureCoordinator,
                     theme: theme,
                     onActions: model.dispatch
                 )
@@ -296,6 +339,7 @@ struct AzooKeyProductKeyboardRoot: View {
 private struct ProductFlickGrid: View {
     let layout: KeyboardLayoutRuntime
     let policyStore: GesturePolicyStore
+    let gestureCoordinator: ProductGestureCoordinator
     let theme: AzooKeyTheme
     let onActions: ([FfiActionInvocation]) -> Void
 
@@ -323,6 +367,7 @@ private struct ProductFlickGrid: View {
                         sharedRuntime: layout.sharedRuntime,
                         profileRevision: layout.profileRevision,
                         policyStore: policyStore,
+                        gestureCoordinator: gestureCoordinator,
                         theme: theme,
                         onActions: onActions
                     )
@@ -348,12 +393,16 @@ private struct SharedGestureFlickKey: View {
     let sharedRuntime: IOSSharedGestureRuntimeAdapter
     let profileRevision: String
     let policyStore: GesturePolicyStore
+    let gestureCoordinator: ProductGestureCoordinator
     let theme: AzooKeyTheme
     let onActions: ([FfiActionInvocation]) -> Void
 
     @State private var session: IOSSharedGestureSessionAdapter?
     @State private var startedAt: TimeInterval?
     @State private var pressed = false
+    @State private var registeredTouch = false
+    @State private var gestureToken: ProductGestureCoordinator.Token?
+    @State private var nativeTouchID = UUID()
 
     private var fill: Color {
         if pressed {
@@ -429,6 +478,21 @@ private struct SharedGestureFlickKey: View {
     }
 
     private func updateGesture(value: DragGesture.Value, size: CGSize) {
+        if !registeredTouch {
+            registeredTouch = true
+            gestureToken = gestureCoordinator.begin(touchID: nativeTouchID)
+        }
+
+        guard let gestureToken else {
+            cancelSemanticSession()
+            return
+        }
+
+        guard gestureCoordinator.isValid(gestureToken) else {
+            cancelSemanticSession()
+            return
+        }
+
         if session == nil {
             startedAt = ProcessInfo.processInfo.systemUptime
             do {
@@ -444,8 +508,7 @@ private struct SharedGestureFlickKey: View {
                 )
                 pressed = true
             } catch {
-                session = nil
-                pressed = false
+                cancelSemanticSession()
                 return
             }
         }
@@ -459,8 +522,12 @@ private struct SharedGestureFlickKey: View {
     }
 
     private func endGesture(value: DragGesture.Value, size: CGSize) {
-        guard let session else {
-            resetGesture()
+        defer { finishNativeTouch() }
+
+        guard let gestureToken,
+              gestureCoordinator.isValid(gestureToken),
+              let session else {
+            cancelSemanticSession()
             return
         }
 
@@ -476,7 +543,7 @@ private struct SharedGestureFlickKey: View {
         } catch {
             _ = try? session.cancel(atMs: atMs)
         }
-        resetGesture()
+        resetSemanticSession()
     }
 
     private func elapsedMs() -> Int64 {
@@ -487,10 +554,26 @@ private struct SharedGestureFlickKey: View {
         )
     }
 
-    private func resetGesture() {
+    private func cancelSemanticSession() {
+        if let session {
+            _ = try? session.cancel(atMs: elapsedMs())
+        }
+        resetSemanticSession()
+    }
+
+    private func resetSemanticSession() {
         session = nil
         startedAt = nil
         pressed = false
+    }
+
+    private func finishNativeTouch() {
+        if registeredTouch {
+            gestureCoordinator.end(touchID: nativeTouchID)
+        }
+        registeredTouch = false
+        gestureToken = nil
+        resetSemanticSession()
     }
 }
 
