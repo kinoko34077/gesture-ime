@@ -59,8 +59,9 @@ targets:
       - path: App/KeyboardExtension
         excludes:
           - Info.plist
-    resources:
+          - Resources
       - path: App/KeyboardExtension/Resources
+        buildPhase: resources
     dependencies:
       - package: GestureIMECore
     info:
