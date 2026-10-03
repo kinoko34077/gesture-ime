@@ -221,3 +221,29 @@ func holdLocksEndpoint() throws {
     #expect(result.path.tokens.isEmpty)
     #expect(result.dispatchedActions == [ActionInvocation(actionID: "text.insert", arguments: ["text": .string("H")])])
 }
+
+@Test("Extreme integer action arguments fail validation without trapping")
+func extremeIntegerArgumentsFailSafely() throws {
+    var profile = try ProfileCodec.decodeAndValidate(FixtureSupport.data("fixtures/profile-default-ja-a.valid.json"))
+    var set = try #require(profile.bindingSets.first)
+    set.bindings[0].behavior.onRelease = [ActionInvocation(actionID: "cursor.move", arguments: ["offset": .integer(.min)])]
+    profile.bindingSets[0] = set
+    do {
+        try ProfileValidator.validate(profile)
+        Issue.record("Expected invalid extreme integer argument")
+    } catch let error as ProfileValidationError {
+        #expect(error.code == .invalidActionArguments)
+    }
+}
+
+@Test("Profile name length follows schema scalar limit")
+func profileNameScalarLimit() throws {
+    var profile = try ProfileCodec.decodeAndValidate(FixtureSupport.data("fixtures/profile-default-ja-a.valid.json"))
+    profile.name = String(repeating: "e\u{301}", count: 65)
+    do {
+        try ProfileValidator.validate(profile)
+        Issue.record("Expected profile name with over 128 Unicode scalars to fail")
+    } catch let error as ProfileValidationError {
+        #expect(error.code == .unsupportedSchema)
+    }
+}
