@@ -7,6 +7,8 @@ options:
 packages:
   GestureIMECore:
     path: Packages/GestureIMECore
+  AzooKeyCore:
+    path: Vendor/azooKey/AzooKeyCore
 
 targets:
   GestureHarness:
@@ -64,6 +66,12 @@ targets:
         buildPhase: resources
     dependencies:
       - package: GestureIMECore
+      - package: AzooKeyCore
+        product: KeyboardViews
+      - package: AzooKeyCore
+        product: AzooKeyUtils
+      - package: AzooKeyCore
+        product: KeyboardExtensionUtils
     info:
       path: App/KeyboardExtension/Info.plist
       properties:
