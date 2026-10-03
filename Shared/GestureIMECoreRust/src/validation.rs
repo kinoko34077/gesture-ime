@@ -102,9 +102,9 @@ impl ProfileLimits {
     pub const BINDINGS_PER_KEY: usize = 128;
     pub const BINDINGS_TOTAL: usize = 8192;
     pub const TRIE_NODES: usize = 16384;
-    pub const BOARDS: usize = 1024;
+    pub const BOARDS: usize = 16384;
     pub const BOARD_ENTRIES_PER_BOARD: usize = 256;
-    pub const ENTRY_POINTS: usize = 1024;
+    pub const ENTRY_POINTS: usize = 8192;
     pub const BOARD_TRIGGERS_PER_BOARD: usize = 16;
     pub const BOARD_TRANSITIONS_PER_INTERACTION: usize = 16;
     pub const PATH_DEPTH: usize = 2;
