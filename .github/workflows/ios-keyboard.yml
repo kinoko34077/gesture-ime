@@ -33,6 +33,12 @@ jobs:
         working-directory: Packages/GestureIMECore
         run: swift test
 
+      - name: Phase 2 harness regression build
+        env:
+          DERIVED_DATA: ${{ runner.temp }}/GestureHarnessRegressionDerivedData
+          ARTIFACT_DIR: ${{ runner.temp }}/GestureHarnessRegressionArtifact
+        run: bash scripts/build-ios-harness.sh
+
       - name: Build unsigned keyboard IPA
         env:
           DERIVED_DATA: ${{ runner.temp }}/GestureIMEKeyboardDerivedData

@@ -2,6 +2,11 @@ name: iOS Harness Device Build
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "App/GestureHarness/**"
+      - "scripts/build-ios-harness.sh"
+      - ".github/workflows/ios-harness.yml"
 
 permissions:
   contents: read
