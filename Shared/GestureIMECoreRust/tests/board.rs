@@ -474,3 +474,65 @@ fn center_release_uses_source_actions_before_persistent_transition() {
         "target"
     );
 }
+
+
+#[test]
+fn accepted_v1_shared_binding_set_reuses_compatibility_boards_across_layers() {
+    let json = r#"
+    {
+      "schema":"gesture-ime.profile.v1",
+      "id":"fixture.v1.shared-binding-set",
+      "name":"Shared binding set",
+      "version":1,
+      "gesturePolicy":{
+        "deadZone":0.1,
+        "stage1CommitDistance":0.3,
+        "stage2CommitDistance":0.3,
+        "angularHysteresisDegrees":8,
+        "maxDirectionalStages":2
+      },
+      "keyDefinitions":[{"id":"key.test"}],
+      "layouts":[
+        {"id":"layout.a","placements":[{"keyID":"key.test","row":0,"column":0}]},
+        {"id":"layout.b","placements":[{"keyID":"key.test","row":0,"column":0}]}
+      ],
+      "bindingSets":[
+        {
+          "id":"bindings.shared",
+          "bindings":[
+            {
+              "keyID":"key.test",
+              "path":[],
+              "behavior":{
+                "onRelease":[{"actionID":"text.insert","arguments":{"text":"x"}}]
+              }
+            }
+          ]
+        }
+      ],
+      "layers":[
+        {"id":"layer.a","layoutRef":"layout.a","bindingSetRef":"bindings.shared"},
+        {"id":"layer.b","layoutRef":"layout.b","bindingSetRef":"bindings.shared"}
+      ],
+      "macros":[]
+    }
+    "#;
+
+    let profile = BoardProfileCodec::decode_and_validate(json.as_bytes())
+        .expect("accepted v1 must normalize");
+    assert_eq!(profile.entry_points.len(), 2);
+    assert_eq!(profile.boards.len(), 1);
+    assert_eq!(
+        profile.entry_points[0].board_ref,
+        profile.entry_points[1].board_ref
+    );
+}
+
+#[test]
+fn v2_graph_limits_cover_the_accepted_v1_layer_key_envelope() {
+    assert!(ProfileLimits::BOARDS >= ProfileLimits::TRIE_NODES);
+    assert!(
+        ProfileLimits::ENTRY_POINTS
+            >= ProfileLimits::LAYERS * ProfileLimits::PLACEMENTS_PER_LAYOUT
+    );
+}
