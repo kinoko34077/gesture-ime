@@ -1028,15 +1028,16 @@ impl BoardSession {
             return;
         }
 
-        if self.selected_coordinate.is_none() {
-            if let Some(center) = self.entry_at(BoardCoordinate::ORIGIN).cloned() {
-                if let Some(transition) = center.transition {
-                    let _ = self.apply_transition(transition, self.last_point, self.current_time_ms);
-                }
-            }
-        }
+        let release_entry = self.current_entry().cloned();
+        let center_transition = if self.selected_coordinate.is_none() {
+            release_entry
+                .as_ref()
+                .and_then(|entry| entry.transition.clone())
+        } else {
+            None
+        };
 
-        if let Some(entry) = self.current_entry().cloned() {
+        if let Some(entry) = release_entry {
             let suppress_release = self.hold_started
                 && entry
                     .hold
@@ -1045,6 +1046,10 @@ impl BoardSession {
             if !suppress_release {
                 self.dispatched_actions.extend(entry.on_release);
             }
+        }
+
+        if let Some(transition) = center_transition {
+            let _ = self.apply_transition(transition, self.last_point, self.current_time_ms);
         }
 
         self.terminal = Some(BoardSessionTerminal::Committed);
