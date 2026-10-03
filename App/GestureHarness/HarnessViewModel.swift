@@ -6,7 +6,7 @@ import GestureIMECore
 final class HarnessViewModel: ObservableObject {
     enum ProfileMode: String, CaseIterable, Identifiable {
         case cardinal = "4-way"
-        case extended = "Diagonal + 2-stage"
+        case extended = "8-way + 2-stage"
         var id: String { rawValue }
     }
 
@@ -189,6 +189,9 @@ final class HarnessViewModel: ObservableObject {
         if mode == .extended {
             bindings += [
                 binding([.ne], label: "NE"),
+                binding([.se], label: "SE"),
+                binding([.sw], label: "SW"),
+                binding([.nw], label: "NW"),
                 binding([.e, .n], label: "E,N"),
                 binding([.e, .e], label: "E,E")
             ]
