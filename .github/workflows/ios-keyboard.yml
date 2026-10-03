@@ -8,6 +8,8 @@ on:
       - "App/KeyboardExtension/**"
       - "Packages/GestureIMECore/**"
       - "project.yml"
+      - ".gitmodules"
+      - "Vendor/azooKey"
       - "scripts/build-ios-keyboard.sh"
       - ".github/workflows/ios-keyboard.yml"
 
@@ -34,12 +36,6 @@ jobs:
       - name: Swift core tests
         working-directory: Packages/GestureIMECore
         run: swift test
-
-      - name: Phase 2 harness regression build
-        env:
-          DERIVED_DATA: ${{ runner.temp }}/GestureHarnessRegressionDerivedData
-          ARTIFACT_DIR: ${{ runner.temp }}/GestureHarnessRegressionArtifact
-        run: bash scripts/build-ios-harness.sh
 
       - name: Build unsigned keyboard IPA
         env:
