@@ -98,9 +98,9 @@ pub struct ActionInvocation {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct BindingPresentation {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub accessibility_label: Option<String>,
 }
 
@@ -116,7 +116,7 @@ pub struct RepeatBehavior {
 pub struct HoldBehavior {
     pub delay_ms: i64,
     pub on_start: Vec<ActionInvocation>,
-    #[serde(rename = "repeat", default)]
+    #[serde(rename = "repeat", default, skip_serializing_if = "Option::is_none")]
     pub repeat_behavior: Option<RepeatBehavior>,
     pub suppress_on_release_after_start: bool,
 }
@@ -124,10 +124,10 @@ pub struct HoldBehavior {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BindingBehavior {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub presentation: Option<BindingPresentation>,
     pub on_release: Vec<ActionInvocation>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hold: Option<HoldBehavior>,
 }
 
@@ -151,9 +151,9 @@ pub struct BindingSet {
 #[serde(rename_all = "camelCase")]
 pub struct KeyDefinition {
     pub id: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub presentation: Option<BindingPresentation>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub role: Option<String>,
 }
 
@@ -164,9 +164,9 @@ pub struct LayoutPlacement {
     pub key_id: String,
     pub row: i64,
     pub column: i64,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub width: Option<f64>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub height: Option<f64>,
 }
 
@@ -205,6 +205,6 @@ pub struct ProfileBundle {
     pub binding_sets: Vec<BindingSet>,
     pub layers: Vec<Layer>,
     pub macros: Vec<Macro>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub theme: Option<HashMap<String, Value>>,
 }
