@@ -1,0 +1,221 @@
+{
+  "schema": "gesture-ime.profile.v1",
+  "id": "fixture.diagonal-two-stage",
+  "name": "Fixture diagonal and two-stage",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "stage1CommitDistance": 0.4,
+    "stage2CommitDistance": 0.4,
+    "angularHysteresisDegrees": 8,
+    "maxDirectionalStages": 2
+  },
+  "keyDefinitions": [
+    {
+      "id": "kana.a",
+      "presentation": {
+        "text": "あ"
+      },
+      "role": "text"
+    }
+  ],
+  "layouts": [
+    {
+      "id": "layout.base",
+      "placements": [
+        {
+          "keyID": "kana.a",
+          "row": 0,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        }
+      ]
+    }
+  ],
+  "bindingSets": [
+    {
+      "id": "bindings.base",
+      "bindings": [
+        {
+          "keyID": "kana.a",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "あ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "あ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "い"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "い"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "う"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "う"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "え"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "え"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "お"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "お"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "ne"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "※"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "※"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "ne"
+            },
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "↑"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "↑"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "e"
+            },
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "→"
+            },
+            "onRelease": [
+              {
+                "actionID": "cursor.move",
+                "arguments": {
+                  "offset": 1
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": "base",
+      "layoutRef": "layout.base",
+      "bindingSetRef": "bindings.base"
+    }
+  ],
+  "macros": []
+}

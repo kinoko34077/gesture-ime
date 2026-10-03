@@ -1,0 +1,86 @@
+{
+  "schema": "gesture-ime.conformance-manifest.v1",
+  "fixtures": [
+    {
+      "file": "fixtures/profile-default-ja-a.valid.json",
+      "kind": "profile",
+      "expect": "valid",
+      "assertions": {
+        "rootEligibleDirections": [
+          "n",
+          "e",
+          "s",
+          "w"
+        ]
+      }
+    },
+    {
+      "file": "fixtures/profile-diagonal-two-stage.valid.json",
+      "kind": "profile",
+      "expect": "valid",
+      "assertions": {
+        "rootIncludes": "ne",
+        "pathsInclude": [
+          [
+            "ne",
+            "n"
+          ],
+          [
+            "e",
+            "e"
+          ]
+        ]
+      }
+    },
+    {
+      "file": "fixtures/gesture-east-north.valid.json",
+      "kind": "gesture-trace",
+      "expect": "valid"
+    },
+    {
+      "file": "fixtures/gesture-east-east.valid.json",
+      "kind": "gesture-trace",
+      "expect": "valid"
+    },
+    {
+      "file": "fixtures/cancel-no-dispatch.valid.json",
+      "kind": "lifecycle",
+      "expect": "valid"
+    },
+    {
+      "file": "fixtures/profile-reload-invalidates.valid.json",
+      "kind": "lifecycle",
+      "expect": "valid"
+    },
+    {
+      "file": "fixtures/profile-duplicate-path.invalid.json",
+      "kind": "profile",
+      "expect": "invalid",
+      "error": "E_DUPLICATE_BINDING_PATH"
+    },
+    {
+      "file": "fixtures/profile-unknown-action.invalid.json",
+      "kind": "profile",
+      "expect": "invalid",
+      "error": "E_UNKNOWN_ACTION"
+    },
+    {
+      "file": "fixtures/profile-macro-nesting.invalid.json",
+      "kind": "profile",
+      "expect": "invalid",
+      "error": "E_MACRO_NESTING"
+    },
+    {
+      "file": "fixtures/profile-path-depth.invalid.json",
+      "kind": "profile",
+      "expect": "invalid",
+      "error": "E_PATH_DEPTH"
+    },
+    {
+      "file": "fixtures/profile-resource-limit.invalid.json",
+      "kind": "profile",
+      "expect": "invalid",
+      "error": "E_LIMIT_MACROS"
+    }
+  ]
+}

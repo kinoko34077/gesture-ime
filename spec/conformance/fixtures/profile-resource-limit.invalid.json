@@ -1,0 +1,669 @@
+{
+  "schema": "gesture-ime.profile.v1",
+  "id": "fixture.invalid.resource-limit",
+  "name": "Fixture Japanese A",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "stage1CommitDistance": 0.4,
+    "stage2CommitDistance": 0.4,
+    "angularHysteresisDegrees": 8,
+    "maxDirectionalStages": 2
+  },
+  "keyDefinitions": [
+    {
+      "id": "kana.a",
+      "presentation": {
+        "text": "あ"
+      },
+      "role": "text"
+    }
+  ],
+  "layouts": [
+    {
+      "id": "layout.base",
+      "placements": [
+        {
+          "keyID": "kana.a",
+          "row": 0,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        }
+      ]
+    }
+  ],
+  "bindingSets": [
+    {
+      "id": "bindings.base",
+      "bindings": [
+        {
+          "keyID": "kana.a",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "あ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "あ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "い"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "い"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "う"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "う"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "え"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "え"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "お"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "お"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": "base",
+      "layoutRef": "layout.base",
+      "bindingSetRef": "bindings.base"
+    }
+  ],
+  "macros": [
+    {
+      "id": "macro.000",
+      "actions": []
+    },
+    {
+      "id": "macro.001",
+      "actions": []
+    },
+    {
+      "id": "macro.002",
+      "actions": []
+    },
+    {
+      "id": "macro.003",
+      "actions": []
+    },
+    {
+      "id": "macro.004",
+      "actions": []
+    },
+    {
+      "id": "macro.005",
+      "actions": []
+    },
+    {
+      "id": "macro.006",
+      "actions": []
+    },
+    {
+      "id": "macro.007",
+      "actions": []
+    },
+    {
+      "id": "macro.008",
+      "actions": []
+    },
+    {
+      "id": "macro.009",
+      "actions": []
+    },
+    {
+      "id": "macro.010",
+      "actions": []
+    },
+    {
+      "id": "macro.011",
+      "actions": []
+    },
+    {
+      "id": "macro.012",
+      "actions": []
+    },
+    {
+      "id": "macro.013",
+      "actions": []
+    },
+    {
+      "id": "macro.014",
+      "actions": []
+    },
+    {
+      "id": "macro.015",
+      "actions": []
+    },
+    {
+      "id": "macro.016",
+      "actions": []
+    },
+    {
+      "id": "macro.017",
+      "actions": []
+    },
+    {
+      "id": "macro.018",
+      "actions": []
+    },
+    {
+      "id": "macro.019",
+      "actions": []
+    },
+    {
+      "id": "macro.020",
+      "actions": []
+    },
+    {
+      "id": "macro.021",
+      "actions": []
+    },
+    {
+      "id": "macro.022",
+      "actions": []
+    },
+    {
+      "id": "macro.023",
+      "actions": []
+    },
+    {
+      "id": "macro.024",
+      "actions": []
+    },
+    {
+      "id": "macro.025",
+      "actions": []
+    },
+    {
+      "id": "macro.026",
+      "actions": []
+    },
+    {
+      "id": "macro.027",
+      "actions": []
+    },
+    {
+      "id": "macro.028",
+      "actions": []
+    },
+    {
+      "id": "macro.029",
+      "actions": []
+    },
+    {
+      "id": "macro.030",
+      "actions": []
+    },
+    {
+      "id": "macro.031",
+      "actions": []
+    },
+    {
+      "id": "macro.032",
+      "actions": []
+    },
+    {
+      "id": "macro.033",
+      "actions": []
+    },
+    {
+      "id": "macro.034",
+      "actions": []
+    },
+    {
+      "id": "macro.035",
+      "actions": []
+    },
+    {
+      "id": "macro.036",
+      "actions": []
+    },
+    {
+      "id": "macro.037",
+      "actions": []
+    },
+    {
+      "id": "macro.038",
+      "actions": []
+    },
+    {
+      "id": "macro.039",
+      "actions": []
+    },
+    {
+      "id": "macro.040",
+      "actions": []
+    },
+    {
+      "id": "macro.041",
+      "actions": []
+    },
+    {
+      "id": "macro.042",
+      "actions": []
+    },
+    {
+      "id": "macro.043",
+      "actions": []
+    },
+    {
+      "id": "macro.044",
+      "actions": []
+    },
+    {
+      "id": "macro.045",
+      "actions": []
+    },
+    {
+      "id": "macro.046",
+      "actions": []
+    },
+    {
+      "id": "macro.047",
+      "actions": []
+    },
+    {
+      "id": "macro.048",
+      "actions": []
+    },
+    {
+      "id": "macro.049",
+      "actions": []
+    },
+    {
+      "id": "macro.050",
+      "actions": []
+    },
+    {
+      "id": "macro.051",
+      "actions": []
+    },
+    {
+      "id": "macro.052",
+      "actions": []
+    },
+    {
+      "id": "macro.053",
+      "actions": []
+    },
+    {
+      "id": "macro.054",
+      "actions": []
+    },
+    {
+      "id": "macro.055",
+      "actions": []
+    },
+    {
+      "id": "macro.056",
+      "actions": []
+    },
+    {
+      "id": "macro.057",
+      "actions": []
+    },
+    {
+      "id": "macro.058",
+      "actions": []
+    },
+    {
+      "id": "macro.059",
+      "actions": []
+    },
+    {
+      "id": "macro.060",
+      "actions": []
+    },
+    {
+      "id": "macro.061",
+      "actions": []
+    },
+    {
+      "id": "macro.062",
+      "actions": []
+    },
+    {
+      "id": "macro.063",
+      "actions": []
+    },
+    {
+      "id": "macro.064",
+      "actions": []
+    },
+    {
+      "id": "macro.065",
+      "actions": []
+    },
+    {
+      "id": "macro.066",
+      "actions": []
+    },
+    {
+      "id": "macro.067",
+      "actions": []
+    },
+    {
+      "id": "macro.068",
+      "actions": []
+    },
+    {
+      "id": "macro.069",
+      "actions": []
+    },
+    {
+      "id": "macro.070",
+      "actions": []
+    },
+    {
+      "id": "macro.071",
+      "actions": []
+    },
+    {
+      "id": "macro.072",
+      "actions": []
+    },
+    {
+      "id": "macro.073",
+      "actions": []
+    },
+    {
+      "id": "macro.074",
+      "actions": []
+    },
+    {
+      "id": "macro.075",
+      "actions": []
+    },
+    {
+      "id": "macro.076",
+      "actions": []
+    },
+    {
+      "id": "macro.077",
+      "actions": []
+    },
+    {
+      "id": "macro.078",
+      "actions": []
+    },
+    {
+      "id": "macro.079",
+      "actions": []
+    },
+    {
+      "id": "macro.080",
+      "actions": []
+    },
+    {
+      "id": "macro.081",
+      "actions": []
+    },
+    {
+      "id": "macro.082",
+      "actions": []
+    },
+    {
+      "id": "macro.083",
+      "actions": []
+    },
+    {
+      "id": "macro.084",
+      "actions": []
+    },
+    {
+      "id": "macro.085",
+      "actions": []
+    },
+    {
+      "id": "macro.086",
+      "actions": []
+    },
+    {
+      "id": "macro.087",
+      "actions": []
+    },
+    {
+      "id": "macro.088",
+      "actions": []
+    },
+    {
+      "id": "macro.089",
+      "actions": []
+    },
+    {
+      "id": "macro.090",
+      "actions": []
+    },
+    {
+      "id": "macro.091",
+      "actions": []
+    },
+    {
+      "id": "macro.092",
+      "actions": []
+    },
+    {
+      "id": "macro.093",
+      "actions": []
+    },
+    {
+      "id": "macro.094",
+      "actions": []
+    },
+    {
+      "id": "macro.095",
+      "actions": []
+    },
+    {
+      "id": "macro.096",
+      "actions": []
+    },
+    {
+      "id": "macro.097",
+      "actions": []
+    },
+    {
+      "id": "macro.098",
+      "actions": []
+    },
+    {
+      "id": "macro.099",
+      "actions": []
+    },
+    {
+      "id": "macro.100",
+      "actions": []
+    },
+    {
+      "id": "macro.101",
+      "actions": []
+    },
+    {
+      "id": "macro.102",
+      "actions": []
+    },
+    {
+      "id": "macro.103",
+      "actions": []
+    },
+    {
+      "id": "macro.104",
+      "actions": []
+    },
+    {
+      "id": "macro.105",
+      "actions": []
+    },
+    {
+      "id": "macro.106",
+      "actions": []
+    },
+    {
+      "id": "macro.107",
+      "actions": []
+    },
+    {
+      "id": "macro.108",
+      "actions": []
+    },
+    {
+      "id": "macro.109",
+      "actions": []
+    },
+    {
+      "id": "macro.110",
+      "actions": []
+    },
+    {
+      "id": "macro.111",
+      "actions": []
+    },
+    {
+      "id": "macro.112",
+      "actions": []
+    },
+    {
+      "id": "macro.113",
+      "actions": []
+    },
+    {
+      "id": "macro.114",
+      "actions": []
+    },
+    {
+      "id": "macro.115",
+      "actions": []
+    },
+    {
+      "id": "macro.116",
+      "actions": []
+    },
+    {
+      "id": "macro.117",
+      "actions": []
+    },
+    {
+      "id": "macro.118",
+      "actions": []
+    },
+    {
+      "id": "macro.119",
+      "actions": []
+    },
+    {
+      "id": "macro.120",
+      "actions": []
+    },
+    {
+      "id": "macro.121",
+      "actions": []
+    },
+    {
+      "id": "macro.122",
+      "actions": []
+    },
+    {
+      "id": "macro.123",
+      "actions": []
+    },
+    {
+      "id": "macro.124",
+      "actions": []
+    },
+    {
+      "id": "macro.125",
+      "actions": []
+    },
+    {
+      "id": "macro.126",
+      "actions": []
+    },
+    {
+      "id": "macro.127",
+      "actions": []
+    },
+    {
+      "id": "macro.128",
+      "actions": []
+    }
+  ]
+}
