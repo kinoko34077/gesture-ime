@@ -9,6 +9,9 @@ packages:
     path: Packages/GestureIMECore
   AzooKeyCore:
     path: Vendor/azooKey/AzooKeyCore
+  AzooKeyKanaKanjiConverter:
+    url: https://github.com/azooKey/AzooKeyKanaKanjiConverter
+    exactVersion: 0.11.1
 
 targets:
   GestureHarness:
@@ -72,6 +75,10 @@ targets:
         product: AzooKeyUtils
       - package: AzooKeyCore
         product: KeyboardExtensionUtils
+      - package: AzooKeyKanaKanjiConverter
+        product: KanaKanjiConverterModule
+      - package: AzooKeyKanaKanjiConverter
+        product: KanaKanjiConverterModuleWithDefaultDictionary
     info:
       path: App/KeyboardExtension/Info.plist
       properties:
