@@ -61,7 +61,23 @@ final class ProfileEditorModel: ObservableObject {
     func updatePolicy(_ policy: ProfileGesturePolicy) {
         guard var document else { return }
         do {
-            try document.setGesturePolicy(policy)
+            var normalized = policy
+            normalized.deadZone = min(max(normalized.deadZone, 0), 2)
+            normalized.stage1CommitDistance = min(
+                max(normalized.stage1CommitDistance, max(normalized.deadZone, 0.01)),
+                4
+            )
+            normalized.stage2CommitDistance = min(
+                max(normalized.stage2CommitDistance, max(normalized.deadZone, 0.01)),
+                4
+            )
+            normalized.angularHysteresisDegrees = min(
+                max(normalized.angularHysteresisDegrees, 0),
+                44
+            )
+            normalized.maxDirectionalStages = 2
+
+            try document.setGesturePolicy(normalized)
             self.document = document
             objectWillChange.send()
             refreshValidation()
