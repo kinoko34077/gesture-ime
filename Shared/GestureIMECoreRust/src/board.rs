@@ -190,37 +190,140 @@ impl BoardProfileCodec {
     }
 }
 
+fn reject_explicit_null(
+    object: &serde_json::Map<String, Value>,
+    key: &str,
+    owner: &str,
+) -> Result<(), ProfileValidationError> {
+    if object.get(key).is_some_and(Value::is_null) {
+        return Err(ProfileValidationError::new(
+            ProfileValidationCode::UnsupportedSchema,
+            Some(format!("{owner}.{key} must not be null")),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_presentation_structural_contract(
+    value: Option<&Value>,
+    owner: &str,
+) -> Result<(), ProfileValidationError> {
+    let Some(object) = value.and_then(Value::as_object) else {
+        return Ok(());
+    };
+    reject_explicit_null(object, "text", owner)?;
+    reject_explicit_null(object, "accessibilityLabel", owner)
+}
+
+fn validate_hold_structural_contract(
+    value: Option<&Value>,
+    owner: &str,
+) -> Result<(), ProfileValidationError> {
+    let Some(object) = value.and_then(Value::as_object) else {
+        return Ok(());
+    };
+    reject_explicit_null(object, "repeat", owner)
+}
+
 fn validate_v2_structural_contract(value: &Value) -> Result<(), ProfileValidationError> {
-    let Some(boards) = value.get("boards").and_then(Value::as_array) else {
+    let Some(root) = value.as_object() else {
         return Ok(());
     };
 
-    for board in boards {
-        let Some(entries) = board.get("entries").and_then(Value::as_array) else {
-            continue;
-        };
+    reject_explicit_null(root, "theme", "profile")?;
 
-        for entry in entries {
-            let Some(object) = entry.as_object() else {
+    if let Some(key_definitions) = root.get("keyDefinitions").and_then(Value::as_array) {
+        for (index, key_definition) in key_definitions.iter().enumerate() {
+            let Some(object) = key_definition.as_object() else {
                 continue;
             };
+            let owner = format!("keyDefinitions[{index}]");
+            reject_explicit_null(object, "presentation", &owner)?;
+            reject_explicit_null(object, "role", &owner)?;
+            validate_presentation_structural_contract(
+                object.get("presentation"),
+                &format!("{owner}.presentation"),
+            )?;
+        }
+    }
 
-            let has_meaningful_member = ["presentation", "onRelease", "hold", "transition"]
-                .iter()
-                .any(|key| object.contains_key(*key));
-            if !has_meaningful_member {
-                return Err(ProfileValidationError::new(
-                    ProfileValidationCode::UnsupportedSchema,
-                    Some("boardEntry requires presentation, onRelease, hold, or transition".into()),
-                ));
+    if let Some(layouts) = root.get("layouts").and_then(Value::as_array) {
+        for (layout_index, layout) in layouts.iter().enumerate() {
+            let Some(placements) = layout.get("placements").and_then(Value::as_array) else {
+                continue;
+            };
+            for (placement_index, placement) in placements.iter().enumerate() {
+                let Some(object) = placement.as_object() else {
+                    continue;
+                };
+                let owner = format!(
+                    "layouts[{layout_index}].placements[{placement_index}]"
+                );
+                reject_explicit_null(object, "width", &owner)?;
+                reject_explicit_null(object, "height", &owner)?;
+            }
+        }
+    }
+
+    if let Some(boards) = root.get("boards").and_then(Value::as_array) {
+        for (board_index, board) in boards.iter().enumerate() {
+            if let Some(entries) = board.get("entries").and_then(Value::as_array) {
+                for (entry_index, entry) in entries.iter().enumerate() {
+                    let Some(object) = entry.as_object() else {
+                        continue;
+                    };
+                    let owner = format!("boards[{board_index}].entries[{entry_index}]");
+
+                    let has_schema_member =
+                        ["presentation", "onRelease", "hold", "transition"]
+                            .iter()
+                            .any(|key| object.contains_key(*key));
+                    if !has_schema_member {
+                        return Err(ProfileValidationError::new(
+                            ProfileValidationCode::UnsupportedSchema,
+                            Some(format!(
+                                "{owner} requires presentation, onRelease, hold, or transition"
+                            )),
+                        ));
+                    }
+
+                    reject_explicit_null(object, "presentation", &owner)?;
+                    reject_explicit_null(object, "hold", &owner)?;
+                    reject_explicit_null(object, "transition", &owner)?;
+                    validate_presentation_structural_contract(
+                        object.get("presentation"),
+                        &format!("{owner}.presentation"),
+                    )?;
+                    validate_hold_structural_contract(
+                        object.get("hold"),
+                        &format!("{owner}.hold"),
+                    )?;
+
+                    if let Some(coordinate) =
+                        object.get("coordinate").and_then(Value::as_object)
+                    {
+                        if coordinate.keys().any(|key| key != "x" && key != "y") {
+                            return Err(ProfileValidationError::new(
+                                ProfileValidationCode::UnsupportedSchema,
+                                Some(format!(
+                                    "{owner}.coordinate contains an unknown member"
+                                )),
+                            ));
+                        }
+                    }
+                }
             }
 
-            if let Some(coordinate) = object.get("coordinate").and_then(Value::as_object) {
-                if coordinate.keys().any(|key| key != "x" && key != "y") {
-                    return Err(ProfileValidationError::new(
-                        ProfileValidationCode::UnsupportedSchema,
-                        Some("boardEntry.coordinate contains an unknown member".into()),
-                    ));
+            if let Some(triggers) = board.get("triggers").and_then(Value::as_array) {
+                for (trigger_index, trigger) in triggers.iter().enumerate() {
+                    let Some(object) = trigger.as_object() else {
+                        continue;
+                    };
+                    reject_explicit_null(
+                        object,
+                        "delayMs",
+                        &format!("boards[{board_index}].triggers[{trigger_index}]"),
+                    )?;
                 }
             }
         }
