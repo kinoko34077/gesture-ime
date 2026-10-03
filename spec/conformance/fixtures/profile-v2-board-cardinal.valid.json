@@ -1,0 +1,38 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.cardinal",
+  "name": "V2 Cardinal",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "initialCellCommitDistance": 0.4,
+    "subsequentCellCommitDistance": 0.4,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [
+    {"id":"key.a","presentation":{"text":"あ"},"role":"text"}
+  ],
+  "layouts": [
+    {"id":"layout.base","placements":[{"keyID":"key.a","row":0,"column":0}]}
+  ],
+  "layers": [
+    {"id":"base","layoutRef":"layout.base"}
+  ],
+  "boards": [
+    {
+      "id":"board.a",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"presentation":{"text":"あ"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"あ"}}]},
+        {"coordinate":{"x":-1,"y":0},"presentation":{"text":"い"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"い"}}]},
+        {"coordinate":{"x":0,"y":-1},"presentation":{"text":"う"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"う"}}]},
+        {"coordinate":{"x":1,"y":0},"presentation":{"text":"え"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"え"}}]},
+        {"coordinate":{"x":0,"y":1},"presentation":{"text":"お"},"onRelease":[{"actionID":"text.insert","arguments":{"text":"お"}}]}
+      ]
+    }
+  ],
+  "entryPoints": [
+    {"id":"entry.base.key.a","layerID":"base","keyID":"key.a","trigger":"press","boardRef":"board.a"}
+  ],
+  "macros": []
+}
