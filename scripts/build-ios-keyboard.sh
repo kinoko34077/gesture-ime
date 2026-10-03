@@ -49,6 +49,12 @@ if [[ "$EXTENSION_POINT" != "com.apple.keyboard-service" ]]; then
   exit 5
 fi
 
+if [[ ! -f "$APPEX_PATH/default-ja.json" ]]; then
+  echo "Built-in profile resource missing from keyboard extension" >&2
+  find "$APPEX_PATH" -maxdepth 2 -print
+  exit 6
+fi
+
 mkdir -p "$ARTIFACT_DIR/Payload"
 ditto "$APP_PATH" "$ARTIFACT_DIR/Payload/GestureIME.app"
 (
