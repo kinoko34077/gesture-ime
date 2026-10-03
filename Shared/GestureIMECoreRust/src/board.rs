@@ -939,6 +939,7 @@ pub struct BoardSession {
     pub commit_anchors: Vec<GesturePoint>,
 
     boards: Arc<HashMap<String, Board>>,
+    macros: Arc<HashMap<String, Vec<ActionInvocation>>>,
     persistent_state: Arc<Mutex<HashMap<String, String>>>,
     current_time_ms: i64,
     entry_hold_due_ms: Option<i64>,
@@ -954,6 +955,7 @@ impl BoardSession {
         entry_point: &BoardEntryPoint,
         profile_revision: impl Into<String>,
         boards: Arc<HashMap<String, Board>>,
+        macros: Arc<HashMap<String, Vec<ActionInvocation>>>,
         persistent_state: Arc<Mutex<HashMap<String, String>>>,
         policy: BoardGesturePolicy,
         key_size: GestureSize,
@@ -991,6 +993,7 @@ impl BoardSession {
             dispatched_actions: Vec::new(),
             commit_anchors: Vec::new(),
             boards,
+            macros,
             persistent_state,
             current_time_ms: at_ms,
             entry_hold_due_ms: None,
@@ -1150,7 +1153,7 @@ impl BoardSession {
                         .and_then(|entry| entry.hold.as_ref())
                         .cloned()
                     {
-                        self.dispatched_actions.extend(hold.on_start.clone());
+                        self.dispatch_actions(&hold.on_start);
                         self.hold_started = true;
                         self.hold_locked = true;
                         self.candidate_coordinate = self.selected_coordinate;
@@ -1174,7 +1177,7 @@ impl BoardSession {
                     if due_ms > target_ms || self.terminal.is_some() {
                         break;
                     }
-                    self.dispatched_actions.extend(repeating.actions.clone());
+                    self.dispatch_actions(&repeating.actions);
                     self.repeat_due_ms = Some(due_ms + repeating.interval_ms);
                 }
             }
@@ -1207,7 +1210,7 @@ impl BoardSession {
                     .as_ref()
                     .is_some_and(|hold| hold.suppress_on_release_after_start);
             if !suppress_release {
-                self.dispatched_actions.extend(entry.on_release);
+                self.dispatch_actions(&entry.on_release);
             }
         }
 
@@ -1364,6 +1367,28 @@ impl BoardSession {
         };
     }
 
+    fn dispatch_actions(&mut self, actions: &[ActionInvocation]) {
+        for action in actions {
+            if action.action_id == "macro.run" {
+                let macro_id = action
+                    .arguments
+                    .get("macro")
+                    .and_then(Value::as_str);
+                let Some(macro_id) = macro_id else {
+                    debug_assert!(false, "validated macro.run is missing macro argument");
+                    continue;
+                };
+                let Some(expanded) = self.macros.get(macro_id).cloned() else {
+                    debug_assert!(false, "validated macro.run reference is missing");
+                    continue;
+                };
+                self.dispatched_actions.extend(expanded);
+            } else {
+                self.dispatched_actions.push(action.clone());
+            }
+        }
+    }
+
     fn cancel_holds(&mut self) {
         self.entry_hold_due_ms = None;
         self.board_hold_due_ms = None;
@@ -1387,6 +1412,14 @@ fn angle_degrees(dx: f64, dy: f64) -> f64 {
 fn angular_distance(lhs: f64, rhs: f64) -> f64 {
     let delta = (lhs - rhs).abs() % 360.0;
     delta.min(360.0 - delta)
+}
+
+pub fn macro_map(profile: &ProfileBundleV2) -> HashMap<String, Vec<ActionInvocation>> {
+    profile
+        .macros
+        .iter()
+        .map(|macro_item| (macro_item.id.clone(), macro_item.actions.clone()))
+        .collect()
 }
 
 pub fn board_map(profile: &ProfileBundleV2) -> HashMap<String, Board> {
