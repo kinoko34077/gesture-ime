@@ -64,3 +64,30 @@ fn ffi_runtime_drives_two_stage_session_without_platform_semantics() {
     assert_eq!(final_state.dispatched_actions.len(), 1);
     assert_eq!(final_state.dispatched_actions[0].action_id, "cursor.move");
 }
+
+
+#[test]
+fn ffi_runtime_exposes_profile_owned_layout_and_direction_hints() {
+    let runtime = SharedCoreRuntime::new(fixture("profile-diagonal-two-stage.valid.json"))
+        .expect("runtime");
+
+    let layout = runtime.compile_layout("base".into()).expect("layout");
+    assert_eq!(layout.layer_id, "base");
+    assert_eq!(layout.keys.len(), 1);
+
+    let key = &layout.keys[0];
+    assert_eq!(key.id, "kana.a");
+    assert_eq!(key.row, 0);
+    assert_eq!(key.column, 0);
+    assert_eq!(key.width, 1.0);
+    assert_eq!(key.height, 1.0);
+    assert!(key.eligible_directions.contains(&FfiDirection8::E));
+    assert!(key.eligible_directions.contains(&FfiDirection8::Ne));
+
+    let e = key
+        .first_stage_presentations
+        .iter()
+        .find(|presentation| presentation.direction == FfiDirection8::E)
+        .expect("east presentation");
+    assert_eq!(e.text.as_deref(), Some("え"));
+}
