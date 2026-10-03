@@ -45,7 +45,7 @@ struct ContentView: View {
 
     private func slider(
         _ title: String,
-        value: Binding<Double>,
+        value: SwiftUI.Binding<Double>,
         range: ClosedRange<Double>,
         suffix: String = ""
     ) -> some View {
