@@ -28,7 +28,8 @@ struct BindingEditorView: View {
         _stageCount = State(initialValue: existing == nil ? 2 : path.count)
         _stage1 = State(initialValue: path.first ?? .n)
         _stage2 = State(initialValue: path.dropFirst().first ?? .n)
-        _presentation = State(initialValue: existing?.presentationText ?? "")
+        let initialPresentation = existing?.presentationText ?? ""
+        _presentation = State(initialValue: initialPresentation)
 
         let current = existing?.actions.first
         let option = CommonActionOption.from(current?.actionID ?? "text.insert")
@@ -44,7 +45,7 @@ struct BindingEditorView: View {
                 argument = ""
             }
         } else {
-            argument = option == .textInsert ? presentation : ""
+            argument = option == .textInsert ? initialPresentation : ""
         }
         _argumentText = State(initialValue: argument)
     }
