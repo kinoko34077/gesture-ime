@@ -101,6 +101,8 @@ If a selected entry has no transition, it remains selected until release. Its `o
 
 If no spatial entry is selected, release resolves the center entry `(0,0)`, if present.
 
+If that center entry has both `onRelease` Actions and a transition, the center entry is the release endpoint: its release Actions are resolved from the source Board, then the transition is committed. The same release does not implicitly dispatch the target Board's center Actions.
+
 ### Transition selection
 
 If a spatially selected entry has a transition, the transition commits immediately when that coordinate commits. The target Board becomes current and the local origin resets at that touch point.
