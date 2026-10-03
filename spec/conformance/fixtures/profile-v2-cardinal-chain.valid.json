@@ -1,0 +1,90 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.cardinal-chain",
+  "name": "V2 cardinal and chained board fixture",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "initialCommitDistance": 0.4,
+    "continuationCommitDistance": 0.4,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [
+    {"id": "kana.a", "presentation": {"text": "あ"}, "role": "text"}
+  ],
+  "layouts": [
+    {
+      "id": "layout.base",
+      "placements": [
+        {"keyID": "kana.a", "row": 0, "column": 0, "width": 1, "height": 1}
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": "base",
+      "layoutRef": "layout.base",
+      "keyBoards": [
+        {"keyID": "kana.a", "boardRef": "board.kana.a"}
+      ]
+    }
+  ],
+  "boards": [
+    {
+      "id": "board.kana.a",
+      "entries": [
+        {
+          "coordinate": {"x": 0, "y": 0},
+          "presentation": {"text": "あ"},
+          "onRelease": [{"actionID": "text.insert", "arguments": {"text": "あ"}}]
+        },
+        {
+          "coordinate": {"x": -1, "y": 0},
+          "presentation": {"text": "い"},
+          "onRelease": [{"actionID": "text.insert", "arguments": {"text": "い"}}]
+        },
+        {
+          "coordinate": {"x": 0, "y": -1},
+          "presentation": {"text": "う"},
+          "onRelease": [{"actionID": "text.insert", "arguments": {"text": "う"}}]
+        },
+        {
+          "coordinate": {"x": 1, "y": 0},
+          "presentation": {"text": "え"},
+          "transition": {"targetBoard": "board.kana.a.e", "lifetime": "transient"}
+        },
+        {
+          "coordinate": {"x": 0, "y": 1},
+          "presentation": {"text": "お"},
+          "onRelease": [{"actionID": "text.insert", "arguments": {"text": "お"}}]
+        },
+        {
+          "coordinate": {"x": 1, "y": -1},
+          "presentation": {"text": "斜"},
+          "onRelease": [{"actionID": "text.insert", "arguments": {"text": "斜"}}]
+        }
+      ]
+    },
+    {
+      "id": "board.kana.a.e",
+      "entries": [
+        {
+          "coordinate": {"x": 0, "y": 0},
+          "presentation": {"text": "え"},
+          "onRelease": [{"actionID": "text.insert", "arguments": {"text": "え"}}]
+        },
+        {
+          "coordinate": {"x": 0, "y": -1},
+          "presentation": {"text": "ゑ"},
+          "onRelease": [{"actionID": "text.insert", "arguments": {"text": "ゑ"}}]
+        },
+        {
+          "coordinate": {"x": 2, "y": -3},
+          "presentation": {"text": "future"},
+          "onRelease": [{"actionID": "noop", "arguments": {}}]
+        }
+      ]
+    }
+  ],
+  "macros": []
+}
