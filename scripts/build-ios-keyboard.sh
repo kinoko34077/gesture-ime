@@ -56,6 +56,32 @@ if [[ ! -f "$APPEX_PATH/default-ja.json" ]]; then
   exit 6
 fi
 
+KEYBOARD_EXECUTABLE="$APPEX_PATH/GestureKeyboard"
+if [[ ! -x "$KEYBOARD_EXECUTABLE" ]]; then
+  echo "Keyboard executable missing: $KEYBOARD_EXECUTABLE" >&2
+  exit 7
+fi
+
+echo "Checking Keyboard Extension @rpath dependency closure..."
+missing_dependency=0
+while IFS= read -r dependency; do
+  [[ "$dependency" == @rpath/* ]] || continue
+  relative="${dependency#@rpath/}"
+
+  if [[ -e "$APPEX_PATH/Frameworks/$relative" ]] || [[ -e "$APP_PATH/Frameworks/$relative" ]]; then
+    echo "Resolved: $dependency"
+  else
+    echo "Missing runtime dependency: $dependency" >&2
+    missing_dependency=1
+  fi
+done < <(/usr/bin/otool -L "$KEYBOARD_EXECUTABLE" | tail -n +2 | sed -E 's/^[[:space:]]*([^[:space:]]+).*/\1/')
+
+if [[ "$missing_dependency" -ne 0 ]]; then
+  echo "Keyboard Extension runtime dependency closure is incomplete" >&2
+  find "$APPEX_PATH" -maxdepth 4 -print
+  exit 8
+fi
+
 mkdir -p "$ARTIFACT_DIR/Payload"
 ditto "$APP_PATH" "$ARTIFACT_DIR/Payload/GestureIME.app"
 (
