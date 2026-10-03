@@ -1,0 +1,3 @@
+[submodule "Vendor/azooKey"]
+	path = Vendor/azooKey
+	url = https://github.com/azooKey/azooKey.git
