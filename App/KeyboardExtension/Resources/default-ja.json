@@ -1,8 +1,8 @@
 {
   "schema": "gesture-ime.profile.v1",
-  "id": "builtin.ja.phase3",
-  "name": "Built-in Japanese Phase 3",
-  "version": 1,
+  "id": "builtin.ja.product",
+  "name": "Built-in Japanese Product",
+  "version": 2,
   "gesturePolicy": {
     "deadZone": 0.15,
     "stage1CommitDistance": 0.4,
@@ -110,16 +110,58 @@
       "role": "text"
     },
     {
-      "id": "test.gesture",
+      "id": "panel.tuning",
       "presentation": {
-        "text": "◇"
+        "text": "⚙︎"
       },
       "role": "control"
     },
     {
-      "id": "panel.tuning",
+      "id": "mode.symbols",
       "presentation": {
-        "text": "⚙︎"
+        "text": "記号"
+      },
+      "role": "control"
+    },
+    {
+      "id": "mode.numbers",
+      "presentation": {
+        "text": "123"
+      },
+      "role": "control"
+    },
+    {
+      "id": "mode.alpha",
+      "presentation": {
+        "text": "あA"
+      },
+      "role": "control"
+    },
+    {
+      "id": "utility.chat",
+      "presentation": {
+        "text": "💬"
+      },
+      "role": "control"
+    },
+    {
+      "id": "utility.emoji",
+      "presentation": {
+        "text": "☺︎"
+      },
+      "role": "control"
+    },
+    {
+      "id": "utility.emoticon",
+      "presentation": {
+        "text": "^_^"
+      },
+      "role": "control"
+    },
+    {
+      "id": "punctuation",
+      "presentation": {
+        "text": "?!"
       },
       "role": "control"
     }
@@ -129,115 +171,143 @@
       "id": "layout.base",
       "placements": [
         {
-          "keyID": "kana.a",
+          "keyID": "mode.symbols",
           "row": 0,
           "column": 0,
-          "width": 1,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "kana.a",
+          "row": 0,
+          "column": 2,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ka",
           "row": 0,
-          "column": 1,
-          "width": 1,
+          "column": 4,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.sa",
           "row": 0,
-          "column": 2,
-          "width": 1,
+          "column": 6,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "edit.delete",
           "row": 0,
-          "column": 3,
-          "width": 1,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.numbers",
+          "row": 1,
+          "column": 0,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ta",
           "row": 1,
-          "column": 0,
-          "width": 1,
+          "column": 2,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.na",
           "row": 1,
-          "column": 1,
-          "width": 1,
+          "column": 4,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ha",
           "row": 1,
-          "column": 2,
-          "width": 1,
+          "column": 6,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "text.space",
           "row": 1,
-          "column": 3,
-          "width": 1,
+          "column": 8,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "mode.alpha",
+          "row": 2,
+          "column": 0,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ma",
           "row": 2,
-          "column": 0,
-          "width": 1,
+          "column": 2,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ya",
           "row": 2,
-          "column": 1,
-          "width": 1,
+          "column": 4,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "kana.ra",
           "row": 2,
-          "column": 2,
-          "width": 1,
+          "column": 6,
+          "width": 2,
           "height": 1
         },
         {
           "keyID": "text.enter",
           "row": 2,
-          "column": 3,
-          "width": 1,
-          "height": 1
+          "column": 8,
+          "width": 2,
+          "height": 2
         },
         {
-          "keyID": "system.next",
+          "keyID": "utility.chat",
           "row": 3,
           "column": 0,
           "width": 1,
           "height": 1
         },
         {
-          "keyID": "kana.wa",
+          "keyID": "utility.emoji",
           "row": 3,
           "column": 1,
           "width": 1,
           "height": 1
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "utility.emoticon",
           "row": 3,
           "column": 2,
-          "width": 1,
+          "width": 2,
           "height": 1
         },
         {
-          "keyID": "panel.tuning",
+          "keyID": "kana.wa",
           "row": 3,
-          "column": 3,
-          "width": 1,
+          "column": 4,
+          "width": 2,
+          "height": 1
+        },
+        {
+          "keyID": "punctuation",
+          "row": 3,
+          "column": 6,
+          "width": 2,
           "height": 1
         }
       ]
@@ -1396,87 +1466,214 @@
           }
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "mode.symbols",
           "path": [],
           "behavior": {
             "presentation": {
-              "text": "◇",
-              "accessibilityLabel": "◇"
+              "text": "記号",
+              "accessibilityLabel": "記号"
             },
             "onRelease": [
               {
-                "actionID": "text.insert",
+                "actionID": "panel.open",
                 "arguments": {
-                  "text": "◇"
+                  "panel": "symbols"
                 }
               }
             ]
           }
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "mode.numbers",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "123",
+              "accessibilityLabel": "123"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "numbers"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "mode.alpha",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "あA",
+              "accessibilityLabel": "あA"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "alphabet"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.chat",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "💬",
+              "accessibilityLabel": "💬"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "phrase"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoji",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "☺︎",
+              "accessibilityLabel": "☺︎"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoji"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "utility.emoticon",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "^_^",
+              "accessibilityLabel": "^_^"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "emoticon"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "punctuation",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "。",
+              "accessibilityLabel": "。"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "。"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "punctuation",
           "path": [
             {
-              "direction": "ne"
+              "direction": "w"
             }
           ],
           "behavior": {
             "presentation": {
-              "text": "↗︎",
-              "accessibilityLabel": "↗︎"
+              "text": "、",
+              "accessibilityLabel": "、"
             },
             "onRelease": [
               {
                 "actionID": "text.insert",
                 "arguments": {
-                  "text": "↗︎"
+                  "text": "、"
                 }
               }
             ]
           }
         },
         {
-          "keyID": "test.gesture",
+          "keyID": "punctuation",
           "path": [
-            {
-              "direction": "e"
-            }
-          ],
-          "behavior": {
-            "presentation": {
-              "text": "→",
-              "accessibilityLabel": "→"
-            },
-            "onRelease": [
-              {
-                "actionID": "text.insert",
-                "arguments": {
-                  "text": "→"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "keyID": "test.gesture",
-          "path": [
-            {
-              "direction": "e"
-            },
             {
               "direction": "n"
             }
           ],
           "behavior": {
             "presentation": {
-              "text": "→↑",
-              "accessibilityLabel": "→↑"
+              "text": "？",
+              "accessibilityLabel": "？"
             },
             "onRelease": [
               {
                 "actionID": "text.insert",
                 "arguments": {
-                  "text": "→↑"
+                  "text": "？"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "punctuation",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "！",
+              "accessibilityLabel": "！"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "！"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "punctuation",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "…",
+              "accessibilityLabel": "…"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "…"
                 }
               }
             ]
@@ -1492,5 +1689,11 @@
       "bindingSetRef": "bindings.base"
     }
   ],
-  "macros": []
+  "macros": [],
+  "theme": {
+    "productLayout": {
+      "type": "string",
+      "value": "simeji-reference-five-column"
+    }
+  }
 }
