@@ -3,8 +3,8 @@ import Foundation
 import GestureIMEProfileAuthoring
 
 struct ProfileEditorView: View {
-    @EnvironmentObject private var libraryEnvironment: ProfileLibraryModel
     @StateObject private var editor: ProfileEditorModel
+    @State private var creatingBoard = false
 
     private let library: ProfileLibraryModel
 
@@ -26,6 +26,11 @@ struct ProfileEditorView: View {
                     )
                 )
 
+                LabeledContent(
+                    "Input model",
+                    value: editor.isBoardGraphV2 ? "Board Graph v2" : "GesturePath v1"
+                )
+
                 HStack {
                     Text("Validation")
                     Spacer()
@@ -44,6 +49,12 @@ struct ProfileEditorView: View {
                         .foregroundStyle(.red)
                 }
 
+                if !editor.isBoardGraphV2 {
+                    Button("Migrate to Board Graph v2") {
+                        editor.migrateToV2()
+                    }
+                }
+
                 Button("Use as app-local active Profile") {
                     library.setActive(profileID: editor.profileID)
                 }
@@ -56,7 +67,11 @@ struct ProfileEditorView: View {
             }
 
             if let policy = editor.policy() {
-                GesturePolicySection(policy: policy, onChange: editor.updatePolicy)
+                GesturePolicySection(
+                    policy: policy,
+                    boardGraph: editor.isBoardGraphV2,
+                    onChange: editor.updatePolicy
+                )
             }
 
             Section("Layer") {
@@ -91,6 +106,29 @@ struct ProfileEditorView: View {
                     }
                 }
             }
+
+            if editor.isBoardGraphV2 {
+                Section("Boards") {
+                    ForEach(editor.boards) { board in
+                        NavigationLink {
+                            BoardEditorView(editor: editor, boardID: board.id)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(board.id)
+                                Text("\(board.entryCount) entries" + (board.holdTrigger == nil ? "" : " · Hold"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    Button {
+                        creatingBoard = true
+                    } label: {
+                        Label("Create Board", systemImage: "plus")
+                    }
+                }
+            }
         }
         .navigationTitle(editor.name)
         .toolbar {
@@ -100,6 +138,9 @@ struct ProfileEditorView: View {
                 }
                 .disabled(!editor.validation.valid)
             }
+        }
+        .sheet(isPresented: $creatingBoard) {
+            CreateBoardSheet(editor: editor)
         }
         .alert(
             "Profile error",
@@ -121,19 +162,39 @@ struct ProfileEditorView: View {
 
 private struct GesturePolicySection: View {
     @State private var policy: ProfileGesturePolicy
+    let boardGraph: Bool
     let onChange: (ProfileGesturePolicy) -> Void
 
-    init(policy: ProfileGesturePolicy, onChange: @escaping (ProfileGesturePolicy) -> Void) {
+    init(
+        policy: ProfileGesturePolicy,
+        boardGraph: Bool,
+        onChange: @escaping (ProfileGesturePolicy) -> Void
+    ) {
         _policy = State(initialValue: policy)
+        self.boardGraph = boardGraph
         self.onChange = onChange
     }
 
     var body: some View {
         Section("Gesture Policy") {
             slider("Dead zone", value: $policy.deadZone, range: 0...2)
-            slider("Stage 1", value: $policy.stage1CommitDistance, range: 0.01...4)
-            slider("Stage 2", value: $policy.stage2CommitDistance, range: 0.01...4)
+            slider(
+                boardGraph ? "Initial cell" : "Stage 1",
+                value: $policy.stage1CommitDistance,
+                range: 0.01...4
+            )
+            slider(
+                boardGraph ? "Subsequent cell" : "Stage 2",
+                value: $policy.stage2CommitDistance,
+                range: 0.01...4
+            )
             slider("Hysteresis", value: $policy.angularHysteresisDegrees, range: 0...44)
+
+            if boardGraph {
+                Text("Board Graph v2 has no two-stage authoring ceiling. Runtime transition depth is resource-bounded.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .onChange(of: policy) { _, value in
             onChange(value)
@@ -153,6 +214,35 @@ private struct GesturePolicySection: View {
                     .monospacedDigit()
             }
             Slider(value: value, in: range)
+        }
+    }
+}
+
+private struct CreateBoardSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var editor: ProfileEditorModel
+    @State private var boardID = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField("Board ID", text: $boardID)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            .navigationTitle("Create Board")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create") {
+                        editor.createBoard(id: boardID)
+                        dismiss()
+                    }
+                    .disabled(boardID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
         }
     }
 }
