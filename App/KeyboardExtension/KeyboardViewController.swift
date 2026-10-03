@@ -184,7 +184,7 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
             advanceToNextInputMode()
 
         case "system.dismissKeyboard":
-            composition?.commit()
+            composition?.commitSelectionOrRaw()
             dismissKeyboard()
 
         case "panel.open":
