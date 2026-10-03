@@ -1,0 +1,60 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.lifetime",
+  "name": "V2 Lifetime",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "initialCellCommitDistance": 0.4,
+    "subsequentCellCommitDistance": 0.4,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [
+    {"id":"key.test","presentation":{"text":"T"}}
+  ],
+  "layouts": [
+    {"id":"layout.base","placements":[{"keyID":"key.test","row":0,"column":0}]}
+  ],
+  "layers": [
+    {"id":"base","layoutRef":"layout.base"}
+  ],
+  "boards": [
+    {
+      "id":"board.root",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"noop","arguments":{}}]},
+        {"coordinate":{"x":1,"y":0},"transition":{"targetBoardRef":"board.persistent","lifetime":"persistent"}}
+      ],
+      "triggers":[
+        {"type":"hold","delayMs":300,"transition":{"targetBoardRef":"board.hold","lifetime":"transient"}}
+      ]
+    },
+    {
+      "id":"board.persistent",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"text.insert","arguments":{"text":"P"}}]},
+        {"coordinate":{"x":0,"y":-1},"transition":{"targetBoardRef":"board.transient","lifetime":"transient"}}
+      ]
+    },
+    {
+      "id":"board.transient",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"text.insert","arguments":{"text":"T"}}]}
+      ]
+    },
+    {
+      "id":"board.hold",
+      "selectionPolicy":{"kind":"relativeCoordinate"},
+      "entries":[
+        {"coordinate":{"x":0,"y":0},"onRelease":[{"actionID":"text.insert","arguments":{"text":"H"}}]}
+      ]
+    }
+  ],
+  "entryPoints": [
+    {"id":"entry.base.key.test","layerID":"base","keyID":"key.test","trigger":"press","boardRef":"board.root"}
+  ],
+  "macros": []
+}
