@@ -305,7 +305,7 @@ impl BoardProfileValidator {
                 if !key_ids.contains(placement.key_id.as_str()) {
                     return Err(ProfileValidationError::new(
                         ProfileValidationCode::MissingReference,
-                        Some(key_id.clone()),
+                        Some(placement.key_id.clone()),
                     ));
                 }
                 if !(0..=255).contains(&placement.row)
