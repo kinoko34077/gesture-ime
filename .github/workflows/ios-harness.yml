@@ -2,15 +2,6 @@ name: iOS Harness Device Build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - phase2-ios-harness
-    paths:
-      - "App/GestureHarness/**"
-      - "Packages/GestureIMECore/**"
-      - "project.yml"
-      - "scripts/build-ios-harness.sh"
-      - ".github/workflows/ios-harness.yml"
   pull_request:
     paths:
       - "App/GestureHarness/**"
