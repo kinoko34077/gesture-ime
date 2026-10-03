@@ -1,0 +1,1496 @@
+{
+  "schema": "gesture-ime.profile.v1",
+  "id": "builtin.ja.phase3",
+  "name": "Built-in Japanese Phase 3",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.15,
+    "stage1CommitDistance": 0.4,
+    "stage2CommitDistance": 0.4,
+    "angularHysteresisDegrees": 8,
+    "maxDirectionalStages": 2
+  },
+  "keyDefinitions": [
+    {
+      "id": "kana.a",
+      "presentation": {
+        "text": "あ"
+      },
+      "role": "text"
+    },
+    {
+      "id": "kana.ka",
+      "presentation": {
+        "text": "か"
+      },
+      "role": "text"
+    },
+    {
+      "id": "kana.sa",
+      "presentation": {
+        "text": "さ"
+      },
+      "role": "text"
+    },
+    {
+      "id": "edit.delete",
+      "presentation": {
+        "text": "⌫"
+      },
+      "role": "control"
+    },
+    {
+      "id": "kana.ta",
+      "presentation": {
+        "text": "た"
+      },
+      "role": "text"
+    },
+    {
+      "id": "kana.na",
+      "presentation": {
+        "text": "な"
+      },
+      "role": "text"
+    },
+    {
+      "id": "kana.ha",
+      "presentation": {
+        "text": "は"
+      },
+      "role": "text"
+    },
+    {
+      "id": "text.space",
+      "presentation": {
+        "text": "空白"
+      },
+      "role": "control"
+    },
+    {
+      "id": "kana.ma",
+      "presentation": {
+        "text": "ま"
+      },
+      "role": "text"
+    },
+    {
+      "id": "kana.ya",
+      "presentation": {
+        "text": "や"
+      },
+      "role": "text"
+    },
+    {
+      "id": "kana.ra",
+      "presentation": {
+        "text": "ら"
+      },
+      "role": "text"
+    },
+    {
+      "id": "text.enter",
+      "presentation": {
+        "text": "改行"
+      },
+      "role": "control"
+    },
+    {
+      "id": "system.next",
+      "presentation": {
+        "text": "🌐"
+      },
+      "role": "control"
+    },
+    {
+      "id": "kana.wa",
+      "presentation": {
+        "text": "わ"
+      },
+      "role": "text"
+    },
+    {
+      "id": "test.gesture",
+      "presentation": {
+        "text": "◇"
+      },
+      "role": "control"
+    },
+    {
+      "id": "panel.tuning",
+      "presentation": {
+        "text": "⚙︎"
+      },
+      "role": "control"
+    }
+  ],
+  "layouts": [
+    {
+      "id": "layout.base",
+      "placements": [
+        {
+          "keyID": "kana.a",
+          "row": 0,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.ka",
+          "row": 0,
+          "column": 1,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.sa",
+          "row": 0,
+          "column": 2,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "edit.delete",
+          "row": 0,
+          "column": 3,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.ta",
+          "row": 1,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.na",
+          "row": 1,
+          "column": 1,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.ha",
+          "row": 1,
+          "column": 2,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "text.space",
+          "row": 1,
+          "column": 3,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.ma",
+          "row": 2,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.ya",
+          "row": 2,
+          "column": 1,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.ra",
+          "row": 2,
+          "column": 2,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "text.enter",
+          "row": 2,
+          "column": 3,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "system.next",
+          "row": 3,
+          "column": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "kana.wa",
+          "row": 3,
+          "column": 1,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "test.gesture",
+          "row": 3,
+          "column": 2,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "keyID": "panel.tuning",
+          "row": 3,
+          "column": 3,
+          "width": 1,
+          "height": 1
+        }
+      ]
+    }
+  ],
+  "bindingSets": [
+    {
+      "id": "bindings.base",
+      "bindings": [
+        {
+          "keyID": "kana.a",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "あ",
+              "accessibilityLabel": "あ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "あ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "い",
+              "accessibilityLabel": "い"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "い"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "う",
+              "accessibilityLabel": "う"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "う"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "え",
+              "accessibilityLabel": "え"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "え"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.a",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "お",
+              "accessibilityLabel": "お"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "お"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ka",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "か",
+              "accessibilityLabel": "か"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "か"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ka",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "き",
+              "accessibilityLabel": "き"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "き"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ka",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "く",
+              "accessibilityLabel": "く"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "く"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ka",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "け",
+              "accessibilityLabel": "け"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "け"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ka",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "こ",
+              "accessibilityLabel": "こ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "こ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.sa",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "さ",
+              "accessibilityLabel": "さ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "さ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.sa",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "し",
+              "accessibilityLabel": "し"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "し"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.sa",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "す",
+              "accessibilityLabel": "す"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "す"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.sa",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "せ",
+              "accessibilityLabel": "せ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "せ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.sa",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "そ",
+              "accessibilityLabel": "そ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "そ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ta",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "た",
+              "accessibilityLabel": "た"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "た"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ta",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ち",
+              "accessibilityLabel": "ち"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ち"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ta",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "つ",
+              "accessibilityLabel": "つ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "つ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ta",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "て",
+              "accessibilityLabel": "て"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "て"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ta",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "と",
+              "accessibilityLabel": "と"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "と"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.na",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "な",
+              "accessibilityLabel": "な"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "な"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.na",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "に",
+              "accessibilityLabel": "に"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "に"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.na",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ぬ",
+              "accessibilityLabel": "ぬ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ぬ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.na",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ね",
+              "accessibilityLabel": "ね"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ね"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.na",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "の",
+              "accessibilityLabel": "の"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "の"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ha",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "は",
+              "accessibilityLabel": "は"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "は"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ha",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ひ",
+              "accessibilityLabel": "ひ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ひ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ha",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ふ",
+              "accessibilityLabel": "ふ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ふ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ha",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "へ",
+              "accessibilityLabel": "へ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "へ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ha",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ほ",
+              "accessibilityLabel": "ほ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ほ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ma",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ま",
+              "accessibilityLabel": "ま"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ま"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ma",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "み",
+              "accessibilityLabel": "み"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "み"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ma",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "む",
+              "accessibilityLabel": "む"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "む"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ma",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "め",
+              "accessibilityLabel": "め"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "め"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ma",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "も",
+              "accessibilityLabel": "も"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "も"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ra",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "ら",
+              "accessibilityLabel": "ら"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ら"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ra",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "り",
+              "accessibilityLabel": "り"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "り"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ra",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "る",
+              "accessibilityLabel": "る"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "る"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ra",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "れ",
+              "accessibilityLabel": "れ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "れ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ra",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ろ",
+              "accessibilityLabel": "ろ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ろ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ya",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "や",
+              "accessibilityLabel": "や"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "や"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ya",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "「",
+              "accessibilityLabel": "「"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "「"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ya",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ゆ",
+              "accessibilityLabel": "ゆ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ゆ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ya",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "」",
+              "accessibilityLabel": "」"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "」"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.ya",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "よ",
+              "accessibilityLabel": "よ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "よ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.wa",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "わ",
+              "accessibilityLabel": "わ"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "わ"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.wa",
+          "path": [
+            {
+              "direction": "w"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "を",
+              "accessibilityLabel": "を"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "を"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.wa",
+          "path": [
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ん",
+              "accessibilityLabel": "ん"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ん"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.wa",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "ー",
+              "accessibilityLabel": "ー"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "ー"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "kana.wa",
+          "path": [
+            {
+              "direction": "s"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "〜",
+              "accessibilityLabel": "〜"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "〜"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "edit.delete",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "⌫",
+              "accessibilityLabel": "⌫"
+            },
+            "onRelease": [
+              {
+                "actionID": "edit.delete",
+                "arguments": {
+                  "count": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.space",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "空白",
+              "accessibilityLabel": "空白"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": " "
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "text.enter",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "改行",
+              "accessibilityLabel": "改行"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "\n"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "system.next",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "🌐",
+              "accessibilityLabel": "🌐"
+            },
+            "onRelease": [
+              {
+                "actionID": "system.nextKeyboard",
+                "arguments": {}
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "panel.tuning",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "⚙︎",
+              "accessibilityLabel": "⚙︎"
+            },
+            "onRelease": [
+              {
+                "actionID": "panel.open",
+                "arguments": {
+                  "panel": "tuning"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "test.gesture",
+          "path": [],
+          "behavior": {
+            "presentation": {
+              "text": "◇",
+              "accessibilityLabel": "◇"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "◇"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "test.gesture",
+          "path": [
+            {
+              "direction": "ne"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "↗︎",
+              "accessibilityLabel": "↗︎"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "↗︎"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "test.gesture",
+          "path": [
+            {
+              "direction": "e"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "→",
+              "accessibilityLabel": "→"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "→"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "keyID": "test.gesture",
+          "path": [
+            {
+              "direction": "e"
+            },
+            {
+              "direction": "n"
+            }
+          ],
+          "behavior": {
+            "presentation": {
+              "text": "→↑",
+              "accessibilityLabel": "→↑"
+            },
+            "onRelease": [
+              {
+                "actionID": "text.insert",
+                "arguments": {
+                  "text": "→↑"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": "base",
+      "layoutRef": "layout.base",
+      "bindingSetRef": "bindings.base"
+    }
+  ],
+  "macros": []
+}

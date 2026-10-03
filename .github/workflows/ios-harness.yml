@@ -5,8 +5,6 @@ on:
   pull_request:
     paths:
       - "App/GestureHarness/**"
-      - "Packages/GestureIMECore/**"
-      - "project.yml"
       - "scripts/build-ios-harness.sh"
       - ".github/workflows/ios-harness.yml"
 

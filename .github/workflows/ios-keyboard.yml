@@ -1,0 +1,54 @@
+name: iOS Keyboard Device Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "App/MainApp/**"
+      - "App/KeyboardExtension/**"
+      - "Packages/GestureIMECore/**"
+      - "project.yml"
+      - "scripts/build-ios-keyboard.sh"
+      - ".github/workflows/ios-keyboard.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-keyboard-ipa:
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Swift core tests
+        working-directory: Packages/GestureIMECore
+        run: swift test
+
+      - name: Phase 2 harness regression build
+        env:
+          DERIVED_DATA: ${{ runner.temp }}/GestureHarnessRegressionDerivedData
+          ARTIFACT_DIR: ${{ runner.temp }}/GestureHarnessRegressionArtifact
+        run: bash scripts/build-ios-harness.sh
+
+      - name: Build unsigned keyboard IPA
+        env:
+          DERIVED_DATA: ${{ runner.temp }}/GestureIMEKeyboardDerivedData
+          ARTIFACT_DIR: ${{ runner.temp }}/GestureIMEKeyboardArtifact
+        run: bash scripts/build-ios-keyboard.sh
+
+      - name: Upload sideload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GestureIME-keyboard-unsigned
+          path: ${{ runner.temp }}/GestureIMEKeyboardArtifact/GestureIME-keyboard-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14

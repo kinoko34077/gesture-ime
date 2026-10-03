@@ -30,11 +30,79 @@ targets:
         MARKETING_VERSION: 0.1.0
         ENABLE_PREVIEWS: NO
 
+  GestureIMEApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/MainApp
+    dependencies:
+      - target: GestureKeyboard
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime
+        PRODUCT_NAME: GestureIME
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Gesture IME
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        SWIFT_VERSION: 6.0
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.2.0
+        ENABLE_PREVIEWS: NO
+
+  GestureKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: App/KeyboardExtension
+        excludes:
+          - Info.plist
+          - Resources
+      - path: App/KeyboardExtension/Resources
+        buildPhase: resources
+    dependencies:
+      - package: GestureIMECore
+    info:
+      path: App/KeyboardExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Gesture IME
+        NSExtension:
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: ja
+            RequestsOpenAccess: false
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.keyboard
+        PRODUCT_NAME: GestureKeyboard
+        SWIFT_VERSION: 6.0
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.2.0
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+
 schemes:
   GestureHarness:
     build:
       targets:
         GestureHarness: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  GestureIME:
+    build:
+      targets:
+        GestureIMEApp: all
+        GestureKeyboard: all
     run:
       config: Debug
     archive:
