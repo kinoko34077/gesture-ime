@@ -144,7 +144,7 @@ final class HarnessViewModel: ObservableObject {
     }
 
     private func makeTrie() throws -> BindingTrie {
-        var bindings: [Binding] = [
+        var bindings: [GestureIMECore.Binding] = [
             binding([], label: "tap"),
             binding([.w], label: "W"),
             binding([.n], label: "N"),
@@ -164,8 +164,8 @@ final class HarnessViewModel: ObservableObject {
         )
     }
 
-    private func binding(_ directions: [Direction8], label: String) -> Binding {
-        Binding(
+    private func binding(_ directions: [Direction8], label: String) -> GestureIMECore.Binding {
+        GestureIMECore.Binding(
             keyID: "kana.a",
             path: GesturePath(directions.map { GestureToken(direction: $0) }),
             behavior: BindingBehavior(
