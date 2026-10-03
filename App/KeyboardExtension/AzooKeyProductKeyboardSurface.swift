@@ -466,6 +466,9 @@ private struct SharedGestureFlickKey: View {
                     }
             )
             .accessibilityLabel(runtime.title)
+            .onDisappear {
+                finishNativeTouch()
+            }
         }
     }
 
