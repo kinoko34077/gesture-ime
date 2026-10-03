@@ -79,13 +79,19 @@ struct ContentView: View {
                 metric("Stage 2", model.stage2RateText)
                 metric("Accidental", model.accidentalRateText)
             }
-            if model.trialIntent == .twoStage {
-                Text("Deliberate 2-stage successes: \(model.deliberateStage2Success)")
+            if model.trialIntent == .singleStage {
+                Text("Single-stage trials: \(model.singleStageTrials) • accidental stage 2: \(model.accidentalStage2)")
+                    .font(.footnote)
+            } else {
+                Text("Target successes: \(model.deliberateStage2Success)/\(model.deliberateStage2Trials) (\(model.deliberateSuccessRateText))")
                     .font(.footnote)
             }
             HStack {
                 Button("Clear trace") { model.resetVisuals() }
                 Button("Reset metrics") { model.resetMetrics() }
+                ShareLink(item: model.measurementSummary) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
