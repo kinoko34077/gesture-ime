@@ -187,6 +187,161 @@ fn ffi_runtime_exposes_precommit_candidate_and_hysteresis_before_distance_commit
 }
 
 #[test]
+fn ffi_runtime_expands_v2_macro_run_in_release_order() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v2-board-cardinal.valid.json"))
+            .expect("v2 fixture JSON");
+    profile["macros"] = serde_json::json!([{
+        "id": "macro.release",
+        "actions": [
+            {"actionID":"text.insert","arguments":{"text":"M"}},
+            {"actionID":"cursor.move","arguments":{"offset":1}}
+        ]
+    }]);
+    profile["boards"][0]["entries"][0]["onRelease"] = serde_json::json!([
+        {"actionID":"macro.run","arguments":{"macro":"macro.release"}}
+    ]);
+
+    let runtime = SharedCoreRuntime::new(profile.to_string()).expect("runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "key.a".into(),
+            runtime.profile_revision(),
+            FfiSize { width: 100.0, height: 100.0 },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let snapshot = session.touch_up(Some(1)).expect("touch up");
+    let ids = snapshot
+        .dispatched_actions
+        .iter()
+        .map(|action| action.action_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(ids, vec!["text.insert", "cursor.move"]);
+    assert!(
+        snapshot
+            .dispatched_actions
+            .iter()
+            .all(|action| action.action_id != "macro.run")
+    );
+}
+
+#[test]
+fn ffi_runtime_expands_v2_macro_run_for_hold_start_and_repeat() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v2-board-cardinal.valid.json"))
+            .expect("v2 fixture JSON");
+    profile["macros"] = serde_json::json!([{
+        "id": "macro.hold",
+        "actions": [
+            {"actionID":"text.directInsert","arguments":{"text":"H"}},
+            {"actionID":"cursor.move","arguments":{"offset":1}}
+        ]
+    }]);
+    profile["boards"][0]["entries"][0]["hold"] = serde_json::json!({
+        "delayMs": 50,
+        "onStart": [
+            {"actionID":"macro.run","arguments":{"macro":"macro.hold"}}
+        ],
+        "repeat": {
+            "intervalMs": 16,
+            "actions": [
+                {"actionID":"macro.run","arguments":{"macro":"macro.hold"}}
+            ]
+        },
+        "suppressOnReleaseAfterStart": true
+    });
+
+    let runtime = SharedCoreRuntime::new(profile.to_string()).expect("runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "key.a".into(),
+            runtime.profile_revision(),
+            FfiSize { width: 100.0, height: 100.0 },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let started = session.advance_time(50).expect("hold start");
+    assert_eq!(
+        started
+            .dispatched_actions
+            .iter()
+            .map(|action| action.action_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["text.directInsert", "cursor.move"]
+    );
+
+    let repeated = session.advance_time(66).expect("hold repeat");
+    assert_eq!(
+        repeated
+            .dispatched_actions
+            .iter()
+            .map(|action| action.action_id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "text.directInsert",
+            "cursor.move",
+            "text.directInsert",
+            "cursor.move"
+        ]
+    );
+    assert!(
+        repeated
+            .dispatched_actions
+            .iter()
+            .all(|action| action.action_id != "macro.run")
+    );
+}
+
+#[test]
+fn ffi_runtime_expands_macro_run_after_v1_normalization() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-diagonal-two-stage.valid.json"))
+            .expect("v1 fixture JSON");
+    profile["macros"] = serde_json::json!([{
+        "id": "macro.compat",
+        "actions": [
+            {"actionID":"text.insert","arguments":{"text":"V1"}},
+            {"actionID":"cursor.move","arguments":{"offset":1}}
+        ]
+    }]);
+    profile["bindingSets"][0]["bindings"][0]["behavior"]["onRelease"] = serde_json::json!([
+        {"actionID":"macro.run","arguments":{"macro":"macro.compat"}}
+    ]);
+
+    let runtime = SharedCoreRuntime::new(profile.to_string()).expect("runtime");
+    let session = runtime
+        .create_session(
+            "base".into(),
+            "kana.a".into(),
+            runtime.profile_revision(),
+            FfiSize { width: 100.0, height: 100.0 },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+            None,
+        )
+        .expect("session");
+
+    let snapshot = session.touch_up(Some(1)).expect("touch up");
+    assert_eq!(
+        snapshot
+            .dispatched_actions
+            .iter()
+            .map(|action| action.action_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["text.insert", "cursor.move"]
+    );
+}
+
+#[test]
 fn ffi_runtime_drives_two_stage_session_without_platform_semantics() {
     let runtime = SharedCoreRuntime::new(fixture("profile-diagonal-two-stage.valid.json"))
         .expect("runtime");

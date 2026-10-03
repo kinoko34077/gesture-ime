@@ -36,6 +36,7 @@ fn new_session(
         &entry,
         format!("{}:{}", profile.id, profile.version),
         Arc::new(board_map(&profile)),
+        Arc::new(HashMap::new()),
         state.clone(),
         profile.gesture_policy.clone(),
         GestureSize {
@@ -123,6 +124,7 @@ fn persistent_and_transient_lifetimes_follow_entry_point_baseline() {
         &entry,
         "second",
         boards.clone(),
+        Arc::new(HashMap::new()),
         state.clone(),
         profile.gesture_policy.clone(),
         GestureSize {
@@ -226,6 +228,7 @@ fn cyclic_board_graph_is_runtime_bounded_per_interaction() {
         &entry,
         "cycle",
         Arc::new(board_map(&profile)),
+        Arc::new(HashMap::new()),
         Arc::new(Mutex::new(HashMap::new())),
         profile.gesture_policy.clone(),
         GestureSize {
@@ -302,6 +305,7 @@ fn persistent_transition_from_transient_board_replaces_baseline() {
         &entry,
         "after-promotion",
         boards,
+        Arc::new(HashMap::new()),
         state,
         profile.gesture_policy,
         GestureSize {
@@ -360,6 +364,7 @@ fn precommit_candidate_preserves_wider_same_ray_reachability() {
         &entry,
         "gradual",
         boards.clone(),
+        Arc::new(HashMap::new()),
         Arc::new(Mutex::new(HashMap::new())),
         profile.gesture_policy.clone(),
         GestureSize {
@@ -381,6 +386,7 @@ fn precommit_candidate_preserves_wider_same_ray_reachability() {
         &entry,
         "jump",
         boards,
+        Arc::new(HashMap::new()),
         Arc::new(Mutex::new(HashMap::new())),
         profile.gesture_policy,
         GestureSize {
@@ -515,6 +521,7 @@ fn center_release_uses_source_actions_before_persistent_transition() {
         &entry,
         "first",
         boards.clone(),
+        Arc::new(HashMap::new()),
         state.clone(),
         profile.gesture_policy.clone(),
         GestureSize {
@@ -538,6 +545,7 @@ fn center_release_uses_source_actions_before_persistent_transition() {
         &entry,
         "second",
         boards,
+        Arc::new(HashMap::new()),
         state,
         profile.gesture_policy,
         GestureSize {
