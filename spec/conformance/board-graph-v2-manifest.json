@@ -1,0 +1,44 @@
+{
+  "schema": "gesture-ime.board-conformance-manifest.v2",
+  "fixtures": [
+    {
+      "file": "fixtures/profile-v2-cardinal-chain.valid.json",
+      "kind": "profile-v2",
+      "expect": "valid",
+      "assertions": {
+        "rootBoard": "board.kana.a",
+        "cardinalCoordinates": [[-1,0],[0,-1],[1,0],[0,1]],
+        "diagonalCoordinate": [1,-1],
+        "transition": {
+          "fromBoard": "board.kana.a",
+          "coordinate": [1,0],
+          "toBoard": "board.kana.a.e",
+          "lifetime": "transient"
+        },
+        "targetContainsSparseCoordinate": [2,-3]
+      }
+    },
+    {
+      "file": "fixtures/profile-v2-lifetime-hold.valid.json",
+      "kind": "profile-v2",
+      "expect": "valid",
+      "assertions": {
+        "transientChainReturnsToPersistentBaseline": true,
+        "persistentTransitionUpdatesBaseline": true,
+        "holdTransitionTarget": "board.hold"
+      }
+    },
+    {
+      "file": "fixtures/profile-v2-missing-board.invalid.json",
+      "kind": "profile-v2",
+      "expect": "invalid",
+      "error": "E_MISSING_REFERENCE"
+    },
+    {
+      "file": "fixtures/profile-v2-duplicate-coordinate.invalid.json",
+      "kind": "profile-v2",
+      "expect": "invalid",
+      "error": "E_DUPLICATE_BOARD_COORDINATE"
+    }
+  ]
+}
