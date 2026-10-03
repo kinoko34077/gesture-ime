@@ -1,6 +1,6 @@
 use gesture_ime_core::{
     board_map, BoardCoordinate, BoardProfileCodec, BoardSession, BoardSessionTerminal,
-    ProfileValidationCode, GesturePoint, GestureSize,
+    ProfileLimits, ProfileValidationCode, GesturePoint, GestureSize,
 };
 use std::collections::HashMap;
 use std::fs;
@@ -181,4 +181,80 @@ fn accepted_v1_profile_normalizes_to_board_graph() {
         board.entries.iter().any(|entry| entry.transition.is_some())
     });
     assert!(has_chained_transition);
+}
+
+
+#[test]
+fn cyclic_board_graph_is_runtime_bounded_per_interaction() {
+    let json = r#"
+    {
+      "schema":"gesture-ime.profile.v2",
+      "id":"fixture.v2.cycle",
+      "name":"Cycle",
+      "version":1,
+      "gesturePolicy":{
+        "deadZone":0.1,
+        "initialCellCommitDistance":0.3,
+        "subsequentCellCommitDistance":0.3,
+        "angularHysteresisDegrees":8
+      },
+      "keyDefinitions":[{"id":"key.test"}],
+      "layouts":[{"id":"layout.base","placements":[{"keyID":"key.test","row":0,"column":0}]}],
+      "layers":[{"id":"base","layoutRef":"layout.base"}],
+      "boards":[
+        {
+          "id":"board.loop",
+          "selectionPolicy":{"kind":"relativeCoordinate"},
+          "entries":[
+            {
+              "coordinate":{"x":1,"y":0},
+              "transition":{"targetBoardRef":"board.loop","lifetime":"transient"}
+            }
+          ]
+        }
+      ],
+      "entryPoints":[
+        {"id":"entry.loop","layerID":"base","keyID":"key.test","trigger":"press","boardRef":"board.loop"}
+      ],
+      "macros":[]
+    }
+    "#;
+
+    let profile = BoardProfileCodec::decode_and_validate(json.as_bytes()).expect("cycle valid");
+    let entry = profile.entry_points.first().unwrap().clone();
+    let mut session = BoardSession::new(
+        &entry,
+        "cycle",
+        Arc::new(board_map(&profile)),
+        Arc::new(Mutex::new(HashMap::new())),
+        profile.gesture_policy.clone(),
+        GestureSize {
+            width: 100.0,
+            height: 100.0,
+        },
+        GesturePoint { x: 0.0, y: 0.0 },
+        0,
+    )
+    .expect("session");
+
+    for index in 1..=ProfileLimits::BOARD_TRANSITIONS_PER_INTERACTION + 4 {
+        session.move_to(
+            GesturePoint {
+                x: index as f64 * 40.0,
+                y: 0.0,
+            },
+            Some(index as i64),
+        );
+    }
+
+    assert_eq!(
+        session.transition_count,
+        ProfileLimits::BOARD_TRANSITIONS_PER_INTERACTION
+    );
+    assert!(session.transition_limit_hit);
+    assert!(session.selected_coordinate.is_some());
+    assert!(
+        session.committed_coordinates.len()
+            <= ProfileLimits::BOARD_TRANSITIONS_PER_INTERACTION + 1
+    );
 }
