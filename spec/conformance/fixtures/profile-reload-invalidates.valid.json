@@ -1,0 +1,35 @@
+{
+  "kind": "lifecycle",
+  "id": "lifecycle.profile-reload-invalidates",
+  "endpointBehavior": {
+    "onRelease": [
+      {
+        "actionID": "text.insert",
+        "arguments": {
+          "text": "x"
+        }
+      }
+    ]
+  },
+  "events": [
+    {
+      "type": "touchDown",
+      "profileRevision": "r1",
+      "atMs": 0
+    },
+    {
+      "type": "profileReload",
+      "newRevision": "r2",
+      "atMs": 20
+    },
+    {
+      "type": "touchUp",
+      "atMs": 40
+    }
+  ],
+  "expected": {
+    "terminal": "invalidated",
+    "dispatchedActions": [],
+    "nextSessionProfileRevision": "r2"
+  }
+}

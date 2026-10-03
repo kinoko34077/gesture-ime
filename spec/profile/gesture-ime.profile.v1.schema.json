@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kinotch:gesture-ime:profile:v1",
+  "title": "Gesture IME ProfileBundle v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "name",
+    "version",
+    "gesturePolicy",
+    "keyDefinitions",
+    "layouts",
+    "bindingSets",
+    "layers",
+    "macros"
+  ],
+  "properties": {
+    "schema": {
+      "const": "gesture-ime.profile.v1"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gesturePolicy": {
+      "$ref": "#/$defs/gesturePolicy"
+    },
+    "keyDefinitions": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/keyDefinition"
+      }
+    },
+    "layouts": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/layout"
+      }
+    },
+    "bindingSets": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/bindingSet"
+      }
+    },
+    "layers": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/layer"
+      }
+    },
+    "macros": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/macro"
+      }
+    },
+    "theme": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "direction": {
+      "enum": [
+        "n",
+        "ne",
+        "e",
+        "se",
+        "s",
+        "sw",
+        "w",
+        "nw"
+      ]
+    },
+    "directionToken": {
+      "type": "object",
+      "required": [
+        "direction"
+      ],
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/direction"
+        }
+      },
+      "additionalProperties": true
+    },
+    "gesturePath": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/directionToken"
+      }
+    },
+    "actionInvocation": {
+      "type": "object",
+      "required": [
+        "actionID",
+        "arguments"
+      ],
+      "properties": {
+        "actionID": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "arguments": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "accessibilityLabel": {
+          "type": "string",
+          "maxLength": 256
+        }
+      },
+      "additionalProperties": true
+    },
+    "repeatBehavior": {
+      "type": "object",
+      "required": [
+        "intervalMs",
+        "actions"
+      ],
+      "properties": {
+        "intervalMs": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 5000
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "holdBehavior": {
+      "type": "object",
+      "required": [
+        "delayMs",
+        "onStart",
+        "suppressOnReleaseAfterStart"
+      ],
+      "properties": {
+        "delayMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "onStart": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        },
+        "repeat": {
+          "$ref": "#/$defs/repeatBehavior"
+        },
+        "suppressOnReleaseAfterStart": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "bindingBehavior": {
+      "type": "object",
+      "required": [
+        "onRelease"
+      ],
+      "properties": {
+        "presentation": {
+          "$ref": "#/$defs/presentation"
+        },
+        "onRelease": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        },
+        "hold": {
+          "$ref": "#/$defs/holdBehavior"
+        }
+      },
+      "additionalProperties": true
+    },
+    "binding": {
+      "type": "object",
+      "required": [
+        "keyID",
+        "path",
+        "behavior"
+      ],
+      "properties": {
+        "keyID": {
+          "$ref": "#/$defs/id"
+        },
+        "path": {
+          "$ref": "#/$defs/gesturePath"
+        },
+        "behavior": {
+          "$ref": "#/$defs/bindingBehavior"
+        }
+      },
+      "additionalProperties": true
+    },
+    "bindingSet": {
+      "type": "object",
+      "required": [
+        "id",
+        "bindings"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "bindings": {
+          "type": "array",
+          "maxItems": 8192,
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "keyDefinition": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "presentation": {
+          "$ref": "#/$defs/presentation"
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "additionalProperties": true
+    },
+    "placement": {
+      "type": "object",
+      "required": [
+        "keyID",
+        "row",
+        "column"
+      ],
+      "properties": {
+        "keyID": {
+          "$ref": "#/$defs/id"
+        },
+        "row": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 32
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 32
+        }
+      },
+      "additionalProperties": true
+    },
+    "layout": {
+      "type": "object",
+      "required": [
+        "id",
+        "placements"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "placements": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/placement"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "layer": {
+      "type": "object",
+      "required": [
+        "id",
+        "layoutRef",
+        "bindingSetRef"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "layoutRef": {
+          "$ref": "#/$defs/id"
+        },
+        "bindingSetRef": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "additionalProperties": true
+    },
+    "macro": {
+      "type": "object",
+      "required": [
+        "id",
+        "actions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "gesturePolicy": {
+      "type": "object",
+      "required": [
+        "deadZone",
+        "stage1CommitDistance",
+        "stage2CommitDistance",
+        "angularHysteresisDegrees",
+        "maxDirectionalStages"
+      ],
+      "properties": {
+        "deadZone": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "stage1CommitDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "stage2CommitDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "angularHysteresisDegrees": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 45
+        },
+        "maxDirectionalStages": {
+          "const": 2
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "kind": "lifecycle",
+  "id": "lifecycle.cancel-no-dispatch",
+  "endpointBehavior": {
+    "onRelease": [
+      {
+        "actionID": "text.insert",
+        "arguments": {
+          "text": "x"
+        }
+      }
+    ],
+    "hold": {
+      "delayMs": 100,
+      "onStart": [
+        {
+          "actionID": "text.insert",
+          "arguments": {
+            "text": "h"
+          }
+        }
+      ],
+      "repeat": {
+        "intervalMs": 50,
+        "actions": [
+          {
+            "actionID": "text.insert",
+            "arguments": {
+              "text": "r"
+            }
+          }
+        ]
+      },
+      "suppressOnReleaseAfterStart": true
+    }
+  },
+  "events": [
+    {
+      "type": "touchDown",
+      "atMs": 0
+    },
+    {
+      "type": "cancel",
+      "atMs": 50
+    },
+    {
+      "type": "advanceTime",
+      "toMs": 300
+    }
+  ],
+  "expected": {
+    "terminal": "cancelled",
+    "dispatchedActions": []
+  }
+}
