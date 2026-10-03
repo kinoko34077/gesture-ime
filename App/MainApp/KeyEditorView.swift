@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 import GestureIMEProfileAuthoring
 
 struct KeyEditorView: View {
