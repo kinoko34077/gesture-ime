@@ -1,3 +1,13 @@
+# 2026-10-04 Board Graph v2 semantic revision
+
+Profile v1 remains a supported compatibility input. Native Profile v2 board semantics are defined by `spec/BOARD_GRAPH_V2.md` and `spec/profile/gesture-ime.profile.v2.schema.json`.
+
+For v2, Board-local relative coordinates and BoardTransition lifetime semantics supersede any earlier implication that Direction8 or a two-token GesturePath is the durable authoring/runtime ceiling. Direction8 remains the initial physical-selection compatibility vocabulary, not the v2 topology limit.
+
+The shared Rust runtime is the semantic authority for v1/v2 decode, compatibility normalization, Board state and transition semantics. Platform adapters must not independently reinterpret this contract.
+
+---
+
 # Gesture IME Platform-Common Specification v1
 
 Status: Canonical platform-common contract for v0/Phase 0
