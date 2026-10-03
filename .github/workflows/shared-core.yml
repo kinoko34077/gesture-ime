@@ -5,7 +5,9 @@ on:
   pull_request:
     paths:
       - "App/KeyboardExtension/**"
+      - "App/MainApp/**"
       - "Packages/GestureIMECore/**"
+      - "Packages/GestureIMEProfileAuthoring/**"
       - "spec/**"
       - ".github/workflows/shared-core.yml"
 
@@ -27,9 +29,21 @@ jobs:
         working-directory: Packages/GestureIMECore
         run: swift test
 
+      - name: Profile authoring tests
+        working-directory: Packages/GestureIMEProfileAuthoring
+        run: swift test
+
       - name: Parse keyboard Swift sources
         run: |
           find App/KeyboardExtension -name '*.swift' -print0 |
+            while IFS= read -r -d '' file; do
+              echo "Parsing $file"
+              swiftc -frontend -parse "$file"
+            done
+
+      - name: Parse main-app Swift sources
+        run: |
+          find App/MainApp -name '*.swift' -print0 |
             while IFS= read -r -d '' file; do
               echo "Parsing $file"
               swiftc -frontend -parse "$file"
