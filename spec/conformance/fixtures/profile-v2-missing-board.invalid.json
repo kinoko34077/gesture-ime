@@ -1,0 +1,27 @@
+{
+  "schema": "gesture-ime.profile.v2",
+  "id": "fixture.v2.missing-board",
+  "name": "V2 missing board reference",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.1,
+    "initialCommitDistance": 0.3,
+    "continuationCommitDistance": 0.3,
+    "angularHysteresisDegrees": 8
+  },
+  "keyDefinitions": [{"id": "key.a"}],
+  "layouts": [{"id": "layout.base", "placements": [{"keyID": "key.a", "row": 0, "column": 0}]}],
+  "layers": [{
+    "id": "base",
+    "layoutRef": "layout.base",
+    "keyBoards": [{"keyID": "key.a", "boardRef": "board.missing"}]
+  }],
+  "boards": [{
+    "id": "board.root",
+    "entries": [{
+      "coordinate": {"x": 0, "y": 0},
+      "onRelease": [{"actionID": "noop", "arguments": {}}]
+    }]
+  }],
+  "macros": []
+}
