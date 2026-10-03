@@ -122,6 +122,18 @@ final class ProductKeyboardViewModel: ObservableObject {
         panel = nil
     }
 
+    func refreshLayoutFromRuntime() {
+        guard let layerID = layerStack.last else { return }
+        do {
+            layout = try KeyboardLayoutRuntime.compile(
+                sharedRuntime: sharedRuntime,
+                layerID: layerID
+            )
+        } catch {
+            return
+        }
+    }
+
     private func dispatch(_ action: FfiActionInvocation) {
         let arguments = Self.decodeArguments(action.argumentsJson)
 
@@ -274,7 +286,8 @@ struct AzooKeyProductKeyboardRoot: View {
                     policyStore: model.policyStore,
                     gestureCoordinator: model.gestureCoordinator,
                     theme: theme,
-                    onActions: model.dispatch
+                    onActions: model.dispatch,
+                    onSemanticStateChanged: model.refreshLayoutFromRuntime
                 )
             }
             .padding(.horizontal, 5)
@@ -342,6 +355,7 @@ private struct ProductFlickGrid: View {
     let gestureCoordinator: ProductGestureCoordinator
     let theme: AzooKeyTheme
     let onActions: ([FfiActionInvocation]) -> Void
+    let onSemanticStateChanged: () -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -369,7 +383,8 @@ private struct ProductFlickGrid: View {
                         policyStore: policyStore,
                         gestureCoordinator: gestureCoordinator,
                         theme: theme,
-                        onActions: onActions
+                        onActions: onActions,
+                        onSemanticStateChanged: onSemanticStateChanged
                     )
                     .frame(
                         width: CGFloat(key.width) * unitWidth
@@ -396,6 +411,7 @@ private struct SharedGestureFlickKey: View {
     let gestureCoordinator: ProductGestureCoordinator
     let theme: AzooKeyTheme
     let onActions: ([FfiActionInvocation]) -> Void
+    let onSemanticStateChanged: () -> Void
 
     @State private var session: IOSSharedGestureSessionAdapter?
     @State private var startedAt: TimeInterval?
@@ -540,6 +556,7 @@ private struct SharedGestureFlickKey: View {
             )
             let result = try session.touchUp(atMs: atMs)
             onActions(result.dispatchedActions)
+            onSemanticStateChanged()
         } catch {
             _ = try? session.cancel(atMs: atMs)
         }
