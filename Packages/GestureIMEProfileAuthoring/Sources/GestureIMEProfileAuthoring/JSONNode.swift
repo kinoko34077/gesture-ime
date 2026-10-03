@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 public enum JSONNode: Equatable, Sendable {
     case object([String: JSONNode])
@@ -12,16 +13,18 @@ public enum JSONNode: Equatable, Sendable {
     public init(foundation value: Any) throws {
         if value is NSNull {
             self = .null
-        } else if let value = value as? Bool {
-            self = .bool(value)
         } else if let value = value as? String {
             self = .string(value)
         } else if let value = value as? NSNumber {
-            let type = String(cString: value.objCType)
-            if type == "f" || type == "d" {
-                self = .decimal(value.doubleValue)
+            if CFGetTypeID(value) == CFBooleanGetTypeID() {
+                self = .bool(value.boolValue)
             } else {
-                self = .integer(value.int64Value)
+                let type = String(cString: value.objCType)
+                if type == "f" || type == "d" {
+                    self = .decimal(value.doubleValue)
+                } else {
+                    self = .integer(value.int64Value)
+                }
             }
         } else if let value = value as? [Any] {
             self = .array(try value.map(JSONNode.init(foundation:)))
