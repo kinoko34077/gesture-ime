@@ -24,12 +24,11 @@ struct KeyboardLayoutRuntime {
         let layout = try sharedRuntime.compileLayout(layerID: layerID)
 
         let keys = layout.keys.map { key in
-            let presentations = Dictionary(
-                uniqueKeysWithValues: key.firstStagePresentations.compactMap { presentation in
-                    guard let text = presentation.text, !text.isEmpty else { return nil }
-                    return (String(describing: presentation.direction).lowercased(), text)
-                }
-            )
+            var presentations: [String: String] = [:]
+            for presentation in key.firstStagePresentations {
+                guard let text = presentation.text, !text.isEmpty else { continue }
+                presentations[String(describing: presentation.direction).lowercased()] = text
+            }
 
             return KeyboardKeyRuntime(
                 id: key.id,
