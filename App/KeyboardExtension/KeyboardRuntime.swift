@@ -4,11 +4,18 @@ import GestureIMECore
 struct KeyboardKeyRuntime: Identifiable {
     let id: String
     let title: String
+    let role: String?
     let trie: BindingTrie
+    let row: Int
+    let column: Int
+    let width: Int
+    let height: Int
 }
 
 struct KeyboardLayoutRuntime {
-    let rows: [[KeyboardKeyRuntime]]
+    let keys: [KeyboardKeyRuntime]
+    let rowCount: Int
+    let columnCount: Int
     let profileRevision: String
     let defaultPolicy: GesturePolicy
 
@@ -20,28 +27,31 @@ struct KeyboardLayoutRuntime {
         }
 
         let keyDefinitions = Dictionary(uniqueKeysWithValues: profile.keyDefinitions.map { ($0.id, $0) })
-        let grouped = Dictionary(grouping: layout.placements, by: \.row)
-        let rows = try grouped.keys.sorted().map { row in
-            try grouped[row, default: []]
-                .sorted { lhs, rhs in
-                    if lhs.column == rhs.column { return lhs.keyID < rhs.keyID }
-                    return lhs.column < rhs.column
-                }
-                .map { placement in
-                    guard let definition = keyDefinitions[placement.keyID] else {
-                        throw ProfileValidationError(.missingReference, placement.keyID)
-                    }
-                    let trie = try BindingTrieCompiler.compile(bindingSet, keyID: placement.keyID)
-                    return KeyboardKeyRuntime(
-                        id: placement.keyID,
-                        title: definition.presentation?.text ?? placement.keyID,
-                        trie: trie
-                    )
-                }
+
+        let keys = try layout.placements.map { placement in
+            guard let definition = keyDefinitions[placement.keyID] else {
+                throw ProfileValidationError(.missingReference, placement.keyID)
+            }
+            let trie = try BindingTrieCompiler.compile(bindingSet, keyID: placement.keyID)
+            return KeyboardKeyRuntime(
+                id: placement.keyID,
+                title: definition.presentation?.text ?? placement.keyID,
+                role: definition.role,
+                trie: trie,
+                row: placement.row,
+                column: placement.column,
+                width: max(1, Int((placement.width ?? 1).rounded())),
+                height: max(1, Int((placement.height ?? 1).rounded()))
+            )
         }
 
+        let columnCount = keys.map { $0.column + $0.width }.max() ?? 1
+        let rowCount = keys.map { $0.row + $0.height }.max() ?? 1
+
         return KeyboardLayoutRuntime(
-            rows: rows,
+            keys: keys,
+            rowCount: rowCount,
+            columnCount: columnCount,
             profileRevision: "\(profile.id):\(profile.version)",
             defaultPolicy: profile.gesturePolicy
         )
