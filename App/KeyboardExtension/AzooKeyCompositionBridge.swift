@@ -84,6 +84,10 @@ final class AzooKeyCompositionBridge {
         !composingText.isEmpty
     }
 
+    func setTextDocumentProxy(_ proxy: any UITextDocumentProxy) {
+        displayedTextManager.setTextDocumentProxy(.mainProxy(proxy))
+    }
+
     func insert(_ text: String) {
         guard !text.isEmpty else { return }
 
@@ -174,7 +178,9 @@ final class AzooKeyCompositionBridge {
         if let selectedCandidateIndex,
            candidates.indices.contains(selectedCandidateIndex) {
             selectCandidate(at: selectedCandidateIndex)
-            return
+            if composingText.isEmpty {
+                return
+            }
         }
 
         guard !composingText.isEmpty else { return }
