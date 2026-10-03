@@ -108,6 +108,9 @@ targets:
             RequestsOpenAccess: false
           NSExtensionPointIdentifier: com.apple.keyboard-service
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"
+    postCompileScripts:
+      - path: scripts/embed-keyboard-llama-framework.sh
+        name: Embed llama framework for Keyboard Extension
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.keyboard
