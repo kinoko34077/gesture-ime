@@ -95,6 +95,8 @@ Active Profile v1 accepts at most two directional tokens per path. Future repres
 
 The serialized contract is defined by `profile/gesture-ime.profile.v1.schema.json`.
 
+The `schema` field selects the serialization contract. The numeric `version` field is profile-local revision metadata; it does not select or upgrade the schema version.
+
 A ProfileBundle composes:
 
 - `gesturePolicy` — recognition parameters only;
