@@ -5,11 +5,11 @@ final class BuiltInKeyboardProfileTests: XCTestCase {
     func testProductProfileIsValidAndMatchesFiveColumnReferenceTopology() throws {
         let profile = try loadProductProfile()
         XCTAssertEqual(profile.id, "builtin.ja.product")
-        XCTAssertEqual(profile.version, 2)
+        XCTAssertEqual(profile.version, 3)
 
-        let layer = try XCTUnwrap(profile.layers.first(where: { $0.id == "base" }))
-        let layout = try XCTUnwrap(profile.layouts.first(where: { $0.id == layer.layoutRef }))
-        let bindingSet = try XCTUnwrap(profile.bindingSets.first(where: { $0.id == layer.bindingSetRef }))
+        let baseLayer = try XCTUnwrap(profile.layers.first(where: { $0.id == "base" }))
+        let baseLayout = try XCTUnwrap(profile.layouts.first(where: { $0.id == baseLayer.layoutRef }))
+        let baseBindings = try XCTUnwrap(profile.bindingSets.first(where: { $0.id == baseLayer.bindingSetRef }))
 
         let expected: [(String, Int, Int, Double, Double)] = [
             ("mode.symbols", 0, 0, 2, 1),
@@ -37,20 +37,47 @@ final class BuiltInKeyboardProfileTests: XCTestCase {
             ("punctuation", 3, 6, 2, 1)
         ]
 
-        XCTAssertEqual(layout.placements.count, expected.count)
+        XCTAssertEqual(baseLayout.placements.count, expected.count)
         for (keyID, row, column, width, height) in expected {
-            let placement = try XCTUnwrap(layout.placements.first(where: { $0.keyID == keyID }), keyID)
+            let placement = try XCTUnwrap(baseLayout.placements.first(where: { $0.keyID == keyID }), keyID)
             XCTAssertEqual(placement.row, row, keyID)
             XCTAssertEqual(placement.column, column, keyID)
             XCTAssertEqual(placement.width ?? 1, width, keyID)
             XCTAssertEqual(placement.height ?? 1, height, keyID)
         }
 
-        let ordinary = try BindingTrieCompiler.compile(bindingSet, keyID: "kana.a")
+        let ordinary = try BindingTrieCompiler.compile(baseBindings, keyID: "kana.a")
         XCTAssertEqual(ordinary.root.eligibleDirections, Set([.w, .n, .e, .s]))
 
-        for placement in layout.placements {
-            _ = try BindingTrieCompiler.compile(bindingSet, keyID: placement.keyID)
+        XCTAssertEqual(Set(profile.layers.map(\.id)), Set(["base", "numbers", "alpha", "symbols"]))
+
+        for layer in profile.layers {
+            let layout = try XCTUnwrap(profile.layouts.first(where: { $0.id == layer.layoutRef }), layer.id)
+            let bindingSet = try XCTUnwrap(profile.bindingSets.first(where: { $0.id == layer.bindingSetRef }), layer.id)
+            XCTAssertEqual(layout.placements.count, 20, layer.id)
+
+            for placement in layout.placements {
+                _ = try BindingTrieCompiler.compile(bindingSet, keyID: placement.keyID)
+            }
+        }
+    }
+
+    func testBaseModeKeysResolveToRealLayers() throws {
+        let profile = try loadProductProfile()
+        let layer = try XCTUnwrap(profile.layers.first(where: { $0.id == "base" }))
+        let bindingSet = try XCTUnwrap(profile.bindingSets.first(where: { $0.id == layer.bindingSetRef }))
+
+        let expectations: [String: String] = [
+            "mode.symbols": "symbols",
+            "mode.numbers": "numbers",
+            "mode.alpha": "alpha"
+        ]
+
+        for (keyID, expectedLayer) in expectations {
+            let trie = try BindingTrieCompiler.compile(bindingSet, keyID: keyID)
+            let action = try XCTUnwrap(trie.root.behavior?.onRelease.first, keyID)
+            XCTAssertEqual(action.actionID, "layer.set", keyID)
+            XCTAssertEqual(action.arguments["layer"]?.stringValue, expectedLayer, keyID)
         }
     }
 
