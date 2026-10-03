@@ -334,6 +334,11 @@ impl SharedCoreRuntime {
                 layer_id: layer_id.clone(),
             })?;
 
+        let persistent_state = self
+            .persistent_state
+            .lock()
+            .map_err(|_| SharedCoreError::SessionState)?;
+
         let mut keys = Vec::with_capacity(layout.placements.len());
         let mut row_count = 0_i64;
         let mut column_count = 0_i64;
@@ -358,8 +363,12 @@ impl SharedCoreRuntime {
                         && entry.trigger == "press"
                 });
 
-            let root_board = entry_point
-                .and_then(|entry| self.boards.get(&entry.board_ref));
+            let root_board = entry_point.and_then(|entry| {
+                let active_board_id = persistent_state
+                    .get(&entry.id)
+                    .unwrap_or(&entry.board_ref);
+                self.boards.get(active_board_id)
+            });
 
             let mut eligible_set = HashSet::new();
             let mut first_stage_presentations = Vec::new();
@@ -401,12 +410,24 @@ impl SharedCoreRuntime {
             row_count = row_count.max(placement.row + height.ceil() as i64);
             column_count = column_count.max(placement.column + width.ceil() as i64);
 
+            let active_title = root_board
+                .and_then(|board| {
+                    board.entries.iter().find(|entry| {
+                        entry.coordinate == BoardCoordinate::ORIGIN
+                    })
+                })
+                .and_then(|entry| entry.presentation.as_ref())
+                .and_then(|presentation| presentation.text.clone())
+                .or_else(|| {
+                    definition
+                        .presentation
+                        .as_ref()
+                        .and_then(|presentation| presentation.text.clone())
+                });
+
             keys.push(FfiKeyLayout {
                 id: placement.key_id.clone(),
-                title: definition
-                    .presentation
-                    .as_ref()
-                    .and_then(|presentation| presentation.text.clone()),
+                title: active_title,
                 role: definition.role.clone(),
                 row: placement.row,
                 column: placement.column,
