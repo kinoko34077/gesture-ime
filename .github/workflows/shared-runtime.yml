@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "Shared/GestureIMECoreRust/**"
+      - "Platforms/iOS/SharedRuntime/**"
       - "spec/conformance/**"
       - ".github/workflows/shared-runtime.yml"
 
@@ -75,6 +76,50 @@ jobs:
             -L target/debug \
             -lgesture_ime_core \
             "$SWIFT_FILE"
+
+      - name: Run committed Swift adapter smoke
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          ADAPTER="../../Platforms/iOS/SharedRuntime/IOSSharedGestureRuntimeAdapter.swift"
+          SMOKE="../../Platforms/iOS/SharedRuntime/SharedRuntimeSwiftSmoke.swift"
+          BIN="$RUNNER_TEMP/shared-runtime-swift-smoke"
+
+          swiftc \
+            -I "$OUT" \
+            -L target/debug \
+            -lgesture_ime_core \
+            -Xlinker -rpath \
+            -Xlinker "$PWD/target/debug" \
+            "$SWIFT_FILE" \
+            "$ADAPTER" \
+            "$SMOKE" \
+            -o "$BIN"
+
+          DYLD_LIBRARY_PATH="$PWD/target/debug" \
+            "$BIN" "../../spec/conformance/fixtures/profile-diagonal-two-stage.valid.json"
+
+      - name: Cross-check iOS adapter target
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          rustup target add aarch64-apple-ios
+          cargo build --release --target aarch64-apple-ios
+          test -s target/aarch64-apple-ios/release/libgesture_ime_core.a
+
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          ADAPTER="../../Platforms/iOS/SharedRuntime/IOSSharedGestureRuntimeAdapter.swift"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+
+          swiftc \
+            -typecheck \
+            -parse-as-library \
+            -target arm64-apple-ios17.0 \
+            -sdk "$SDK" \
+            -I "$OUT" \
+            "$SWIFT_FILE" \
+            "$ADAPTER"
 
 
   kotlin-binding:
