@@ -163,7 +163,7 @@ A BoardEntry may define:
 
 The Hold transition uses the exact same BoardTransition semantics as a spatial transition. Hold therefore does not introduce a separate Board navigation system.
 
-Repeat Actions may remain available for non-transitioning Hold behavior. A HoldTrigger that performs a Board transition MUST NOT also begin a repeat loop in v2.
+Repeat Actions may remain available for non-transitioning Hold behavior. `suppressOnReleaseAfterStart` is retained so v1 Hold behavior can normalize without semantic loss. A HoldTrigger that performs a Board transition MUST NOT also begin a repeat loop in v2.
 
 ## 9. Runtime state
 
