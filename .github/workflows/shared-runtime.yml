@@ -1,0 +1,56 @@
+name: Shared Rust Runtime
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "Shared/GestureIMECoreRust/**"
+      - "spec/conformance/**"
+      - ".github/workflows/shared-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rust-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+      - name: Canonical Rust tests
+        working-directory: Shared/GestureIMECoreRust
+        run: cargo test
+
+  swift-binding:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchains
+        run: |
+          rustc --version
+          cargo --version
+          swift --version
+      - name: Build UniFFI library
+        working-directory: Shared/GestureIMECoreRust
+        run: cargo build
+      - name: Generate Swift binding
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          mkdir -p "$OUT"
+          cargo run --bin uniffi-bindgen --             generate target/debug/libgesture_ime_core.dylib             --language swift             --out-dir "$OUT"
+          find "$OUT" -maxdepth 1 -type f -print
+          test -n "$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          test -n "$(find "$OUT" -maxdepth 1 -name '*.h' -print -quit)"
+          test -n "$(find "$OUT" -maxdepth 1 -name '*.modulemap' -print -quit)"
+      - name: Typecheck generated Swift binding
+        working-directory: Shared/GestureIMECoreRust
+        run: |
+          OUT="$RUNNER_TEMP/GestureIMECoreSwift"
+          SWIFT_FILE="$(find "$OUT" -maxdepth 1 -name '*.swift' -print -quit)"
+          swiftc -typecheck -I "$OUT" "$SWIFT_FILE"

@@ -1,0 +1,3 @@
+[bindings.swift]
+cdylib_name = "gesture_ime_core"
+omit_argument_labels = false
