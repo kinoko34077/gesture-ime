@@ -15,12 +15,17 @@ final class GestureKeyView: UIView {
     private let runtime: KeyboardKeyRuntime
     private let profileRevision: String
     private let policyStore: GesturePolicyStore
+
     private let titleLabel = UILabel()
-    private let hintLabel = UILabel()
+    private var directionLabels: [Direction8: UILabel] = [:]
 
     private var session: GestureSession?
     private var sessionStart: TimeInterval = 0
     private var ownsNativeTouch = false
+
+    private var normalBackgroundColor: UIColor {
+        runtime.role == "control" ? .secondarySystemFill : .systemBackground
+    }
 
     init(runtime: KeyboardKeyRuntime, profileRevision: String, policyStore: GesturePolicyStore) {
         self.runtime = runtime
@@ -28,40 +33,82 @@ final class GestureKeyView: UIView {
         self.policyStore = policyStore
         super.init(frame: .zero)
 
-        translatesAutoresizingMaskIntoConstraints = false
         isMultipleTouchEnabled = false
-        layer.cornerRadius = 8
+        layer.cornerRadius = 10
         layer.borderWidth = 0.5
-        layer.borderColor = UIColor.separator.cgColor
-        backgroundColor = .secondarySystemBackground
+        layer.borderColor = UIColor.separator.withAlphaComponent(0.45).cgColor
+        backgroundColor = normalBackgroundColor
 
         titleLabel.text = runtime.title
         titleLabel.textAlignment = .center
-        titleLabel.font = .systemFont(ofSize: 20, weight: .medium)
+        titleLabel.font = .systemFont(
+            ofSize: runtime.role == "control" ? 18 : 29,
+            weight: runtime.role == "control" ? .regular : .medium
+        )
+        titleLabel.textColor = .label
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.6
+        addSubview(titleLabel)
 
-        hintLabel.textAlignment = .center
-        hintLabel.font = .monospacedSystemFont(ofSize: 9, weight: .regular)
-        hintLabel.textColor = .secondaryLabel
-        hintLabel.numberOfLines = 1
-
-        let stack = UIStackView(arrangedSubviews: [titleLabel, hintLabel])
-        stack.axis = .vertical
-        stack.alignment = .fill
-        stack.spacing = 1
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
-
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
-            stack.centerYAnchor.constraint(equalTo: centerYAnchor)
-        ])
+        for direction in [Direction8.w, .n, .e, .s] {
+            guard let text = oneStageLabel(direction), !text.isEmpty else { continue }
+            let label = UILabel()
+            label.text = text
+            label.textAlignment = .center
+            label.font = .systemFont(ofSize: 13, weight: .regular)
+            label.textColor = .secondaryLabel
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.7
+            addSubview(label)
+            directionLabels[direction] = label
+        }
 
         accessibilityLabel = runtime.title
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        let centerWidth = bounds.width * 0.52
+        let centerHeight = min(bounds.height * 0.56, 42)
+        titleLabel.frame = CGRect(
+            x: (bounds.width - centerWidth) / 2,
+            y: (bounds.height - centerHeight) / 2,
+            width: centerWidth,
+            height: centerHeight
+        )
+
+        let hintWidth = max(24, bounds.width * 0.28)
+        let hintHeight: CGFloat = 20
+
+        directionLabels[.n]?.frame = CGRect(
+            x: (bounds.width - hintWidth) / 2,
+            y: 3,
+            width: hintWidth,
+            height: hintHeight
+        )
+        directionLabels[.s]?.frame = CGRect(
+            x: (bounds.width - hintWidth) / 2,
+            y: bounds.height - hintHeight - 3,
+            width: hintWidth,
+            height: hintHeight
+        )
+        directionLabels[.w]?.frame = CGRect(
+            x: 3,
+            y: (bounds.height - hintHeight) / 2,
+            width: hintWidth,
+            height: hintHeight
+        )
+        directionLabels[.e]?.frame = CGRect(
+            x: bounds.width - hintWidth - 3,
+            y: (bounds.height - hintHeight) / 2,
+            width: hintWidth,
+            height: hintHeight
+        )
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -84,7 +131,6 @@ final class GestureKeyView: UIView {
             atMs: 0
         )
         backgroundColor = .tertiarySystemFill
-        refreshHint()
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -95,7 +141,6 @@ final class GestureKeyView: UIView {
             atMs: elapsedMs(touch)
         )
         session = active
-        refreshHint()
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -129,6 +174,14 @@ final class GestureKeyView: UIView {
         resetVisualState()
     }
 
+    private func oneStageLabel(_ direction: Direction8) -> String? {
+        runtime.trie
+            .node(for: GesturePath([GestureToken(direction: direction)]))?
+            .behavior?
+            .presentation?
+            .text
+    }
+
     private func finishNativeTouch() {
         if ownsNativeTouch {
             ownsNativeTouch = false
@@ -140,21 +193,7 @@ final class GestureKeyView: UIView {
         max(0, Int((touch.timestamp - sessionStart) * 1000))
     }
 
-    private func refreshHint() {
-        guard let session else {
-            hintLabel.text = nil
-            return
-        }
-        let path = session.path.tokens.map { $0.direction.rawValue.uppercased() }.joined(separator: ",")
-        let eligible = Direction8.canonicalOrder
-            .filter(session.eligibleDirections.contains)
-            .map { $0.rawValue.uppercased() }
-            .joined(separator: " ")
-        hintLabel.text = path.isEmpty ? eligible : "[\(path)] \(eligible)"
-    }
-
     private func resetVisualState() {
-        backgroundColor = .secondarySystemBackground
-        hintLabel.text = nil
+        backgroundColor = normalBackgroundColor
     }
 }
