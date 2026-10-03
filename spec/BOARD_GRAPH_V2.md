@@ -186,9 +186,9 @@ Profile v2 limits:
 - layouts: 32
 - placements per layout: 256
 - layers: 32
-- boards: 1024
+- boards: 16384
 - entries per Board: 256
-- entry points: 1024
+- entry points: 8192
 - Board triggers per Board: 16
 - macros: 128
 - endpoint Actions: same limits as v1
