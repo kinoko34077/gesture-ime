@@ -1,5 +1,6 @@
 package net.kinotch.gestureime.shared
 
+import uniffi.gesture_ime_core.FfiBoardCoordinate
 import uniffi.gesture_ime_core.FfiGesturePolicy
 import uniffi.gesture_ime_core.FfiLayoutSnapshot
 import uniffi.gesture_ime_core.FfiPoint
@@ -11,8 +12,9 @@ import uniffi.gesture_ime_core.SharedGestureSession
 /**
  * Android-side coordinate/lifecycle adapter for the platform-neutral Rust gesture runtime.
  *
- * Gesture/Profile/Binding semantics remain in Rust. This layer only translates native
- * pointer geometry/timestamps into the generated UniFFI API.
+ * Profile validation, v1-to-v2 normalization, Board selection/transition lifetime,
+ * and Action semantics remain in Rust. This layer only translates native pointer
+ * geometry/timestamps into the generated UniFFI API.
  */
 class AndroidSharedGestureRuntimeAdapter(
     profileJson: String,
@@ -71,4 +73,30 @@ class AndroidSharedGestureSessionAdapter internal constructor(
     fun cancel(atMs: Long? = null): FfiSessionSnapshot = core.cancel(atMs)
 
     fun invalidate(atMs: Long? = null): FfiSessionSnapshot = core.invalidate(atMs)
+}
+
+
+data class AndroidBoardSessionState(
+    val currentBoardId: String,
+    val persistentBoardId: String,
+    val eligibleCoordinates: List<FfiBoardCoordinate>,
+    val candidateCoordinate: FfiBoardCoordinate?,
+    val selectedCoordinate: FfiBoardCoordinate?,
+    val committedCoordinates: List<FfiBoardCoordinate>,
+    val transitionCount: Long,
+    val transitionLimitHit: Boolean,
+)
+
+fun AndroidSharedGestureSessionAdapter.boardState(): AndroidBoardSessionState {
+    val snapshot = snapshot()
+    return AndroidBoardSessionState(
+        currentBoardId = snapshot.currentBoardId,
+        persistentBoardId = snapshot.persistentBoardId,
+        eligibleCoordinates = snapshot.eligibleCoordinates,
+        candidateCoordinate = snapshot.candidateCoordinate,
+        selectedCoordinate = snapshot.selectedCoordinate,
+        committedCoordinates = snapshot.committedCoordinates,
+        transitionCount = snapshot.boardTransitionCount,
+        transitionLimitHit = snapshot.transitionLimitHit,
+    )
 }
