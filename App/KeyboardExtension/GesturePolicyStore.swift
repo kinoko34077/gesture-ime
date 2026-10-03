@@ -3,8 +3,6 @@ import GestureIMECore
 
 @MainActor
 final class GesturePolicyStore {
-    static let shared = GesturePolicyStore()
-
     private enum Key {
         static let deadZone = "gesture.policy.deadZone"
         static let stage1 = "gesture.policy.stage1"
@@ -12,18 +10,21 @@ final class GesturePolicyStore {
         static let hysteresis = "gesture.policy.hysteresis"
     }
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+    private let fallback: GesturePolicy
 
     private(set) var deadZone: Double
     private(set) var stage1: Double
     private(set) var stage2: Double
     private(set) var hysteresis: Double
 
-    private init() {
-        deadZone = Self.value(defaults, Key.deadZone, fallback: 0.15)
-        stage1 = Self.value(defaults, Key.stage1, fallback: 0.40)
-        stage2 = Self.value(defaults, Key.stage2, fallback: 0.40)
-        hysteresis = Self.value(defaults, Key.hysteresis, fallback: 8.0)
+    init(defaultPolicy: GesturePolicy, defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        fallback = defaultPolicy
+        deadZone = Self.value(defaults, Key.deadZone, fallback: defaultPolicy.deadZone)
+        stage1 = Self.value(defaults, Key.stage1, fallback: defaultPolicy.stage1CommitDistance)
+        stage2 = Self.value(defaults, Key.stage2, fallback: defaultPolicy.stage2CommitDistance)
+        hysteresis = Self.value(defaults, Key.hysteresis, fallback: defaultPolicy.angularHysteresisDegrees)
         normalizeAndPersist()
     }
 
@@ -56,6 +57,14 @@ final class GesturePolicyStore {
 
     func setHysteresis(_ value: Double) {
         hysteresis = min(max(value, 0), 30)
+        normalizeAndPersist()
+    }
+
+    func resetToProfileDefaults() {
+        deadZone = fallback.deadZone
+        stage1 = fallback.stage1CommitDistance
+        stage2 = fallback.stage2CommitDistance
+        hysteresis = fallback.angularHysteresisDegrees
         normalizeAndPersist()
     }
 

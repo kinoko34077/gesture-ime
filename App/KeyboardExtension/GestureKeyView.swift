@@ -3,6 +3,8 @@ import GestureIMECore
 
 @MainActor
 protocol GestureKeyViewDelegate: AnyObject {
+    func gestureKeyViewShouldBegin(_ keyView: GestureKeyView) -> Bool
+    func gestureKeyViewDidEndTouch(_ keyView: GestureKeyView)
     func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [ActionInvocation])
 }
 
@@ -10,19 +12,22 @@ protocol GestureKeyViewDelegate: AnyObject {
 final class GestureKeyView: UIView {
     weak var delegate: GestureKeyViewDelegate?
 
-    private let spec: KeyboardKeySpec
+    private let runtime: KeyboardKeyRuntime
+    private let profileRevision: String
+    private let policyStore: GesturePolicyStore
     private let titleLabel = UILabel()
     private let hintLabel = UILabel()
-    private let policyStore: GesturePolicyStore
 
-    private var trie: BindingTrie?
     private var session: GestureSession?
-    private var sessionStart: CFTimeInterval = 0
+    private var sessionStart: TimeInterval = 0
+    private var ownsNativeTouch = false
 
-    init(spec: KeyboardKeySpec, policyStore: GesturePolicyStore) {
-        self.spec = spec
+    init(runtime: KeyboardKeyRuntime, profileRevision: String, policyStore: GesturePolicyStore) {
+        self.runtime = runtime
+        self.profileRevision = profileRevision
         self.policyStore = policyStore
         super.init(frame: .zero)
+
         translatesAutoresizingMaskIntoConstraints = false
         isMultipleTouchEnabled = false
         layer.cornerRadius = 8
@@ -30,12 +35,12 @@ final class GestureKeyView: UIView {
         layer.borderColor = UIColor.separator.cgColor
         backgroundColor = .secondarySystemBackground
 
-        titleLabel.text = spec.title
+        titleLabel.text = runtime.title
         titleLabel.textAlignment = .center
-        titleLabel.font = .systemFont(ofSize: 22, weight: .medium)
+        titleLabel.font = .systemFont(ofSize: 20, weight: .medium)
 
         hintLabel.textAlignment = .center
-        hintLabel.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
+        hintLabel.font = .monospacedSystemFont(ofSize: 9, weight: .regular)
         hintLabel.textColor = .secondaryLabel
         hintLabel.numberOfLines = 1
 
@@ -52,8 +57,7 @@ final class GestureKeyView: UIView {
             stack.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
 
-        trie = try? BindingTrieCompiler.compile(spec.bindingSet, keyID: spec.id)
-        accessibilityLabel = spec.title
+        accessibilityLabel = runtime.title
     }
 
     required init?(coder: NSCoder) {
@@ -61,13 +65,19 @@ final class GestureKeyView: UIView {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard touches.count == 1, let touch = touches.first, let trie else { return }
+        guard touches.count == 1, let touch = touches.first else { return }
+        ownsNativeTouch = true
+        guard delegate?.gestureKeyViewShouldBegin(self) ?? true else {
+            resetVisualState()
+            return
+        }
+
         let point = touch.location(in: self)
         sessionStart = touch.timestamp
         session = GestureSession(
-            keyID: spec.id,
-            profileRevision: "builtin.phase3.v1",
-            trie: trie,
+            keyID: runtime.id,
+            profileRevision: profileRevision,
+            trie: runtime.trie,
             policy: policyStore.policy,
             keySize: GestureSize(width: Double(bounds.width), height: Double(bounds.height)),
             touchDown: GesturePoint(x: Double(point.x), y: Double(point.y)),
@@ -89,12 +99,17 @@ final class GestureKeyView: UIView {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        defer { finishNativeTouch() }
         guard var active = session, let touch = touches.first else {
             resetVisualState()
             return
         }
+
         let point = touch.location(in: self)
-        active.move(to: GesturePoint(x: Double(point.x), y: Double(point.y)), atMs: elapsedMs(touch))
+        active.move(
+            to: GesturePoint(x: Double(point.x), y: Double(point.y)),
+            atMs: elapsedMs(touch)
+        )
         let result = active.touchUp(atMs: elapsedMs(touch))
         session = nil
         resetVisualState()
@@ -102,11 +117,23 @@ final class GestureKeyView: UIView {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        cancelCurrentGesture()
+        finishNativeTouch()
+    }
+
+    func cancelCurrentGesture() {
         if var active = session {
             _ = active.cancel()
         }
         session = nil
         resetVisualState()
+    }
+
+    private func finishNativeTouch() {
+        if ownsNativeTouch {
+            ownsNativeTouch = false
+            delegate?.gestureKeyViewDidEndTouch(self)
+        }
     }
 
     private func elapsedMs(_ touch: UITouch) -> Int {
@@ -123,7 +150,7 @@ final class GestureKeyView: UIView {
             .filter(session.eligibleDirections.contains)
             .map { $0.rawValue.uppercased() }
             .joined(separator: " ")
-        hintLabel.text = path.isEmpty ? eligible : "[\(path)]  \(eligible)"
+        hintLabel.text = path.isEmpty ? eligible : "[\(path)] \(eligible)"
     }
 
     private func resetVisualState() {

@@ -3,10 +3,15 @@ import GestureIMECore
 
 @MainActor
 final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegate {
-    private let policyStore = GesturePolicyStore.shared
     private let keyboardStack = UIStackView()
     private var tuningPanel: TuningPanelView?
     private var heightConstraint: NSLayoutConstraint?
+
+    private var layoutRuntime: KeyboardLayoutRuntime?
+    private var policyStore: GesturePolicyStore?
+    private var keyViews: [ObjectIdentifier: GestureKeyView] = [:]
+    private var touchingKeys = Set<ObjectIdentifier>()
+    private var blockedByMultitouch = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -14,28 +19,20 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
         keyboardStack.axis = .vertical
         keyboardStack.spacing = 5
+        keyboardStack.distribution = .fillEqually
         keyboardStack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(keyboardStack)
 
-        for row in BuiltInJapaneseProfile.kanaRows {
-            let rowStack = UIStackView()
-            rowStack.axis = .horizontal
-            rowStack.spacing = 5
-            rowStack.distribution = .fillEqually
-
-            for spec in row {
-                let key = GestureKeyView(spec: spec, policyStore: policyStore)
-                key.delegate = self
-                rowStack.addArrangedSubview(key)
-            }
-            keyboardStack.addArrangedSubview(rowStack)
+        do {
+            let profile = try BuiltInProfileLoader.load()
+            let runtime = try KeyboardLayoutRuntime.compile(profile: profile)
+            let store = GesturePolicyStore(defaultPolicy: runtime.defaultPolicy)
+            layoutRuntime = runtime
+            policyStore = store
+            installKeyboard(runtime: runtime, store: store)
+        } catch {
+            installError(String(describing: error))
         }
-
-        let settingsButton = UIButton(type: .system)
-        settingsButton.setTitle("⚙︎ 感度設定", for: .normal)
-        settingsButton.titleLabel?.font = .systemFont(ofSize: 13)
-        settingsButton.addAction(UIAction { [weak self] _ in self?.showTuning() }, for: .touchUpInside)
-        keyboardStack.addArrangedSubview(settingsButton)
 
         heightConstraint = view.heightAnchor.constraint(equalToConstant: 300)
         heightConstraint?.priority = .defaultHigh
@@ -49,7 +46,59 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         ])
     }
 
+    private func installKeyboard(runtime: KeyboardLayoutRuntime, store: GesturePolicyStore) {
+        for row in runtime.rows {
+            let rowStack = UIStackView()
+            rowStack.axis = .horizontal
+            rowStack.spacing = 5
+            rowStack.distribution = .fillEqually
+
+            for keyRuntime in row {
+                let key = GestureKeyView(
+                    runtime: keyRuntime,
+                    profileRevision: runtime.profileRevision,
+                    policyStore: store
+                )
+                key.delegate = self
+                keyViews[ObjectIdentifier(key)] = key
+                rowStack.addArrangedSubview(key)
+            }
+            keyboardStack.addArrangedSubview(rowStack)
+        }
+    }
+
+    private func installError(_ message: String) {
+        let label = UILabel()
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 12)
+        label.text = "Profile load failed\n\(message)"
+        keyboardStack.addArrangedSubview(label)
+    }
+
+    func gestureKeyViewShouldBegin(_ keyView: GestureKeyView) -> Bool {
+        let id = ObjectIdentifier(keyView)
+        touchingKeys.insert(id)
+
+        guard touchingKeys.count == 1, !blockedByMultitouch else {
+            blockedByMultitouch = true
+            for view in keyViews.values {
+                view.cancelCurrentGesture()
+            }
+            return false
+        }
+        return true
+    }
+
+    func gestureKeyViewDidEndTouch(_ keyView: GestureKeyView) {
+        touchingKeys.remove(ObjectIdentifier(keyView))
+        if touchingKeys.isEmpty {
+            blockedByMultitouch = false
+        }
+    }
+
     func gestureKeyView(_ keyView: GestureKeyView, didDispatch actions: [ActionInvocation]) {
+        guard !blockedByMultitouch else { return }
         for action in actions {
             dispatch(action)
         }
@@ -64,7 +113,9 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
 
         case "edit.delete":
             if let count = action.arguments["count"]?.intValue, count > 0 {
-                for _ in 0..<count { textDocumentProxy.deleteBackward() }
+                for _ in 0..<count {
+                    textDocumentProxy.deleteBackward()
+                }
             }
 
         case "cursor.move":
@@ -78,13 +129,18 @@ final class KeyboardViewController: UIInputViewController, GestureKeyViewDelegat
         case "system.dismissKeyboard":
             dismissKeyboard()
 
+        case "panel.open":
+            if action.arguments["panel"]?.stringValue == "tuning" {
+                showTuning()
+            }
+
         default:
             break
         }
     }
 
     private func showTuning() {
-        guard tuningPanel == nil else { return }
+        guard tuningPanel == nil, let policyStore else { return }
         keyboardStack.isHidden = true
 
         let panel = TuningPanelView(store: policyStore)

@@ -14,7 +14,7 @@ final class TuningPanelView: UIView {
         backgroundColor = .systemBackground
 
         stack.axis = .vertical
-        stack.spacing = 4
+        stack.spacing = 3
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
@@ -25,29 +25,49 @@ final class TuningPanelView: UIView {
         title.text = "Gesture tuning"
         title.font = .systemFont(ofSize: 15, weight: .semibold)
 
+        let reset = UIButton(type: .system)
+        reset.setTitle("初期値", for: .normal)
+        reset.addAction(UIAction { [weak self] _ in
+            self?.store.resetToProfileDefaults()
+            self?.rebuildControls()
+        }, for: .touchUpInside)
+
         let close = UIButton(type: .system)
         close.setTitle("閉じる", for: .normal)
         close.addAction(UIAction { [weak self] _ in self?.onClose?() }, for: .touchUpInside)
 
         header.addArrangedSubview(title)
+        header.addArrangedSubview(reset)
         header.addArrangedSubview(close)
         stack.addArrangedSubview(header)
-
-        addSlider("Dead zone", value: store.deadZone, range: 0.02...0.60) { [weak store] in store?.setDeadZone($0) }
-        addSlider("Stage 1", value: store.stage1, range: 0.10...1.50) { [weak store] in store?.setStage1($0) }
-        addSlider("Stage 2", value: store.stage2, range: 0.10...1.80) { [weak store] in store?.setStage2($0) }
-        addSlider("Hysteresis", value: store.hysteresis, range: 0...30, suffix: "°") { [weak store] in store?.setHysteresis($0) }
+        installControls()
 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -6)
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -4)
         ])
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func rebuildControls() {
+        while stack.arrangedSubviews.count > 1 {
+            let view = stack.arrangedSubviews.last!
+            stack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        installControls()
+    }
+
+    private func installControls() {
+        addSlider("Dead zone", value: store.deadZone, range: 0.02...0.60) { [weak store] in store?.setDeadZone($0) }
+        addSlider("Stage 1", value: store.stage1, range: 0.10...1.50) { [weak store] in store?.setStage1($0) }
+        addSlider("Stage 2", value: store.stage2, range: 0.10...1.80) { [weak store] in store?.setStage2($0) }
+        addSlider("Hysteresis", value: store.hysteresis, range: 0...30, suffix: "°") { [weak store] in store?.setHysteresis($0) }
     }
 
     private func addSlider(

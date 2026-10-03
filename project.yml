@@ -57,6 +57,10 @@ targets:
     platform: iOS
     sources:
       - path: App/KeyboardExtension
+        excludes:
+          - Info.plist
+    resources:
+      - path: App/KeyboardExtension/Resources
     dependencies:
       - package: GestureIMECore
     info:
