@@ -27,6 +27,9 @@ pub enum ProfileValidationCode {
     InvalidActionArguments,
     MacroNesting,
     InvalidGesturePolicy,
+    LimitBoards,
+    LimitBoardEntries,
+    DuplicateBoardCoordinate,
 }
 
 impl ProfileValidationCode {
@@ -54,6 +57,9 @@ impl ProfileValidationCode {
             Self::InvalidActionArguments => "E_INVALID_ACTION_ARGUMENTS",
             Self::MacroNesting => "E_MACRO_NESTING",
             Self::InvalidGesturePolicy => "E_INVALID_GESTURE_POLICY",
+            Self::LimitBoards => "E_LIMIT_BOARDS",
+            Self::LimitBoardEntries => "E_LIMIT_BOARD_ENTRIES",
+            Self::DuplicateBoardCoordinate => "E_DUPLICATE_BOARD_COORDINATE",
         }
     }
 }
@@ -355,7 +361,7 @@ fn check_limit(
     }
 }
 
-fn validate_unique_ids<'a>(
+pub(crate) fn validate_unique_ids<'a>(
     values: impl Iterator<Item = &'a str>,
 ) -> Result<(), ProfileValidationError> {
     let mut seen = HashSet::new();
@@ -367,7 +373,7 @@ fn validate_unique_ids<'a>(
     Ok(())
 }
 
-fn validate_presentation(
+pub(crate) fn validate_presentation(
     presentation: Option<&BindingPresentation>,
     owner: &str,
 ) -> Result<(), ProfileValidationError> {
@@ -388,7 +394,7 @@ fn validate_presentation(
     Ok(())
 }
 
-fn validate_dimension(value: Option<f64>, owner: &str) -> Result<(), ProfileValidationError> {
+pub(crate) fn validate_dimension(value: Option<f64>, owner: &str) -> Result<(), ProfileValidationError> {
     if let Some(value) = value {
         if !value.is_finite() || value <= 0.0 || value > 32.0 {
             return Err(ProfileValidationError::new(
@@ -425,7 +431,7 @@ fn validate_gesture_policy(policy: &GesturePolicy) -> Result<(), ProfileValidati
     }
 }
 
-fn validate_actions(
+pub(crate) fn validate_actions(
     actions: &[ActionInvocation],
     in_macro: bool,
     layer_ids: &HashSet<&str>,
@@ -618,7 +624,7 @@ fn get_i64(arguments: &Map<String, Value>, key: &str) -> Option<i64> {
     arguments.get(key)?.as_i64()
 }
 
-fn is_valid_id(value: &str) -> bool {
+pub(crate) fn is_valid_id(value: &str) -> bool {
     let bytes = value.as_bytes();
     if bytes.is_empty() || bytes.len() > 128 || !bytes[0].is_ascii_alphanumeric() {
         return false;
