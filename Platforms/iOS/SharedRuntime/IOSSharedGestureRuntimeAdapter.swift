@@ -123,3 +123,120 @@ public extension IOSSharedGestureSessionAdapter {
         IOSBoardSessionState(snapshot: try snapshot())
     }
 }
+
+
+/// iOS transport adapter for the Profile v3 product runtime.
+///
+/// This is intentionally separate from IOSSharedGestureRuntimeAdapter while the
+/// built-in Profile remains on the v1/v2 staging path. Board geometry, endpoint
+/// resolution, transition state and runtime-dispatch ordering remain owned by Rust.
+public final class IOSProfileV3RuntimeAdapter {
+    private let core: ProfileV3PlatformRuntime
+
+    public init(profileJSON: String) throws {
+        self.core = try ProfileV3PlatformRuntime(profileJson: profileJSON)
+    }
+
+    public var profileID: String {
+        core.profileId()
+    }
+
+    public var profileRevision: String {
+        core.profileRevision()
+    }
+
+    public func activeLayerID() throws -> String {
+        try core.activeLayerId()
+    }
+
+    public func defaultPolicy() -> FfiProfileV3GesturePolicy {
+        core.defaultPolicy()
+    }
+
+    public func updateSemanticContext(
+        composition: String,
+        conversionActive: Bool,
+        conversionHasCandidates: Bool
+    ) throws {
+        try core.updateSemanticContext(
+            composition: composition,
+            conversionActive: conversionActive,
+            conversionHasCandidates: conversionHasCandidates
+        )
+    }
+
+    public func directSurface() throws -> FfiProfileV3BoardSurface {
+        try core.directSurface()
+    }
+
+    public func setLayer(_ layerID: String) throws -> FfiProfileV3BoardSurface {
+        try core.setLayer(layerId: layerID)
+    }
+
+    public func pushLayer(_ layerID: String) throws -> FfiProfileV3BoardSurface {
+        try core.pushLayer(layerId: layerID)
+    }
+
+    public func popLayer() throws -> FfiProfileV3BoardSurface {
+        try core.popLayer()
+    }
+
+    public func beginSession(
+        entryID: String,
+        logicalCellWidth: Double,
+        logicalCellHeight: Double,
+        touchX: Double,
+        touchY: Double,
+        atMs: Int64
+    ) throws -> IOSProfileV3SessionAdapter {
+        let session = try core.beginSession(
+            entryId: entryID,
+            logicalCellSize: FfiSize(
+                width: logicalCellWidth,
+                height: logicalCellHeight
+            ),
+            touchDown: FfiPoint(x: touchX, y: touchY),
+            atMs: atMs
+        )
+        return IOSProfileV3SessionAdapter(core: session)
+    }
+}
+
+public final class IOSProfileV3SessionAdapter {
+    private let core: ProfileV3PlatformSession
+
+    init(core: ProfileV3PlatformSession) {
+        self.core = core
+    }
+
+    public func snapshot() throws -> FfiProfileV3SessionSnapshot {
+        try core.snapshot()
+    }
+
+    public func move(
+        x: Double,
+        y: Double,
+        atMs: Int64? = nil
+    ) throws -> FfiProfileV3SessionSnapshot {
+        try core.moveTo(
+            point: FfiPoint(x: x, y: y),
+            atMs: atMs
+        )
+    }
+
+    public func advanceTime(toMs: Int64) throws -> FfiProfileV3SessionSnapshot {
+        try core.advanceTime(toMs: toMs)
+    }
+
+    public func touchUp(atMs: Int64? = nil) throws -> FfiProfileV3SessionSnapshot {
+        try core.touchUp(atMs: atMs)
+    }
+
+    public func cancel(atMs: Int64? = nil) throws -> FfiProfileV3SessionSnapshot {
+        try core.cancel(atMs: atMs)
+    }
+
+    public func invalidate(atMs: Int64? = nil) throws -> FfiProfileV3SessionSnapshot {
+        try core.invalidate(atMs: atMs)
+    }
+}
