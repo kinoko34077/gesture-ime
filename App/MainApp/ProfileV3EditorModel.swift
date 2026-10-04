@@ -321,9 +321,9 @@ final class ProfileV3EditorModel: ObservableObject {
         }
     }
 
-    func setSelectedEntryRect(_ rect: ProfileV3Rect) {
+    func setEntryRect(_ entryID: String, rect: ProfileV3Rect) {
         guard let boardID = currentBoardID,
-              let entryID = selectedEntryID else { return }
+              entries.contains(where: { $0.id == entryID }) else { return }
         mutate {
             try $0.v3SetEntryRect(
                 boardID: boardID,
@@ -331,6 +331,11 @@ final class ProfileV3EditorModel: ObservableObject {
                 rect: rect
             )
         }
+    }
+
+    func setSelectedEntryRect(_ rect: ProfileV3Rect) {
+        guard let entryID = selectedEntryID else { return }
+        setEntryRect(entryID, rect: rect)
     }
 
     func deleteSelectedEntry() {
@@ -345,10 +350,10 @@ final class ProfileV3EditorModel: ObservableObject {
         selectedEntryID = nil
     }
 
-    func canPlaceSelectedEntry(_ rect: ProfileV3Rect) -> Bool {
+    func canPlaceEntry(_ entryID: String, rect: ProfileV3Rect) -> Bool {
         guard let document = history?.document,
               let boardID = currentBoardID,
-              let entryID = selectedEntryID else {
+              entries.contains(where: { $0.id == entryID }) else {
             return false
         }
         var candidate = document
@@ -362,6 +367,11 @@ final class ProfileV3EditorModel: ObservableObject {
         } catch {
             return false
         }
+    }
+
+    func canPlaceSelectedEntry(_ rect: ProfileV3Rect) -> Bool {
+        guard let entryID = selectedEntryID else { return false }
+        return canPlaceEntry(entryID, rect: rect)
     }
 
     func canCreateEntry(_ rect: ProfileV3Rect) -> Bool {
