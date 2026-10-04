@@ -565,6 +565,16 @@ fn validate_endpoint(
         )?;
     }
 
+    if let Some(transition) = &behavior.transition {
+        validate_transition(transition, owner, board_ids)?;
+        if actions_change_control_plane(&behavior.on_release, macro_map) {
+            return Err(ProfileValidationError::new(
+                ProfileValidationCode::ConflictingControlFlow,
+                Some(owner.to_owned()),
+            ));
+        }
+    }
+
     validate_actions(
         &behavior.on_release,
         false,
@@ -577,22 +587,22 @@ fn validate_endpoint(
         condition_nodes,
     )?;
 
-    if let Some(transition) = &behavior.transition {
-        validate_transition(transition, owner, board_ids)?;
-        if actions_change_control_plane(&behavior.on_release, macro_map) {
-            return Err(ProfileValidationError::new(
-                ProfileValidationCode::ConflictingControlFlow,
-                Some(owner.to_owned()),
-            ));
-        }
-    }
-
     if let Some(hold) = &behavior.hold {
         if !(50..=5000).contains(&hold.delay_ms) {
             return Err(ProfileValidationError::new(
                 ProfileValidationCode::UnsupportedSchema,
                 Some(format!("{owner}.hold.delayMs")),
             ));
+        }
+
+        if let Some(transition) = &hold.transition {
+            validate_transition(transition, owner, board_ids)?;
+            if actions_change_control_plane(&hold.on_start, macro_map) {
+                return Err(ProfileValidationError::new(
+                    ProfileValidationCode::ConflictingControlFlow,
+                    Some(owner.to_owned()),
+                ));
+            }
         }
 
         validate_actions(
@@ -606,16 +616,6 @@ fn validate_endpoint(
             state_kinds,
             condition_nodes,
         )?;
-
-        if let Some(transition) = &hold.transition {
-            validate_transition(transition, owner, board_ids)?;
-            if actions_change_control_plane(&hold.on_start, macro_map) {
-                return Err(ProfileValidationError::new(
-                    ProfileValidationCode::ConflictingControlFlow,
-                    Some(owner.to_owned()),
-                ));
-            }
-        }
 
         if let Some(repeat) = &hold.repeat_behavior {
             if !(16..=5000).contains(&repeat.interval_ms) {
