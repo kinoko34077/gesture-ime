@@ -34,6 +34,10 @@ actor AzooKeyConversionWorker {
             englishCandidateInRoman2KanaInput: false,
             fullWidthRomanCandidate: false,
             halfWidthKanaCandidate: true,
+            // #78 capability truth: learning is deliberately off (private by
+            // default). No dictionary/learning/reset UI is exposed until a
+            // containing-app ↔ Extension settings path exists (#75 gate).
+            // Conversion is fully on-device; ordinary typing needs no network.
             learningType: .nothing,
             maxMemoryCount: 0,
             shouldResetMemory: false,
