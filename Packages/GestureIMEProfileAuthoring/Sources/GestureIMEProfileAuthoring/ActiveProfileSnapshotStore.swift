@@ -216,11 +216,11 @@ public final class ActiveProfileSnapshotStore {
     }
 
     private static func sha256Hex(_ data: Data) -> String {
-        PortableSHA256.hex(data)
+        ProfileSnapshotDigest.sha256Hex(data)
     }
 }
 
-private enum PortableSHA256 {
+enum ProfileSnapshotDigest {
     private static let initialHash: [UInt32] = [
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
@@ -245,7 +245,7 @@ private enum PortableSHA256 {
         0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
     ]
 
-    static func hex(_ data: Data) -> String {
+    static func sha256Hex(_ data: Data) -> String {
         let digest = hash(data)
         let alphabet = Array("0123456789abcdef".utf8)
         var bytes: [UInt8] = []
