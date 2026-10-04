@@ -8,6 +8,7 @@ import KeyboardViews
 final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     @Published private(set) var surface: FfiProfileV3BoardSurface
     @Published private(set) var interactionSnapshot: FfiProfileV3SessionSnapshot?
+    @Published private(set) var interactionVisualAnchor: CGPoint?
     @Published private(set) var candidates: [CompositionCandidateSnapshot] = []
     @Published var panel: ProductUtilityPanel?
 
@@ -68,8 +69,12 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         }
     }
 
-    func beginInteraction(_ snapshot: FfiProfileV3SessionSnapshot) {
+    func beginInteraction(
+        _ snapshot: FfiProfileV3SessionSnapshot,
+        visualAnchor: CGPoint
+    ) {
         interactionSnapshot = snapshot
+        interactionVisualAnchor = visualAnchor
     }
 
     func updateInteraction(_ snapshot: FfiProfileV3SessionSnapshot) {
@@ -78,6 +83,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
 
     func endInteraction() {
         interactionSnapshot = nil
+        interactionVisualAnchor = nil
         refreshDirectSurface()
     }
 
@@ -341,6 +347,7 @@ struct ProfileV3ProductKeyboardRoot: View {
                 runtime: model.runtime,
                 model: model,
                 logicalCellSize: mapping.logicalCellSize,
+                sourceVisualAnchor: CGPoint(x: frame.midX, y: frame.midY),
                 coordinateSpaceName: boardCoordinateSpace,
                 theme: theme
             )
@@ -355,14 +362,18 @@ struct ProfileV3ProductKeyboardRoot: View {
         mapping: ProfileV3DirectBoardMapping
     ) -> some View {
         let candidateID = snapshot.candidateEntryId
+        // Initial flick presentation is centered on the authored source cell, not
+        // the user's exact finger-down offset. Once a spatial transition commits,
+        // the shared runtime anchor remains authoritative for the next stage.
+        let visualAnchor = snapshot.committedEntryIds.isEmpty
+            ? (model.interactionVisualAnchor
+                ?? CGPoint(x: snapshot.anchor.x, y: snapshot.anchor.y))
+            : CGPoint(x: snapshot.anchor.x, y: snapshot.anchor.y)
 
         ForEach(snapshot.surface.entries, id: \.id) { entry in
             let frame = mapping.relativeFrame(
                 for: entry.rect,
-                anchor: CGPoint(
-                    x: snapshot.anchor.x,
-                    y: snapshot.anchor.y
-                )
+                anchor: visualAnchor
             )
             let isCandidate = entry.id == candidateID
             let isEndpoint = entry.id == snapshot.currentEndpointEntryId
@@ -453,6 +464,7 @@ private struct ProfileV3DirectEntryView: View {
     let runtime: IOSProfileV3RuntimeAdapter
     @ObservedObject var model: ProfileV3ProductKeyboardViewModel
     let logicalCellSize: CGSize
+    let sourceVisualAnchor: CGPoint
     let coordinateSpaceName: String
     let theme: AzooKeyTheme
 
@@ -545,7 +557,10 @@ private struct ProfileV3DirectEntryView: View {
 
                 let initial = try created.snapshot()
                 model.emitSelectionHaptic()
-                model.beginInteraction(initial)
+                model.beginInteraction(
+                    initial,
+                    visualAnchor: sourceVisualAnchor
+                )
                 model.dispatchNewRuntimeEffects(
                     from: initial,
                     consumedCount: &consumedDispatchCount
