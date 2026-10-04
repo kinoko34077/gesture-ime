@@ -124,7 +124,7 @@ fn a5_builtin_return_resolves_newline_or_conversion_commit_from_runtime_fact() {
 fn a5_builtin_kana_transform_board_center_tap_is_small_kana_and_directions_stay_explicit() {
     let runtime = runtime();
 
-    // #69 §5.1: center/tap performs the generic kana.small transform.
+    // #95 §F3: center/tap performs the generic kana.utilityCycle transform.
     runtime
         .update_semantic_context("や".into(), false, false)
         .unwrap();
@@ -153,7 +153,7 @@ fn a5_builtin_kana_transform_board_center_tap_is_small_kana_and_directions_stay_
     assert_eq!(neutral_result.runtime_dispatches.len(), 1);
     let tap = &neutral_result.runtime_dispatches[0];
     assert_eq!(tap.kind, FfiProfileV3DispatchKind::CompositionTailTransform);
-    assert_eq!(tap.table_id.as_deref(), Some("kana.small"));
+    assert_eq!(tap.table_id.as_deref(), Some("kana.utilityCycle"));
     assert_eq!(tap.matched_source.as_deref(), Some("や"));
     assert_eq!(tap.replacement.as_deref(), Some("ゃ"));
 

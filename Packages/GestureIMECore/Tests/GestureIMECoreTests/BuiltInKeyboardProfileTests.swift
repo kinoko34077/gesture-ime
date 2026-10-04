@@ -72,7 +72,7 @@ final class BuiltInKeyboardProfileTests: XCTestCase {
         let tables = try XCTUnwrap(object["transformTables"] as? [[String: Any]])
         XCTAssertEqual(
             Set(tables.compactMap { $0["id"] as? String }),
-            Set(["kana.small", "kana.dakuten", "kana.handakuten", "latin.shift"])
+            Set(["kana.small", "kana.dakuten", "kana.handakuten", "kana.utilityCycle", "latin.shift"])
         )
 
         let states = try XCTUnwrap(object["states"] as? [[String: Any]])
