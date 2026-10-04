@@ -71,7 +71,6 @@ impl BoardRectV3 {
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedStringV3 {
     pub base: String,
-    #[serde(default)]
     pub transforms: Vec<ConditionalTransformV3>,
     #[serde(flatten)]
     pub extra: V3Extra,
@@ -140,7 +139,6 @@ pub struct RepeatBehaviorV3 {
 #[serde(rename_all = "camelCase")]
 pub struct HoldBehaviorV3 {
     pub delay_ms: i64,
-    #[serde(default)]
     pub on_start: Vec<ActionInvocationV3>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transition: Option<BoardTransitionV3>,
@@ -178,7 +176,6 @@ pub struct ResolverCaseV3 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EntryResolverV3 {
-    #[serde(default)]
     pub cases: Vec<ResolverCaseV3>,
     pub default: EndpointBehaviorV3,
     #[serde(flatten)]
