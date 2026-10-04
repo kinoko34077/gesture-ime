@@ -1,5 +1,4 @@
 use crate::ffi::{FfiGestureTerminal, FfiPoint, FfiSize};
-use crate::model::{GesturePoint, GestureSize};
 use crate::profile_v3::{
     BoardRectV3, EndpointBehaviorV3, ProfileBundleV3,
 };
@@ -645,7 +644,7 @@ fn build_surface(
 
         entries.push(FfiProfileV3SurfaceEntry {
             id: entry.id.clone(),
-            rect: entry.rect.into(),
+            rect: entry.rect.clone().into(),
             text: presentation
                 .as_ref()
                 .and_then(|value| value.text.as_ref())
@@ -673,7 +672,7 @@ fn board_bounds(board: &crate::profile_v3::BoardV3) -> Option<FfiProfileV3Bounds
     let mut max_y: Option<i64> = None;
 
     for entry in &board.entries {
-        let rect = entry.rect;
+        let rect = &entry.rect;
         let rect_max_x = rect.max_x()?;
         let rect_max_y = rect.max_y()?;
         min_x = Some(min_x.map_or(rect.x, |value| value.min(rect.x)));
