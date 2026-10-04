@@ -156,7 +156,19 @@ fn action_offsets(session: &gesture_ime_core::BoardSessionV3) -> Vec<i64> {
     session
         .dispatched_actions
         .iter()
-        .filter_map(|action| action.arguments.get("offset")?.as_i64())
+        .filter_map(|action| {
+            if let Some(offset) = action.arguments.get("offset").and_then(Value::as_i64) {
+                return Some(offset);
+            }
+
+            action
+                .arguments
+                .get("text")
+                .and_then(Value::as_object)
+                .and_then(|text| text.get("base"))
+                .and_then(Value::as_str)
+                .and_then(|value| value.parse::<i64>().ok())
+        })
         .collect()
 }
 
@@ -798,8 +810,16 @@ fn direct_session(
         .unwrap()
 }
 
-fn cursor_action(offset: i64) -> Value {
-    json!({"actionID":"cursor.move","arguments":{"offset":offset}})
+fn cursor_action(marker: i64) -> Value {
+    json!({
+        "actionID":"text.directInsert",
+        "arguments":{
+            "text":{
+                "base":marker.to_string(),
+                "transforms":[]
+            }
+        }
+    })
 }
 
 fn empty_behavior_with_transition(target: &str, lifetime: &str) -> Value {
