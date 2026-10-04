@@ -1,7 +1,7 @@
 use crate::{
     board_map, direction_from_coordinate, macro_map, ActionInvocation, Board, BoardCoordinate,
     BoardGesturePolicy, BoardProfileCodec, BoardSession, BoardSessionTerminal, Direction8,
-    GesturePoint, GestureSize, ProfileBundleV2, ProfileLimits,
+    GesturePoint, GestureSize, ProfileBundleV2, ProfileLimits, ProfileV3Codec,
 };
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -259,8 +259,25 @@ impl SharedCoreError {
 
 #[uniffi::export]
 pub fn validate_profile_json(profile_json: String) -> FfiValidationResult {
-    match BoardProfileCodec::decode_and_validate(profile_json.as_bytes()) {
-        Ok(_) => FfiValidationResult {
+    let bytes = profile_json.as_bytes();
+    let schema = serde_json::from_slice::<serde_json::Value>(bytes)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("schema")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned)
+        });
+
+    let result = match schema.as_deref() {
+        Some("gesture-ime.profile.v3") => {
+            ProfileV3Codec::decode_and_validate(bytes).map(|_| ())
+        }
+        _ => BoardProfileCodec::decode_and_validate(bytes).map(|_| ()),
+    };
+
+    match result {
+        Ok(()) => FfiValidationResult {
             valid: true,
             error_code: None,
             detail: None,
