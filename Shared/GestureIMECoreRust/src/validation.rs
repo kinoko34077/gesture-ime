@@ -49,6 +49,7 @@ pub enum ProfileValidationCode {
     InvalidTransformReference,
     ConflictingControlFlow,
     UnavailableCapability,
+    InvalidPresentation,
 }
 
 impl ProfileValidationCode {
@@ -98,6 +99,7 @@ impl ProfileValidationCode {
             Self::InvalidTransformReference => "E_INVALID_TRANSFORM_REFERENCE",
             Self::ConflictingControlFlow => "E_CONFLICTING_CONTROL_FLOW",
             Self::UnavailableCapability => "E_UNAVAILABLE_CAPABILITY",
+            Self::InvalidPresentation => "E_INVALID_PRESENTATION",
         }
     }
 }

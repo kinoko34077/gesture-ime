@@ -72,6 +72,20 @@ pub struct FfiProfileV3SurfaceEntry {
     pub rect: FfiProfileV3Rect,
     pub text: Option<String>,
     pub accessibility_label: Option<String>,
+    /// Immediate flick-guide labels for a direct source with a transition
+    /// (#69 §6): derived from target entry presentation unless a
+    /// source-scoped display override exists. Geometry, not a direction enum.
+    pub guides: Vec<FfiProfileV3GuideLabel>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiProfileV3GuideLabel {
+    pub target_entry_id: String,
+    /// Target entry center in logical cells relative to the target origin.
+    pub center_x: f64,
+    pub center_y: f64,
+    pub label: String,
+    pub overridden: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -694,9 +708,15 @@ fn build_surface(
         } else {
             semantics.resolve_endpoint(entry)
         };
-        let presentation = behavior.presentation;
+        let presentation = behavior.presentation.clone();
 
+        let guides = if context == FfiProfileV3BoardContext::Direct {
+            guide_labels(profile, &mut semantics, entry, &behavior)
+        } else {
+            Vec::new()
+        };
         entries.push(FfiProfileV3SurfaceEntry {
+            guides,
             id: entry.id.clone(),
             rect: entry.rect.clone().into(),
             text: presentation
@@ -717,6 +737,52 @@ fn build_surface(
         candidate_entry_id,
         current_endpoint_entry_id,
     })
+}
+
+/// Immediate-ring radius (cells) shared with the editor's direction slots.
+pub const GUIDE_IMMEDIATE_RADIUS_CELLS: f64 = 1.5;
+
+fn guide_labels(
+    profile: &ProfileBundleV3,
+    semantics: &mut dyn BoardSemanticsV3,
+    source: &crate::profile_v3::BoardEntryV3,
+    behavior: &EndpointBehaviorV3,
+) -> Vec<FfiProfileV3GuideLabel> {
+    let Some(target) = behavior
+        .transition
+        .as_ref()
+        .and_then(|transition| profile.boards.iter().find(|b| b.id == transition.target_board_ref))
+    else {
+        return Vec::new();
+    };
+    let overrides = source.guide_label_overrides.as_ref();
+    target
+        .entries
+        .iter()
+        .filter(|entry| !entry.rect.contains_origin())
+        .filter_map(|entry| {
+            let cx = (entry.rect.x as f64 + entry.rect.width as f64 / 2.0) / 2.0;
+            let cy = (entry.rect.y as f64 + entry.rect.height as f64 / 2.0) / 2.0;
+            if cx.abs().max(cy.abs()) > GUIDE_IMMEDIATE_RADIUS_CELLS {
+                return None;
+            }
+            let custom = overrides.and_then(|map| map.get(&entry.id)).cloned();
+            let label = custom.clone().or_else(|| {
+                semantics
+                    .resolve_endpoint(entry)
+                    .presentation
+                    .and_then(|p| p.text)
+                    .map(|t| t.base)
+            })?;
+            Some(FfiProfileV3GuideLabel {
+                target_entry_id: entry.id.clone(),
+                center_x: cx,
+                center_y: cy,
+                label,
+                overridden: custom.is_some(),
+            })
+        })
+        .collect()
 }
 
 fn board_bounds(board: &crate::profile_v3::BoardV3) -> Option<FfiProfileV3Bounds> {

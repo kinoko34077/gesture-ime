@@ -45,6 +45,7 @@ final class KeyboardViewController: UIInputViewController {
                     runtime: runtime,
                     composition: composition,
                     productSettings: productSettings,
+                    keyboardTheme: IOSKeyboardTheme(profileJSON: profileJSON),
                     onNextKeyboard: { [weak self] in
                         self?.advanceToNextInputMode()
                     },
