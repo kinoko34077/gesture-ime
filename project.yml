@@ -96,6 +96,14 @@ targets:
         product: KeyboardExtensionUtils
       - package: AzooKeyKanaKanjiConverter
         product: KanaKanjiConverterModuleWithDefaultDictionary
+    postCompileScripts:
+      - script: bash "$SRCROOT/scripts/embed-keyboard-runtime-frameworks.sh"
+        name: Embed keyboard runtime frameworks
+        inputFiles:
+          - "$(BUILT_PRODUCTS_DIR)/llama.framework"
+        outputFiles:
+          - "$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/llama.framework"
+        basedOnDependencyAnalysis: false
     info:
       path: App/KeyboardExtension/Info.plist
       properties:

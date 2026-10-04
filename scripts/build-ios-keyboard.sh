@@ -56,6 +56,22 @@ if [[ ! -f "$APPEX_PATH/default-ja.json" ]]; then
   exit 6
 fi
 
+KEYBOARD_BINARY="$APPEX_PATH/GestureKeyboard"
+if [[ ! -f "$KEYBOARD_BINARY" ]]; then
+  echo "Keyboard extension executable missing: $KEYBOARD_BINARY" >&2
+  exit 7
+fi
+
+if /usr/bin/otool -L "$KEYBOARD_BINARY" | grep -Fq "@rpath/llama.framework/llama"; then
+  LLAMA_BINARY="$APPEX_PATH/Frameworks/llama.framework/llama"
+  if [[ ! -f "$LLAMA_BINARY" ]]; then
+    echo "Keyboard executable requires llama.framework but it is not embedded" >&2
+    /usr/bin/otool -L "$KEYBOARD_BINARY" >&2
+    find "$APPEX_PATH" -maxdepth 3 -print >&2
+    exit 8
+  fi
+fi
+
 mkdir -p "$ARTIFACT_DIR/Payload"
 ditto "$APP_PATH" "$ARTIFACT_DIR/Payload/GestureIME.app"
 (
