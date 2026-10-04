@@ -28,13 +28,12 @@ public enum ProfileV3GesturePolicyField: String, CaseIterable, Identifiable, Sen
 
     /// Editable range mirroring the shared-runtime validator.
     public var range: ClosedRange<Double> {
+        let dwell = ProfileV3GesturePolicyValues.dwellRange
         switch self {
-        case .deadZone: 0...2
-        case .initialCellCommitDistance, .subsequentCellCommitDistance: 0.01...4
-        case .angularHysteresisDegrees: 0...44
-        case .stageBacktrackDwellMs:
-            Double(ProfileV3GesturePolicyValues.dwellRange.lowerBound)
-                ...Double(ProfileV3GesturePolicyValues.dwellRange.upperBound)
+        case .deadZone: return 0.0...2.0
+        case .initialCellCommitDistance, .subsequentCellCommitDistance: return 0.01...4.0
+        case .angularHysteresisDegrees: return 0.0...44.0
+        case .stageBacktrackDwellMs: return Double(dwell.lowerBound)...Double(dwell.upperBound)
         }
     }
 
