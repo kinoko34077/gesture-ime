@@ -338,3 +338,30 @@ public struct IOSProfileV3BoardGeometryMapping {
         )
     }
 }
+
+
+/// Candidate presentation state (#69 §7). Pure presentation: it never owns or
+/// mutates converter/composition state, so expanding/closing keeps composition.
+public struct IOSCandidatePanelState: Equatable {
+    public private(set) var expanded = false
+
+    public init() {}
+
+    public enum Event: Equatable {
+        case toggle(candidateCount: Int)
+        case close
+        case candidatesChanged(count: Int)
+        case candidateSelected
+    }
+
+    public mutating func apply(_ event: Event) {
+        switch event {
+        case .toggle(let count):
+            expanded = count > 0 ? !expanded : false
+        case .close, .candidateSelected:
+            expanded = false
+        case .candidatesChanged(let count):
+            if count == 0 { expanded = false }
+        }
+    }
+}

@@ -12,6 +12,8 @@ struct SharedRuntimeSwiftSmoke {
             encoding: .utf8
         )
 
+        verifyCandidatePanelState()
+
         if profileSchema(profileJSON) == "gesture-ime.profile.v3" {
             let runtime = try IOSProfileV3RuntimeAdapter(profileJSON: profileJSON)
             guard runtime.profileID == "profile.v3.a3.product-smoke" else {
@@ -34,6 +36,24 @@ struct SharedRuntimeSwiftSmoke {
         }
 
         print("Shared Swift adapter smoke PASS: \(runtime.profileID)")
+    }
+
+    private static func verifyCandidatePanelState() {
+        var state = IOSCandidatePanelState()
+        state.apply(.toggle(candidateCount: 0))
+        guard !state.expanded else { fatalError("expand without candidates") }
+        state.apply(.toggle(candidateCount: 5))
+        guard state.expanded else { fatalError("expand failed") }
+        state.apply(.candidatesChanged(count: 3))
+        guard state.expanded else { fatalError("refresh collapsed panel") }
+        state.apply(.close)
+        guard !state.expanded else { fatalError("close failed") }
+        state.apply(.toggle(candidateCount: 2))
+        state.apply(.candidateSelected)
+        guard !state.expanded else { fatalError("selection should collapse") }
+        state.apply(.toggle(candidateCount: 2))
+        state.apply(.candidatesChanged(count: 0))
+        guard !state.expanded else { fatalError("empty candidates should collapse") }
     }
 
     private static func profileSchema(_ profileJSON: String) -> String? {
