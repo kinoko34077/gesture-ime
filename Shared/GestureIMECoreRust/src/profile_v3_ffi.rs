@@ -309,6 +309,25 @@ impl ProfileV3PlatformRuntime {
         )
     }
 
+    pub fn preview_surface(
+        &self,
+        board_id: String,
+    ) -> Result<FfiProfileV3BoardSurface, ProfileV3PlatformError> {
+        let active = self.active_layer_handle()?;
+        self.sync_layer_context(&active.layer_id)?;
+        build_surface(
+            &self.profile,
+            &self.semantic_runtime,
+            &self.semantic_context,
+            &active.layer_id,
+            &board_id,
+            FfiProfileV3BoardContext::Direct,
+            None,
+            None,
+            None,
+        )
+    }
+
     pub fn set_layer(
         &self,
         layer_id: String,
