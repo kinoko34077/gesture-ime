@@ -269,3 +269,112 @@ func v2KeyLayoutAndPolicyUseSharedDocumentPath() throws {
     #expect(policy["maxDirectionalStages"] == nil)
     #expect(policy["futurePolicyField"] as? String == "keep")
 }
+
+
+@Test
+func activeProfileSnapshotPublishAndReadRoundTrip() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let data = Data(validProfile.utf8)
+
+    let manifest = try store.publish(data)
+    #expect(manifest.profileID == "test.profile")
+    #expect(manifest.schema == "gesture-ime.profile.v1")
+    #expect(manifest.generation == 1)
+    #expect(manifest.digest.count == 64)
+
+    let snapshot = try #require(store.readActive())
+    #expect(snapshot.manifest == manifest)
+    #expect(snapshot.data == data)
+    #expect(FileManager.default.fileExists(atPath: try store.snapshotURL(for: manifest).path))
+}
+
+@Test
+func invalidSnapshotPublishDoesNotReplaceActiveManifest() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: { data in
+            let text = String(decoding: data, as: UTF8.self)
+            return text.contains("\"name\":\"Reject\"")
+                ? ProfileValidation(valid: false, errorCode: "REJECT", detail: "test")
+                : acceptingValidator(data)
+        }
+    )
+
+    let accepted = try store.publish(Data(validProfile.utf8))
+    let rejectedText = validProfile.replacingOccurrences(
+        of: "\"name\":\"Test\"",
+        with: "\"name\":\"Reject\""
+    )
+
+    #expect(throws: ActiveProfileSnapshotStoreError.self) {
+        try store.publish(Data(rejectedText.utf8))
+    }
+
+    #expect(try store.activeManifest() == accepted)
+    let snapshotsURL = root.appendingPathComponent(
+        ActiveProfileSnapshotStore.snapshotsDirectoryName,
+        isDirectory: true
+    )
+    let snapshotFiles = try FileManager.default.contentsOfDirectory(
+        at: snapshotsURL,
+        includingPropertiesForKeys: nil
+    )
+    #expect(snapshotFiles.count == 1)
+}
+
+@Test
+func activeSnapshotDigestMismatchFailsClosed() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let manifest = try store.publish(Data(validProfile.utf8))
+    let snapshotURL = try store.snapshotURL(for: manifest)
+
+    try Data("tampered".utf8).write(to: snapshotURL, options: .atomic)
+
+    #expect(throws: ActiveProfileSnapshotStoreError.self) {
+        try store.readActive()
+    }
+    #expect(try store.activeManifest() == manifest)
+}
+
+@Test
+func activeSnapshotGenerationRemainsMonotonicWhenManifestIsMissing() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let first = try store.publish(Data(validProfile.utf8))
+    #expect(first.generation == 1)
+
+    try FileManager.default.removeItem(
+        at: root.appendingPathComponent(ActiveProfileSnapshotStore.manifestFileName)
+    )
+
+    let secondText = validProfile.replacingOccurrences(
+        of: "\"name\":\"Test\"",
+        with: "\"name\":\"Second\""
+    )
+    let second = try store.publish(Data(secondText.utf8))
+    #expect(second.generation == 2)
+}
