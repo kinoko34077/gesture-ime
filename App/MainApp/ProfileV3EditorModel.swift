@@ -20,7 +20,7 @@ final class ProfileV3EditorModel: ObservableObject {
     @Published private(set) var selectedTapText: String?
     @Published private(set) var selectedDirectionSlots: [ProfileV3DirectionSlot] = []
     @Published var tool: ProfileV3CanvasTool = .select
-    @Published private(set) var selectedGuideOverrides: [String: String] = []
+    @Published private(set) var selectedGuideOverrides: [String: String] = [:]
     @Published private(set) var themeTokens: [String: JSONNode] = [:]
     @Published private(set) var boardPath: [String] = []
     @Published var selectedLayerID = ""
