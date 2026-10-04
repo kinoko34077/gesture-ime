@@ -389,43 +389,33 @@ struct ProfileV3ProductKeyboardRoot: View {
 }
 
 private struct ProfileV3DirectBoardMapping {
-    let minX: Int64
-    let minY: Int64
-    let maxX: Int64
-    let maxY: Int64
-    let atomicWidth: CGFloat
-    let atomicHeight: CGFloat
+    private let shared: IOSProfileV3BoardGeometryMapping
 
     init?(surface: FfiProfileV3BoardSurface, size: CGSize) {
-        guard let bounds = surface.bounds else { return nil }
-
-        let width = bounds.maxX - bounds.minX
-        let height = bounds.maxY - bounds.minY
-        guard width > 0, height > 0, size.width > 0, size.height > 0 else {
+        guard let shared = IOSProfileV3BoardGeometryMapping(
+            surface: surface,
+            width: Double(size.width),
+            height: Double(size.height)
+        ) else {
             return nil
         }
-
-        minX = bounds.minX
-        minY = bounds.minY
-        maxX = bounds.maxX
-        maxY = bounds.maxY
-        atomicWidth = size.width / CGFloat(width)
-        atomicHeight = size.height / CGFloat(height)
+        self.shared = shared
     }
 
     var logicalCellSize: CGSize {
         CGSize(
-            width: atomicWidth * 2,
-            height: atomicHeight * 2
+            width: CGFloat(shared.logicalCellWidth),
+            height: CGFloat(shared.logicalCellHeight)
         )
     }
 
     func frame(for rect: FfiProfileV3Rect) -> CGRect {
-        CGRect(
-            x: CGFloat(rect.x - minX) * atomicWidth,
-            y: CGFloat(rect.y - minY) * atomicHeight,
-            width: CGFloat(rect.width) * atomicWidth,
-            height: CGFloat(rect.height) * atomicHeight
+        let mapped = shared.frame(for: rect)
+        return CGRect(
+            x: mapped.x,
+            y: mapped.y,
+            width: mapped.width,
+            height: mapped.height
         )
     }
 
@@ -433,11 +423,16 @@ private struct ProfileV3DirectBoardMapping {
         for rect: FfiProfileV3Rect,
         anchor: CGPoint
     ) -> CGRect {
-        CGRect(
-            x: anchor.x + CGFloat(rect.x) * atomicWidth,
-            y: anchor.y + CGFloat(rect.y) * atomicHeight,
-            width: CGFloat(rect.width) * atomicWidth,
-            height: CGFloat(rect.height) * atomicHeight
+        let mapped = shared.relativeFrame(
+            for: rect,
+            anchorX: Double(anchor.x),
+            anchorY: Double(anchor.y)
+        )
+        return CGRect(
+            x: mapped.x,
+            y: mapped.y,
+            width: mapped.width,
+            height: mapped.height
         )
     }
 }
