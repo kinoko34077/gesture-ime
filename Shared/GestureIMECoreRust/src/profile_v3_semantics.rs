@@ -29,6 +29,61 @@ pub struct RuntimeSemanticContextV3 {
     pub conversion_active: bool,
     pub conversion_has_candidates: bool,
     pub layer_id: String,
+    pub host: HostInputFactsV3,
+}
+
+/// Bounded, read-only host input facts (#69 §14). Platform adapters normalize
+/// native traits into these closed vocabularies; they feed Profile conditions
+/// and never become a second layout engine.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HostInputFactsV3 {
+    /// default | go | search | send | next | done | join | route | continue | emergencyCall
+    pub return_key: String,
+    /// default | ascii | numbers | url | email | phone | decimal | twitter | webSearch
+    pub keyboard_type: String,
+    /// True when host autocapitalization asks to capitalize the next letter.
+    pub autocapitalize_next: bool,
+    pub needs_input_mode_switch_key: bool,
+}
+
+impl Default for HostInputFactsV3 {
+    fn default() -> Self {
+        Self {
+            return_key: "default".into(),
+            keyboard_type: "default".into(),
+            autocapitalize_next: false,
+            needs_input_mode_switch_key: true,
+        }
+    }
+}
+
+impl HostInputFactsV3 {
+    pub const RETURN_KEYS: &'static [&'static str] = &[
+        "default", "go", "search", "send", "next", "done", "join", "route", "continue",
+        "emergencyCall",
+    ];
+    pub const KEYBOARD_TYPES: &'static [&'static str] = &[
+        "default", "ascii", "numbers", "url", "email", "phone", "decimal", "twitter",
+        "webSearch",
+    ];
+
+    /// Unknown native values collapse to `default` so the vocabulary stays closed.
+    pub fn normalized(
+        return_key: &str,
+        keyboard_type: &str,
+        autocapitalize_next: bool,
+        needs_input_mode_switch_key: bool,
+    ) -> Self {
+        let pick = |value: &str, allowed: &[&str]| {
+            if allowed.contains(&value) { value.to_owned() } else { "default".to_owned() }
+        };
+        Self {
+            return_key: pick(return_key, Self::RETURN_KEYS),
+            keyboard_type: pick(keyboard_type, Self::KEYBOARD_TYPES),
+            autocapitalize_next,
+            needs_input_mode_switch_key,
+        }
+    }
 }
 
 impl RuntimeSemanticContextV3 {
@@ -38,6 +93,7 @@ impl RuntimeSemanticContextV3 {
             conversion_active: false,
             conversion_has_candidates: false,
             layer_id: layer_id.into(),
+            host: HostInputFactsV3::default(),
         }
     }
 }
@@ -545,6 +601,16 @@ fn value_expression(
                 snapshot.context.conversion_has_candidates,
             )),
             "layer.id" => Some(Value::String(snapshot.context.layer_id.clone())),
+            "host.returnKey" => Some(Value::String(snapshot.context.host.return_key.clone())),
+            "host.keyboardType" => {
+                Some(Value::String(snapshot.context.host.keyboard_type.clone()))
+            }
+            "host.autocapitalizeNext" => {
+                Some(Value::Bool(snapshot.context.host.autocapitalize_next))
+            }
+            "host.needsInputModeSwitchKey" => {
+                Some(Value::Bool(snapshot.context.host.needs_input_mode_switch_key))
+            }
             _ => None,
         },
         "literal" => match operand {

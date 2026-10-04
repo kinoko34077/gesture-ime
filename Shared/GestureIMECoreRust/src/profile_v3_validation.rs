@@ -1148,10 +1148,12 @@ fn validate_value_expression(
                 ));
             };
             match fact_id {
-                "composition.empty" | "conversion.active" | "conversion.hasCandidates" => {
-                    Ok(ValueKind::Boolean)
-                }
-                "layer.id" => Ok(ValueKind::String),
+                "composition.empty"
+                | "conversion.active"
+                | "conversion.hasCandidates"
+                | "host.autocapitalizeNext"
+                | "host.needsInputModeSwitchKey" => Ok(ValueKind::Boolean),
+                "layer.id" | "host.returnKey" | "host.keyboardType" => Ok(ValueKind::String),
                 _ => Err(ProfileValidationError::new(
                     ProfileValidationCode::UnknownRuntimeFact,
                     Some(fact_id.to_owned()),
