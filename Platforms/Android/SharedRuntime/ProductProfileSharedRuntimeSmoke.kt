@@ -1,6 +1,7 @@
 package net.kinotch.gestureime.shared
 
 import java.io.File
+import uniffi.gesture_ime_core.ProfileV3PlatformRuntime
 
 object ProductProfileSharedRuntimeSmoke {
     @JvmStatic
@@ -9,35 +10,33 @@ object ProductProfileSharedRuntimeSmoke {
             "usage: ProductProfileSharedRuntimeSmoke <profile-json>"
         }
 
-        val runtime = AndroidSharedGestureRuntimeAdapter(
+        val runtime = ProfileV3PlatformRuntime(
             File(args[0]).readText(),
         )
-        check(runtime.profileId == "builtin.ja.product") {
-            "unexpected profile id: ${runtime.profileId}"
+        check(runtime.profileId() == "builtin.ja.product") {
+            "unexpected profile id: ${runtime.profileId()}"
         }
 
-        listOf("base", "numbers", "alpha", "symbols").forEach { layerId ->
-            val layout = runtime.compileLayout(layerId)
-            check(layout.keys.size == 20) {
-                "$layerId: expected 20 keys, got ${layout.keys.size}"
+        val expectedLayers = linkedMapOf(
+            "layer.ja" to "board.ja.root",
+            "layer.numbers" to "board.numbers.root",
+            "layer.alpha" to "board.alpha.root",
+            "layer.symbols" to "board.symbols.root",
+        )
+
+        expectedLayers.forEach { (layerId, boardId) ->
+            val surface = runtime.setLayer(layerId)
+            check(surface.layerId == layerId) {
+                "$layerId: unexpected layer ${surface.layerId}"
+            }
+            check(surface.boardId == boardId) {
+                "$layerId: expected $boardId, got ${surface.boardId}"
+            }
+            check(surface.entries.isNotEmpty()) {
+                "$layerId: expected authored v3 entries"
             }
         }
 
-        val baseIds = runtime.compileLayout("base").keys.map { it.id }.toSet()
-        listOf(
-            "kana.a",
-            "edit.delete",
-            "text.space",
-            "text.enter",
-            "mode.symbols",
-            "mode.numbers",
-            "mode.alpha",
-        ).forEach { required ->
-            check(required in baseIds) {
-                "base layout missing $required"
-            }
-        }
-
-        println("Shared Kotlin product Profile smoke PASS")
+        println("Shared Kotlin v3 product Profile smoke PASS")
     }
 }
