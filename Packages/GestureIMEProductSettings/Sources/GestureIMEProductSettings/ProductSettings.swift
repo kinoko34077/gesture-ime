@@ -145,6 +145,74 @@ public enum ProductSettingsDeliveryCapability: Equatable, Sendable {
     }
 }
 
+/// #75 / #69 §13: capability detection only. It never creates, guesses or
+/// requests an App Group; it reports whether an *already provisioned* shared
+/// container is resolvable and, if not, a truthful reason for the UI.
+public enum ProductSettingsCapabilityProbe {
+    /// Info.plist key that would name the App Group once a human provisions it.
+    public static let appGroupInfoKey = "GestureIMEAppGroupIdentifier"
+    public static let settingsSubdirectory = "ProductSettings"
+
+    public enum Unavailable: Equatable, Sendable {
+        case appGroupNotConfigured
+        case containerUnavailable(String)
+
+        public var japaneseReason: String {
+            switch self {
+            case .appGroupNotConfigured:
+                "アプリとキーボードの共有領域（App Group）が設定されていないため、この設定はキーボード本体に反映できません。"
+            case .containerUnavailable(let group):
+                "共有領域（\(group)）を利用できないため、この設定はキーボード本体に反映できません。署名・権限の設定が必要です。"
+            }
+        }
+    }
+
+    public enum Result: Equatable, Sendable {
+        case available(rootURL: URL)
+        case unavailable(Unavailable)
+
+        public var capability: ProductSettingsDeliveryCapability {
+            if case .available = self { return .sharedContainer }
+            return .appLocalOnly
+        }
+
+        public var rootURL: URL? {
+            if case .available(let url) = self { return url }
+            return nil
+        }
+    }
+
+    public static func probe(
+        appGroupIdentifier: String?,
+        containerURL: (String) -> URL?
+    ) -> Result {
+        guard let group = appGroupIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !group.isEmpty else {
+            return .unavailable(.appGroupNotConfigured)
+        }
+        guard let container = containerURL(group) else {
+            return .unavailable(.containerUnavailable(group))
+        }
+        return .available(
+            rootURL: container.appendingPathComponent(settingsSubdirectory, isDirectory: true)
+        )
+    }
+
+    /// Production probe: Info.plist key + FileManager group container lookup.
+    public static func probeMainBundle() -> Result {
+        probe(
+            appGroupIdentifier: Bundle.main.object(forInfoDictionaryKey: appGroupInfoKey) as? String,
+            containerURL: { group in
+                #if os(iOS) || os(macOS)
+                FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
+                #else
+                nil
+                #endif
+            }
+        )
+    }
+}
+
 public final class ProductSettingsStore {
     public static let manifestFileName = "active-product-settings-manifest.json"
     public static let fallbackManifestFileName = "last-known-good-product-settings-manifest.json"

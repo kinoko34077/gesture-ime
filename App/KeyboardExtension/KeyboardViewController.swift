@@ -29,10 +29,10 @@ final class KeyboardViewController: UIInputViewController {
             let profileJSON = try BuiltInProfileLoader.loadJSON()
             let composition = AzooKeyCompositionBridge(proxy: textDocumentProxy)
 
-            // The current signing route has not proven an App Group/shared
-            // container. Keep the capability explicit instead of inventing one.
+            // #75: use a shared container only when an already provisioned
+            // App Group resolves; otherwise defaults (capability-gated).
             let settingsSource = KeyboardProductSettingsSource(
-                sharedContainerRootURL: nil
+                sharedContainerRootURL: ProductSettingsCapabilityProbe.probeMainBundle().rootURL
             )
             let productSettings = settingsSource.loadLastKnownGood()
             let root: AnyView
