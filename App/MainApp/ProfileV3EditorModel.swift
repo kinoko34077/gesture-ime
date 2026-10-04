@@ -416,6 +416,14 @@ final class ProfileV3EditorModel: ObservableObject {
         IOSKeyboardTheme(themeObject: themeTokens.mapValues(\.foundationValue))
     }
 
+    /// #91: the actual initial Board as the shared runtime compiles it from
+    /// the edited Profile (same surface the keyboard renders).
+    func previewSurface() -> FfiProfileV3BoardSurface? {
+        guard let json = encodedProfileJSON(pretty: false),
+              let runtime = try? IOSProfileV3RuntimeAdapter(profileJSON: json) else { return nil }
+        return try? runtime.directSurface()
+    }
+
     // MARK: - #79 Transform authoring
 
     func setTransformTable(_ table: ProfileV3TransformTableRows) {
