@@ -223,10 +223,12 @@ fn a3_v3_platform_constructor_accepts_v3_and_rejects_invalid_profile() {
 
     let mut invalid = profile_json();
     invalid["initialLayerRef"] = json!("layer.missing");
-    let error = ProfileV3PlatformRuntime::new(
+    let error = match ProfileV3PlatformRuntime::new(
         serde_json::to_string(&invalid).unwrap(),
-    )
-    .unwrap_err();
+    ) {
+        Ok(_) => panic!("invalid profile unexpectedly accepted"),
+        Err(error) => error,
+    };
 
     match error {
         ProfileV3PlatformError::InvalidProfile { code, .. } => {
@@ -487,10 +489,12 @@ fn a3_profile_switch_remains_unavailable_at_constructor_boundary() {
         }
     ]);
 
-    let error = ProfileV3PlatformRuntime::new(
+    let error = match ProfileV3PlatformRuntime::new(
         serde_json::to_string(&value).unwrap(),
-    )
-    .unwrap_err();
+    ) {
+        Ok(_) => panic!("profile.switch unexpectedly accepted"),
+        Err(error) => error,
+    };
 
     match error {
         ProfileV3PlatformError::InvalidProfile { code, .. } => {
