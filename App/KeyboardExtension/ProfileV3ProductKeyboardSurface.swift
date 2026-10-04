@@ -362,10 +362,11 @@ struct ProfileV3ProductKeyboardRoot: View {
         mapping: ProfileV3DirectBoardMapping
     ) -> some View {
         let candidateID = snapshot.candidateEntryId
-        // Initial flick presentation is centered on the authored source cell, not
-        // the user's exact finger-down offset. Once a spatial transition commits,
-        // the shared runtime anchor remains authoritative for the next stage.
-        let visualAnchor = snapshot.committedEntryIds.isEmpty
+        // Initial/terminal first-stage flick presentation stays centered on the
+        // authored source cell, not the user's exact finger-down offset. Only a
+        // real additional Board transition switches presentation to the runtime
+        // re-anchor for the next stage.
+        let visualAnchor = snapshot.boardTransitionCount <= 1
             ? (model.interactionVisualAnchor
                 ?? CGPoint(x: snapshot.anchor.x, y: snapshot.anchor.y))
             : CGPoint(x: snapshot.anchor.x, y: snapshot.anchor.y)
