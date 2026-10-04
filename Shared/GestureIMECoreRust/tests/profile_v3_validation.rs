@@ -477,3 +477,137 @@ fn v3_required_serialized_members_and_explicit_nulls_fail_closed() {
         ProfileValidationCode::UnsupportedSchema,
     );
 }
+
+
+#[test]
+fn v3_resource_limits_fail_before_runtime() {
+    let oversized = vec![b' '; 1_048_577];
+    let error = ProfileV3Codec::decode_and_validate(&oversized).unwrap_err();
+    assert_eq!(error.code, ProfileValidationCode::ProfileTooLarge);
+
+    let mut too_many_entries = base_profile();
+    let entries: Vec<Value> = (0..401)
+        .map(|index| {
+            json!({
+                "id": format!("entry.{index}"),
+                "rect":{"x":0,"y":0,"width":1,"height":1},
+                "resolver":{"cases":[],"default":{}}
+            })
+        })
+        .collect();
+    too_many_entries["boards"][0]["entries"] = Value::Array(entries);
+    expect_code(
+        &too_many_entries,
+        ProfileValidationCode::LimitBoardEntries,
+    );
+
+    let mut too_many_states = base_profile();
+    too_many_states["states"] = Value::Array(
+        (0..129)
+            .map(|index| {
+                json!({
+                    "id":format!("state.{index}"),
+                    "type":"boolean",
+                    "default":false
+                })
+            })
+            .collect(),
+    );
+    expect_code(&too_many_states, ProfileValidationCode::LimitStates);
+
+    let mut too_many_tables = base_profile();
+    too_many_tables["transformTables"] = Value::Array(
+        (0..257)
+            .map(|index| json!({"id":format!("table.{index}"),"entries":[]}))
+            .collect(),
+    );
+    expect_code(
+        &too_many_tables,
+        ProfileValidationCode::LimitTransformTables,
+    );
+
+    let mut too_many_macro_actions = base_profile();
+    too_many_macro_actions["macros"][0]["actions"] = Value::Array(
+        (0..33)
+            .map(|_| json!({"actionID":"noop","arguments":{}}))
+            .collect(),
+    );
+    expect_code(
+        &too_many_macro_actions,
+        ProfileValidationCode::LimitActions,
+    );
+
+    let mut too_many_endpoint_actions = base_profile();
+    too_many_endpoint_actions["boards"][0]["entries"][0]["resolver"]["default"]["onRelease"] =
+        Value::Array(
+            (0..17)
+                .map(|_| json!({"actionID":"noop","arguments":{}}))
+                .collect(),
+        );
+    expect_code(
+        &too_many_endpoint_actions,
+        ProfileValidationCode::LimitActions,
+    );
+}
+
+#[test]
+fn v3_condition_node_and_conditional_transform_limits_are_enforced() {
+    let mut too_many_nodes = base_profile();
+    too_many_nodes["boards"][0]["entries"][0]["resolver"]["cases"][0]["when"] = json!({
+        "all": (0..64)
+            .map(|_| json!({"fact":"conversion.active"}))
+            .collect::<Vec<_>>()
+    });
+    expect_code(
+        &too_many_nodes,
+        ProfileValidationCode::LimitConditions,
+    );
+
+    let mut too_many_transforms = base_profile();
+    too_many_transforms["boards"][0]["entries"][0]["resolver"]["default"]["presentation"]["text"] =
+        json!({
+            "base":"a",
+            "transforms": (0..9)
+                .map(|_| json!({
+                    "when":{"fact":"conversion.active"},
+                    "tableRef":"latin.shift"
+                }))
+                .collect::<Vec<_>>()
+        });
+    expect_code(
+        &too_many_transforms,
+        ProfileValidationCode::LimitConditionalTransforms,
+    );
+}
+
+#[test]
+fn v3_transform_total_and_string_limits_are_enforced() {
+    let mut too_many_total_entries = base_profile();
+    too_many_total_entries["transformTables"] = Value::Array(
+        (0..5)
+            .map(|table_index| {
+                let entries: Vec<Value> = (0..1700)
+                    .map(|entry_index| {
+                        json!({
+                            "from":format!("{table_index}-{entry_index}"),
+                            "to":""
+                        })
+                    })
+                    .collect();
+                json!({
+                    "id":format!("table.bulk.{table_index}"),
+                    "entries":entries
+                })
+            })
+            .collect(),
+    );
+    expect_code(
+        &too_many_total_entries,
+        ProfileValidationCode::LimitTransformEntries,
+    );
+
+    let mut long_string = base_profile();
+    long_string["transformTables"][0]["entries"][0]["from"] =
+        json!("x".repeat(4097));
+    expect_code(&long_string, ProfileValidationCode::ArgumentTooLarge);
+}
