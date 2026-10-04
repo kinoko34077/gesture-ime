@@ -28,10 +28,10 @@ struct ProfileV3OverviewEditorView: View {
                     entries: editor.entries,
                     selectedEntryID: editor.selectedEntryID,
                     canCreate: editor.canCreateEntry,
-                    canMoveSelected: editor.canPlaceSelectedEntry,
+                    canMoveEntry: editor.canPlaceEntry,
                     onCreate: editor.createEntry,
                     onSelect: editor.selectEntry,
-                    onMoveSelected: editor.setSelectedEntryRect
+                    onMoveEntry: editor.setEntryRect
                 )
                 .frame(minHeight: 360, idealHeight: 440, maxHeight: 520)
 
@@ -539,10 +539,10 @@ private struct ProfileV3BoardCanvas: View {
     let entries: [ProfileV3BoardEntrySummary]
     let selectedEntryID: String?
     let canCreate: (ProfileV3Rect) -> Bool
-    let canMoveSelected: (ProfileV3Rect) -> Bool
+    let canMoveEntry: (String, ProfileV3Rect) -> Bool
     let onCreate: (ProfileV3Rect) -> Void
     let onSelect: (String?) -> Void
-    let onMoveSelected: (ProfileV3Rect) -> Void
+    let onMoveEntry: (String, ProfileV3Rect) -> Void
 
     @State private var creationStart: (x: Int, y: Int)?
     @State private var creationRect: ProfileV3Rect?
@@ -626,11 +626,13 @@ private struct ProfileV3BoardCanvas: View {
                         entry: entry,
                         geometry: geometry,
                         selected: entry.id == selectedEntryID,
-                        canPlace: canMoveSelected,
+                        canPlace: { rect in
+                            canMoveEntry(entry.id, rect)
+                        },
                         onSelect: { onSelect(entry.id) },
                         onCommitRect: { rect in
                             onSelect(entry.id)
-                            onMoveSelected(rect)
+                            onMoveEntry(entry.id, rect)
                         }
                     )
                 }
@@ -706,8 +708,9 @@ private struct ProfileV3CanvasEntry: View {
             if selected {
                 Circle()
                     .fill(Color.accentColor)
-                    .frame(width: 18, height: 18)
-                    .padding(2)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+                    .padding(4)
                     .gesture(resizeGesture)
                     .accessibilityLabel("Resize entry")
             }
