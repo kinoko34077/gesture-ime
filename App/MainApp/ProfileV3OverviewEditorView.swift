@@ -23,30 +23,15 @@ struct ProfileV3OverviewEditorView: View {
     }
 
     var body: some View {
-        Group {
-            if horizontalSizeClass == .regular {
-                HStack(spacing: 0) {
-                    VStack(spacing: 8) {
-                        contextBar
-                        canvas
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    Divider()
-                    inspectorScroll
-                        .frame(width: 380)
-                }
-            } else {
-                VStack(spacing: 6) {
-                    contextBar
-                        .padding(.horizontal)
-                    canvas
-                        .frame(height: 300)
-                        .padding(.horizontal)
-                    Divider()
-                    inspectorScroll
-                }
+        ProfileV3ResizableWorkspace(storageKey: "board") {
+            VStack(spacing: 6) {
+                contextBar
+                canvas
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        } secondary: {
+            inspectorScroll
         }
         .navigationTitle(editor.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -115,17 +100,21 @@ struct ProfileV3OverviewEditorView: View {
         }
     }
 
+    /// #95 §F2: no success chrome; invalid state shows a compact warning
+    /// whose message is revealed on tap.
+    @ViewBuilder
     private var validationBadge: some View {
-        Group {
-            if editor.validation.valid {
-                Label(Catalog.title(.statusValid), systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            } else {
-                Label(Catalog.title(.statusInvalid), systemImage: "exclamationmark.triangle.fill")
+        if !editor.validation.valid {
+            Button {
+                editor.errorMessage = Catalog.validationMessage(code: editor.validation.errorCode)
+                    + (editor.validation.detail.map { "\n" + $0 } ?? "")
+            } label: {
+                Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
+                    .frame(width: 44, height: 44)
             }
+            .accessibilityLabel(Catalog.title(.statusInvalid))
         }
-        .font(.caption)
     }
 
     private var boardPathTitle: String {
@@ -548,6 +537,11 @@ private struct ProfileV3BoardCanvas: View {
     @State private var candidate: ProfileV3Rect?
     @State private var liveViewport: ProfileV3CanvasViewport?
     @State private var pinchBase: ProfileV3CanvasViewport?
+    @State private var pressTask: Task<Void, Never>?
+    @State private var pressTranslation: CGSize = .zero
+    @State private var contextEntryID: String?
+    @State private var showContext = false
+    @State private var pasteMode = false
 
     private var items: [(id: String, rect: ProfileV3Rect)] {
         editor.entries.map { (id: $0.id, rect: $0.rect) }
@@ -583,6 +577,35 @@ private struct ProfileV3BoardCanvas: View {
             .gesture(dragGesture(size: proxy.size))
             .simultaneousGesture(pinchGesture(size: proxy.size))
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .confirmationDialog(
+                editor.selectedEntry?.presentationText ?? Catalog.title(.conceptEntry),
+                isPresented: $showContext,
+                titleVisibility: .visible
+            ) {
+                Button(Catalog.title(.actionDuplicate)) {
+                    if let entry = editor.selectedEntry {
+                        editor.duplicateSelectedEntry(rect: ProfileV3Rect(
+                            x: entry.rect.x + entry.rect.width, y: entry.rect.y,
+                            width: entry.rect.width, height: entry.rect.height
+                        ))
+                    }
+                }
+                Button(Catalog.title(.actionCopy)) { editor.copySelectedEntry() }
+                Button(Catalog.title(.actionPaste)) { pasteMode = true }
+                    .disabled(!editor.hasCopiedEntry)
+                Button(Catalog.title(.actionDelete), role: .destructive) { editor.deleteSelectedEntry() }
+            }
+            .overlay(alignment: .bottom) {
+                if pasteMode {
+                    HStack {
+                        Text("貼り付ける位置をタップ").font(.caption.bold())
+                        Button("やめる") { pasteMode = false }.font(.caption)
+                    }
+                    .padding(8)
+                    .background(.thinMaterial, in: Capsule())
+                    .padding(6)
+                }
+            }
             // Controls sit outside the canvas gesture owner.
             .overlay(alignment: .topTrailing) {
                 HStack(spacing: 6) {
@@ -717,7 +740,24 @@ private struct ProfileV3BoardCanvas: View {
                     if let target = started.targetEntryID {
                         editor.selectEntry(target)
                     }
+                    // #95 §F2: Canvas-owned long-press (no competing child gestures).
+                    let pressedEntry: String? = if case .entry(let id) = hit { id } else { nil }
+                    pressTranslation = .zero
+                    pressTask?.cancel()
+                    pressTask = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(ProfileV3LongPress.minimumDuration))
+                        guard !Task.isCancelled, let pressedEntry,
+                              ProfileV3LongPress.isLongPress(
+                                elapsed: ProfileV3LongPress.minimumDuration,
+                                movement: Double(hypot(pressTranslation.width, pressTranslation.height))
+                              ) else { return }
+                        self.interaction = ProfileV3CanvasInteraction(operation: .none)
+                        candidate = nil
+                        contextEntryID = pressedEntry
+                        showContext = true
+                    }
                 }
+                pressTranslation = value.translation
                 guard let interaction else { return }
                 if let panned = interaction.pannedViewport(
                     translationX: Double(value.translation.width),
@@ -735,12 +775,29 @@ private struct ProfileV3BoardCanvas: View {
                 )
             }
             .onEnded { value in
+                pressTask?.cancel()
+                pressTask = nil
                 defer {
                     interaction = nil
                     candidate = nil
                 }
-                guard let interaction else { return }
                 let moved = hypot(value.translation.width, value.translation.height) >= 4
+                if pasteMode, !moved {
+                    // Ghost placement: tap chooses the destination; collisions rejected.
+                    let base = viewport ?? fitted(size)
+                    let atom = base.atom(x: Double(value.location.x), y: Double(value.location.y))
+                    if let copied = editor.copiedEntryRect {
+                        let rect = ProfileV3LongPress.pasteRect(copied: copied, atX: atom.x, y: atom.y)
+                        if editor.canCreateEntry(rect) {
+                            editor.pasteCopiedEntry(rect: rect)
+                            pasteMode = false
+                        } else {
+                            editor.errorMessage = "その位置には貼り付けできません（他のキーと重なります）"
+                        }
+                    }
+                    return
+                }
+                guard let interaction else { return }
 
                 switch interaction.operation {
                 case .pan:
@@ -756,7 +813,7 @@ private struct ProfileV3BoardCanvas: View {
                         editor.createEntry(rect: candidate)
                     }
                 case .none:
-                    if !moved { editor.selectEntry(nil) }
+                    if !moved && !showContext { editor.selectEntry(nil) }
                 }
             }
     }
@@ -963,33 +1020,25 @@ private struct ProfileV3EntryInspector: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(Catalog.title(.inspectorPosition) + "・" + Catalog.title(.inspectorSize))
                 .font(.subheadline.bold())
-            HStack {
-                stepper("横", value: entry.rect.x) { delta in
+            HStack(spacing: 8) {
+                ProfileV3CompactAdjuster(title: "横", value: entry.rect.x) { delta in
                     var rect = entry.rect; rect.x += delta; editor.setSelectedEntryRect(rect)
                 }
-                stepper("縦", value: entry.rect.y) { delta in
+                ProfileV3CompactAdjuster(title: "縦", value: entry.rect.y) { delta in
                     var rect = entry.rect; rect.y += delta; editor.setSelectedEntryRect(rect)
                 }
             }
-            HStack {
-                stepper("幅", value: entry.rect.width) { delta in
+            HStack(spacing: 8) {
+                ProfileV3CompactAdjuster(title: "幅", value: entry.rect.width) { delta in
                     var rect = entry.rect; rect.width += delta; editor.setSelectedEntryRect(rect)
                 }
-                stepper("高さ", value: entry.rect.height) { delta in
+                ProfileV3CompactAdjuster(title: "高さ", value: entry.rect.height) { delta in
                     var rect = entry.rect; rect.height += delta; editor.setSelectedEntryRect(rect)
                 }
             }
-            HStack {
-                Button(Catalog.title(.actionDuplicate)) {
-                    editor.duplicateSelectedEntry(rect: neighbourRect)
-                }
-                Button(Catalog.title(.actionCopy), action: editor.copySelectedEntry)
-                Button(Catalog.title(.actionPaste)) {
-                    editor.pasteCopiedEntry(rect: neighbourRect)
-                }
-                .disabled(!editor.hasCopiedEntry)
-            }
-            .buttonStyle(.bordered)
+            Text("キーを長押しすると 複製・コピー・貼り付け・削除 ができます。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -1002,27 +1051,6 @@ private struct ProfileV3EntryInspector: View {
         )
     }
 
-    private func stepper(
-        _ title: String,
-        value: Int,
-        change: @escaping (Int) -> Void
-    ) -> some View {
-        HStack(spacing: 4) {
-            Text("\(title) \(value)")
-                .font(.caption.monospacedDigit())
-                .frame(minWidth: 52, alignment: .leading)
-            Button { change(-1) } label: {
-                Image(systemName: "minus").frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("\(title)を減らす")
-            Button { change(1) } label: {
-                Image(systemName: "plus").frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("\(title)を増やす")
-        }
-        .buttonStyle(.bordered)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
 }
 
 private struct ProfileV3DirectionGrid: View {
@@ -1035,9 +1063,11 @@ private struct ProfileV3DirectionGrid: View {
     ]
 
     var body: some View {
-        Grid(horizontalSpacing: 6, verticalSpacing: 6) {
+        // #95 §F5.1 rule 2: equal flexible columns that may shrink to zero;
+        // no cell can widen the inspector.
+        VStack(spacing: 6) {
             ForEach(0..<3, id: \.self) { row in
-                GridRow {
+                HStack(spacing: 6) {
                     ForEach(0..<3, id: \.self) { column in
                         if let direction = layout[row][column] {
                             VStack(spacing: 2) {
@@ -1058,12 +1088,14 @@ private struct ProfileV3DirectionGrid: View {
                                     }
                                 }
                             }
+                            .frame(minWidth: 0, maxWidth: .infinity)
                         } else {
                             Text(editor.selectedTapText ?? "")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity, minHeight: 44)
                                 .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
                                 .accessibilityLabel(Catalog.title(.directionCenter))
+                                .frame(minWidth: 0, maxWidth: .infinity)
                         }
                     }
                 }
@@ -1090,6 +1122,7 @@ private struct ProfileV3GuideLabelField: View {
 
     var body: some View {
         TextField(autoLabel.isEmpty ? "自動" : autoLabel, text: $text)
+            .frame(minWidth: 0, maxWidth: .infinity)
             .font(.caption2)
             .multilineTextAlignment(.center)
             .textFieldStyle(.roundedBorder)
@@ -1115,7 +1148,7 @@ private struct ProfileV3DirectionField: View {
             TextField("", text: $text)
                 .multilineTextAlignment(.center)
                 .textFieldStyle(.roundedBorder)
-                .frame(minHeight: 44)
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 44)
                 .onSubmit { onCommit(text) }
                 .accessibilityLabel(Catalog.title(direction.displayKey))
         }
