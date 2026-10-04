@@ -1036,7 +1036,7 @@ fn v3_origin_release_actions_dispatch_before_origin_transition() {
                 "origin.one",
                 json!({"x":-1,"y":-1,"width":2,"height":2}),
                 json!({
-                    "onRelease":[cursor_action(70)],
+                    "onRelease":[cursor_action(21)],
                     "transition":{
                         "targetBoardRef":"board.two",
                         "lifetime":"persistent"
@@ -1060,7 +1060,7 @@ fn v3_origin_release_actions_dispatch_before_origin_transition() {
 
     session.touch_up(Some(10));
 
-    assert_eq!(action_offsets(&session), vec![70]);
+    assert_eq!(action_offsets(&session), vec![21]);
     assert_eq!(session.persistent_board_id().as_deref(), Some("board.two"));
     assert_eq!(session.current_board_id, "board.two");
     assert_eq!(session.context, BoardContextV3::Direct);
@@ -1072,10 +1072,10 @@ fn v3_hold_without_transition_direction_locks_and_repeats_only_while_current() {
     value["boards"][1]["entries"][0]["resolver"]["default"] = json!({
         "hold":{
             "delayMs":100,
-            "onStart":[cursor_action(80)],
+            "onStart":[cursor_action(22)],
             "repeat":{
                 "intervalMs":50,
-                "actions":[cursor_action(81)]
+                "actions":[cursor_action(23)]
             },
             "suppressOnReleaseAfterStart":true
         }
@@ -1089,10 +1089,10 @@ fn v3_hold_without_transition_direction_locks_and_repeats_only_while_current() {
     session.move_to(GesturePoint { x: 100.0, y: 0.0 }, Some(220));
 
     assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("origin"));
-    assert_eq!(action_offsets(&session), vec![80,81,81]);
+    assert_eq!(action_offsets(&session), vec![22,23,23]);
 
     session.touch_up(Some(230));
-    assert_eq!(action_offsets(&session), vec![80,81,81]);
+    assert_eq!(action_offsets(&session), vec![22,23,23]);
 }
 
 #[test]
@@ -1112,14 +1112,14 @@ fn v3_hold_transition_dispatches_on_start_then_reanchors_and_drops_source_repeat
                 json!({
                     "hold":{
                         "delayMs":100,
-                        "onStart":[cursor_action(90)],
+                        "onStart":[cursor_action(24)],
                         "transition":{
                             "targetBoardRef":"board.two",
                             "lifetime":"transient"
                         },
                         "repeat":{
                             "intervalMs":50,
-                            "actions":[cursor_action(91)]
+                            "actions":[cursor_action(25)]
                         },
                         "suppressOnReleaseAfterStart":true
                     }
@@ -1131,7 +1131,7 @@ fn v3_hold_transition_dispatches_on_start_then_reanchors_and_drops_source_repeat
             vec![entry_json(
                 "origin.two",
                 json!({"x":-1,"y":-1,"width":2,"height":2}),
-                json!({"onRelease":[cursor_action(92)]})
+                json!({"onRelease":[cursor_action(26)]})
             )]
         )
     ]);
@@ -1143,15 +1143,15 @@ fn v3_hold_transition_dispatches_on_start_then_reanchors_and_drops_source_repeat
     session.move_to(GesturePoint { x: 20.0, y: 0.0 }, Some(50));
     session.advance_time(100);
 
-    assert_eq!(action_offsets(&session), vec![90]);
+    assert_eq!(action_offsets(&session), vec![24]);
     assert_eq!(session.current_board_id, "board.two");
     assert_eq!(session.anchor, GesturePoint { x: 20.0, y: 0.0 });
 
     session.advance_time(300);
-    assert_eq!(action_offsets(&session), vec![90]);
+    assert_eq!(action_offsets(&session), vec![24]);
 
     session.touch_up(Some(310));
-    assert_eq!(action_offsets(&session), vec![90,92]);
+    assert_eq!(action_offsets(&session), vec![24,26]);
 }
 
 #[test]
@@ -1161,10 +1161,10 @@ fn v3_cancel_and_invalidate_stop_future_behavior_and_restore_persistent_baseline
         value["boards"][1]["entries"][0]["resolver"]["default"] = json!({
             "hold":{
                 "delayMs":100,
-                "onStart":[cursor_action(100)],
+                "onStart":[cursor_action(27)],
                 "suppressOnReleaseAfterStart":false
             },
-            "onRelease":[cursor_action(101)]
+            "onRelease":[cursor_action(28)]
         });
 
         let runtime = runtime_from_value(&value);
@@ -1212,7 +1212,7 @@ fn v3_transition_budget_bounds_cycles_and_failed_transition_becomes_release_endp
                     "to.b",
                     json!({"x":1,"y":-1,"width":2,"height":2}),
                     json!({
-                        "onRelease":[cursor_action(110)],
+                        "onRelease":[cursor_action(29)],
                         "transition":{
                             "targetBoardRef":"board.b",
                             "lifetime":"transient"
@@ -1233,7 +1233,7 @@ fn v3_transition_budget_bounds_cycles_and_failed_transition_becomes_release_endp
                     "to.a",
                     json!({"x":1,"y":-1,"width":2,"height":2}),
                     json!({
-                        "onRelease":[cursor_action(111)],
+                        "onRelease":[cursor_action(30)],
                         "transition":{
                             "targetBoardRef":"board.a",
                             "lifetime":"transient"
@@ -1278,8 +1278,8 @@ fn v3_macro_run_expands_one_level_in_runtime_dispatch() {
         {
             "id":"macro.sample",
             "actions":[
-                cursor_action(120),
-                cursor_action(121)
+                cursor_action(31),
+                cursor_action(32)
             ]
         }
     ]);
@@ -1295,7 +1295,7 @@ fn v3_macro_run_expands_one_level_in_runtime_dispatch() {
     let mut session = direct_session(&runtime, frame, "direct.plain");
     session.touch_up(Some(10));
 
-    assert_eq!(action_offsets(&session), vec![120,121]);
+    assert_eq!(action_offsets(&session), vec![31,32]);
 }
 
 #[derive(Default)]
