@@ -8,7 +8,6 @@ import KeyboardViews
 final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     @Published private(set) var surface: FfiProfileV3BoardSurface
     @Published private(set) var interactionSnapshot: FfiProfileV3SessionSnapshot?
-    @Published private(set) var interactionVisualAnchor: CGPoint?
     @Published private(set) var candidates: [CompositionCandidateSnapshot] = []
     @Published var panel: ProductUtilityPanel?
 
@@ -69,12 +68,8 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         }
     }
 
-    func beginInteraction(
-        _ snapshot: FfiProfileV3SessionSnapshot,
-        visualAnchor: CGPoint
-    ) {
+    func beginInteraction(_ snapshot: FfiProfileV3SessionSnapshot) {
         interactionSnapshot = snapshot
-        interactionVisualAnchor = visualAnchor
     }
 
     func updateInteraction(_ snapshot: FfiProfileV3SessionSnapshot) {
@@ -83,7 +78,6 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
 
     func endInteraction() {
         interactionSnapshot = nil
-        interactionVisualAnchor = nil
         refreshDirectSurface()
     }
 
@@ -362,14 +356,12 @@ struct ProfileV3ProductKeyboardRoot: View {
         mapping: ProfileV3DirectBoardMapping
     ) -> some View {
         let candidateID = snapshot.candidateEntryId
-        // Initial/terminal first-stage flick presentation stays centered on the
-        // authored source cell, not the user's exact finger-down offset. Only a
-        // real additional Board transition switches presentation to the runtime
-        // re-anchor for the next stage.
-        let visualAnchor = snapshot.boardTransitionCount <= 1
-            ? (model.interactionVisualAnchor
-                ?? CGPoint(x: snapshot.anchor.x, y: snapshot.anchor.y))
-            : CGPoint(x: snapshot.anchor.x, y: snapshot.anchor.y)
+        // #69 §4.2/§4.6: the shared runtime owns the per-stage visual origin
+        // (source key center for Stage 1, committed entry center afterwards).
+        let visualAnchor = CGPoint(
+            x: snapshot.visualOrigin.x,
+            y: snapshot.visualOrigin.y
+        )
 
         ForEach(snapshot.surface.entries, id: \.id) { entry in
             let frame = mapping.relativeFrame(
@@ -406,6 +398,31 @@ struct ProfileV3ProductKeyboardRoot: View {
             .frame(width: frame.width, height: frame.height)
             .position(x: frame.midX, y: frame.midY)
             .accessibilityLabel(entry.accessibilityLabel ?? entry.text ?? entry.id)
+        }
+
+        if snapshot.stageDepth > 1, let progress = snapshot.rollbackProgress {
+            // #69 §4.8: visible pending one-stage rollback.
+            ZStack {
+                Circle()
+                    .stroke(theme.borderColor.color.opacity(0.35), lineWidth: 4)
+                Circle()
+                    .trim(from: 0, to: CGFloat(progress))
+                    .stroke(
+                        theme.textColor.color,
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                Text("戻る")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(theme.textColor.color)
+            }
+            .frame(width: 44, height: 44)
+            .background(
+                Circle().fill(theme.normalKeyFillColor.color.opacity(0.9))
+            )
+            .position(x: visualAnchor.x, y: visualAnchor.y)
+            .allowsHitTesting(false)
+            .accessibilityLabel("前の段階へ戻る")
         }
     }
 }
@@ -550,6 +567,8 @@ private struct ProfileV3DirectEntryView: View {
                     logicalCellHeight: Double(logicalCellSize.height),
                     touchX: Double(value.startLocation.x),
                     touchY: Double(value.startLocation.y),
+                    sourceVisualX: Double(sourceVisualAnchor.x),
+                    sourceVisualY: Double(sourceVisualAnchor.y),
                     atMs: 0
                 )
                 session = created
@@ -558,10 +577,7 @@ private struct ProfileV3DirectEntryView: View {
 
                 let initial = try created.snapshot()
                 model.emitSelectionHaptic()
-                model.beginInteraction(
-                    initial,
-                    visualAnchor: sourceVisualAnchor
-                )
+                model.beginInteraction(initial)
                 model.dispatchNewRuntimeEffects(
                     from: initial,
                     consumedCount: &consumedDispatchCount
@@ -638,7 +654,8 @@ private struct ProfileV3DirectEntryView: View {
         to next: FfiProfileV3SessionSnapshot
     ) {
         guard let previous,
-              next.committedEntryIds.count > previous.committedEntryIds.count else {
+              next.committedEntryIds.count > previous.committedEntryIds.count
+                || next.rollbackCount > previous.rollbackCount else {
             return
         }
 
@@ -668,7 +685,9 @@ private struct ProfileV3DirectEntryView: View {
                 }
 
                 do {
+                    let previous = model.interactionSnapshot
                     let result = try session.advanceTime(toMs: elapsedMs())
+                    emitSpatialCommitHapticIfNeeded(from: previous, to: result)
                     model.updateInteraction(result)
                     model.dispatchNewRuntimeEffects(
                         from: result,

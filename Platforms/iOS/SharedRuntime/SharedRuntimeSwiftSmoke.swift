@@ -71,11 +71,18 @@ struct SharedRuntimeSwiftSmoke {
             logicalCellHeight: 50,
             touchX: 0,
             touchY: 0,
+            sourceVisualX: 40,
+            sourceVisualY: 20,
             atMs: 0
         )
         let initial = try flick.snapshot()
         guard initial.currentBoardId == "board.flick",
               initial.context == .relative,
+              initial.stageDepth == 1,
+              initial.visualOrigin.x == 40,
+              initial.visualOrigin.y == 20,
+              initial.anchor.x == 0,
+              initial.anchor.y == 0,
               initial.surface.entries.contains(where: { $0.id == "flick.ne" }),
               initial.surface.entries.contains(where: { $0.id == "flick.far-east" }) else {
             fatalError("v3 relative surface mismatch")

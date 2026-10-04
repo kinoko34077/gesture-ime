@@ -7,7 +7,8 @@
     "deadZone": 0.15,
     "initialCellCommitDistance": 0.4,
     "subsequentCellCommitDistance": 0.4,
-    "angularHysteresisDegrees": 8
+    "angularHysteresisDegrees": 8,
+    "stageBacktrackDwellMs": 1000
   },
   "initialLayerRef": "layer.ja",
   "layers": [
@@ -9479,8 +9480,10 @@
               },
               "onRelease": [
                 {
-                  "actionID": "noop",
-                  "arguments": {}
+                  "actionID": "text.transform",
+                  "arguments": {
+                    "table": "kana.small"
+                  }
                 }
               ]
             }
