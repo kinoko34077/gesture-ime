@@ -14,9 +14,17 @@ final class ProfileV3EditorModel: ObservableObject {
     @Published private(set) var transformTables: [ProfileV3TransformTableSummary] = []
     @Published private(set) var macros: [ProfileV3MacroSummary] = []
     @Published private(set) var policy: ProfileGesturePolicy?
+    @Published private(set) var policyValues: ProfileV3GesturePolicyValues?
+    @Published private(set) var selectedOverride: ProfileV3GesturePolicyOverride?
+    @Published private(set) var selectedSimpleText: String?
+    @Published private(set) var selectedTapText: String?
+    @Published private(set) var selectedDirectionSlots: [ProfileV3DirectionSlot] = []
+    @Published var tool: ProfileV3CanvasTool = .select
     @Published private(set) var boardPath: [String] = []
     @Published var selectedLayerID = ""
-    @Published var selectedEntryID: String?
+    @Published var selectedEntryID: String? {
+        didSet { refreshSelectionDerived() }
+    }
     @Published private(set) var hasCopiedEntry = false
     @Published var errorMessage: String?
 
@@ -263,6 +271,172 @@ final class ProfileV3EditorModel: ObservableObject {
 
     func selectEntry(_ entryID: String?) {
         selectedEntryID = entryID
+    }
+
+    // MARK: - #73 easy inspector / policy / presets
+
+    var selectedEntry: ProfileV3BoardEntrySummary? {
+        guard let selectedEntryID else { return nil }
+        return entries.first { $0.id == selectedEntryID }
+    }
+
+    /// Relative Board reached from the selected entry (its 次の段階).
+    var selectedNextStageBoardID: String? {
+        selectedEntry?.transition?.targetBoardID
+    }
+
+    func updatePolicyValues(_ values: ProfileV3GesturePolicyValues) {
+        mutate { try $0.v3SetGesturePolicyValues(values) }
+    }
+
+    func setSelectedOverride(_ partial: ProfileV3GesturePolicyOverride?) {
+        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return }
+        mutate {
+            try $0.v3SetEntryPolicyOverride(
+                boardID: boardID,
+                entryID: entryID,
+                override: partial
+            )
+        }
+    }
+
+    func setSelectedDisplayText(_ text: String) {
+        guard let boardID = currentBoardID,
+              let entry = selectedEntry else { return }
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        mutate {
+            try $0.v3SetEntryDefaultPresentation(
+                boardID: boardID,
+                entryID: entry.id,
+                text: value.isEmpty ? nil : value,
+                accessibilityLabel: entry.accessibilityLabel
+            )
+        }
+    }
+
+    /// タップ: own text output for a simple key, or the center (origin) of the
+    /// next-stage Board for a flick key.
+    func setSelectedTapText(_ text: String) {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty, let boardID = currentBoardID, let entry = selectedEntry else { return }
+        if let target = entry.transition?.targetBoardID {
+            guard let document = history?.document,
+                  let origin = try? document.v3BoardEntries(boardID: target)
+                    .first(where: { $0.rect.containsOrigin }) else {
+                mutate {
+                    let id = try $0.v3UniqueEntryID(boardID: target, base: "\(target).center")
+                    try $0.v3CreateEntry(
+                        boardID: target,
+                        id: id,
+                        rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
+                    )
+                    try $0.v3SetSimpleTextOutput(boardID: target, entryID: id, text: value)
+                }
+                return
+            }
+            mutate { try $0.v3SetSimpleTextOutput(boardID: target, entryID: origin.id, text: value) }
+        } else {
+            mutate { try $0.v3SetSimpleTextOutput(boardID: boardID, entryID: entry.id, text: value) }
+        }
+    }
+
+    func setDirectionText(_ direction: ProfileV3Direction, text: String) {
+        guard let target = selectedNextStageBoardID else { return }
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        mutate {
+            try $0.v3SetDirectionText(
+                boardID: target,
+                direction: direction,
+                text: value.isEmpty ? nil : value
+            )
+        }
+    }
+
+    /// Creates a new flick Board with a center key and makes it the selected
+    /// entry's 次の段階.
+    func createNextStageForSelected() {
+        guard let boardID = currentBoardID, let entry = selectedEntry else { return }
+        mutate { document in
+            let target = try document.v3UniqueBoardID(base: "\(entry.id).flick")
+            try document.v3CreateBoard(id: target)
+            let center = (entry.presentationText?.isEmpty == false ? entry.presentationText : nil) ?? "・"
+            try document.v3CreateEntry(
+                boardID: target,
+                id: "\(target).center",
+                rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
+            )
+            try document.v3SetSimpleTextOutput(boardID: target, entryID: "\(target).center", text: center)
+            try document.v3SetEntryDefaultActions(boardID: boardID, entryID: entry.id, actions: [])
+            try document.v3SetEntryDefaultTransition(
+                boardID: boardID,
+                entryID: entry.id,
+                transition: ProfileV3TransitionDraft(targetBoardID: target, lifetime: .transient)
+            )
+        }
+    }
+
+    func setSelectedTransitionLifetime(_ lifetime: ProfileV3TransitionLifetime) {
+        guard let boardID = currentBoardID,
+              let entry = selectedEntry,
+              let transition = entry.transition else { return }
+        mutate {
+            try $0.v3SetEntryDefaultTransition(
+                boardID: boardID,
+                entryID: entry.id,
+                transition: ProfileV3TransitionDraft(
+                    targetBoardID: transition.targetBoardID,
+                    lifetime: lifetime
+                )
+            )
+        }
+    }
+
+    func createLayer(fromPreset preset: ProfileV3Preset) {
+        guard let document = history?.document else { return }
+        let existing = Set((try? document.v3LayerSummaries().map(\.id)) ?? [])
+        var layerID = "layer.\(preset.rawValue)"
+        var index = 2
+        while existing.contains(layerID) {
+            layerID = "layer.\(preset.rawValue)-\(index)"
+            index += 1
+        }
+        let id = layerID
+        mutate {
+            try $0.v3CreateLayer(
+                fromPreset: preset,
+                layerID: id,
+                name: ProfileV3DisplayCatalog.title(preset.displayKey)
+            )
+        }
+        if layers.contains(where: { $0.id == id }) {
+            selectLayer(id)
+        }
+    }
+
+    private func refreshSelectionDerived() {
+        guard let document = history?.document,
+              let boardID = currentBoardID,
+              let entry = selectedEntry else {
+            selectedOverride = nil
+            selectedSimpleText = nil
+            selectedTapText = nil
+            selectedDirectionSlots = []
+            return
+        }
+        selectedOverride = try? document.v3EntryPolicyOverride(boardID: boardID, entryID: entry.id)
+        selectedSimpleText = try? document.v3SimpleTextOutput(boardID: boardID, entryID: entry.id)
+        if let target = entry.transition?.targetBoardID {
+            selectedDirectionSlots = (try? document.v3ImmediateDirectionSlots(boardID: target)) ?? []
+            if let origin = try? document.v3BoardEntries(boardID: target)
+                .first(where: { $0.rect.containsOrigin }) {
+                selectedTapText = try? document.v3SimpleTextOutput(boardID: target, entryID: origin.id)
+            } else {
+                selectedTapText = nil
+            }
+        } else {
+            selectedDirectionSlots = []
+            selectedTapText = selectedSimpleText
+        }
     }
 
     func createEntry(rect: ProfileV3Rect) {
@@ -525,6 +699,7 @@ final class ProfileV3EditorModel: ObservableObject {
 
         name = document.summary.name
         policy = try document.gesturePolicy()
+        policyValues = try document.v3GesturePolicyValues()
         layers = try document.v3LayerSummaries()
         boards = try document.v3BoardSummaries()
         states = try document.v3StateSummaries()
@@ -565,6 +740,7 @@ final class ProfileV3EditorModel: ObservableObject {
            !entries.contains(where: { $0.id == selectedEntryID }) {
             self.selectedEntryID = nil
         }
+        refreshSelectionDerived()
     }
 
     private func nextEntryID() -> String {
