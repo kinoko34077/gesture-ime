@@ -187,6 +187,12 @@ struct ProfileV3OverviewEditorView: View {
             }
             .accessibilityHint(Catalog.help(.sectionInputSettings))
 
+            NavigationLink {
+                ProfileV3TransformEditorView(editor: editor)
+            } label: {
+                Label("文字変換表（小書き・濁点・大文字など）", systemImage: "character.textbox")
+            }
+
             Menu {
                 ForEach(ProfileV3Preset.allCases) { preset in
                     Button(Catalog.title(preset.displayKey)) {

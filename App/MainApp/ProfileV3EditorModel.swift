@@ -20,6 +20,7 @@ final class ProfileV3EditorModel: ObservableObject {
     @Published private(set) var selectedTapText: String?
     @Published private(set) var selectedDirectionSlots: [ProfileV3DirectionSlot] = []
     @Published var tool: ProfileV3CanvasTool = .select
+    @Published private(set) var transformRows: [ProfileV3TransformTableRows] = []
     @Published private(set) var boardPath: [String] = []
     @Published var selectedLayerID = ""
     @Published var selectedEntryID: String? {
@@ -391,6 +392,33 @@ final class ProfileV3EditorModel: ObservableObject {
         }
     }
 
+    // MARK: - #79 Transform authoring
+
+    func setTransformTable(_ table: ProfileV3TransformTableRows) {
+        mutate { try $0.v3SetTransformTableRows(table) }
+    }
+
+    func applyTransformCSV(_ text: String) {
+        do {
+            let tables = try ProfileV3TransformCSV.parse(text)
+            try mutateThrowing { try $0.v3ApplyTransformCSV(tables) }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func exportTransformCSV() -> URL? {
+        let csv = ProfileV3TransformCSV.export(transformRows)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(profileID)-transforms.csv")
+        do {
+            try Data(csv.utf8).write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
     func createLayer(fromPreset preset: ProfileV3Preset) {
         guard let document = history?.document else { return }
         let existing = Set((try? document.v3LayerSummaries().map(\.id)) ?? [])
@@ -704,6 +732,7 @@ final class ProfileV3EditorModel: ObservableObject {
         boards = try document.v3BoardSummaries()
         states = try document.v3StateSummaries()
         transformTables = try document.v3TransformTableSummaries()
+        transformRows = try document.v3TransformTableRows()
         macros = try document.v3MacroSummaries()
         validation = try library.validate(document)
 
