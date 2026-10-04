@@ -45,6 +45,38 @@ public struct ProfileV3TransitionDraft: Equatable, Sendable {
     }
 }
 
+public struct ProfileV3RepeatDraft: Equatable, Sendable {
+    public var intervalMs: Int
+    public var actions: [ProfileActionDraft]
+
+    public init(intervalMs: Int, actions: [ProfileActionDraft]) {
+        self.intervalMs = intervalMs
+        self.actions = actions
+    }
+}
+
+public struct ProfileV3HoldDraft: Equatable, Sendable {
+    public var delayMs: Int
+    public var onStart: [ProfileActionDraft]
+    public var transition: ProfileV3TransitionDraft?
+    public var repeatBehavior: ProfileV3RepeatDraft?
+    public var suppressOnReleaseAfterStart: Bool
+
+    public init(
+        delayMs: Int,
+        onStart: [ProfileActionDraft] = [],
+        transition: ProfileV3TransitionDraft? = nil,
+        repeatBehavior: ProfileV3RepeatDraft? = nil,
+        suppressOnReleaseAfterStart: Bool = false
+    ) {
+        self.delayMs = delayMs
+        self.onStart = onStart
+        self.transition = transition
+        self.repeatBehavior = repeatBehavior
+        self.suppressOnReleaseAfterStart = suppressOnReleaseAfterStart
+    }
+}
+
 public struct ProfileV3LayerSummary: Identifiable, Equatable, Sendable {
     public let id: String
     public let name: String?
