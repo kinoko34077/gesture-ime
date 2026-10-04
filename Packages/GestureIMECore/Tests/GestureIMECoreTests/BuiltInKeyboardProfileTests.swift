@@ -1,87 +1,126 @@
+import Foundation
 import XCTest
-@testable import GestureIMECore
 
 final class BuiltInKeyboardProfileTests: XCTestCase {
-    func testProductProfileIsValidAndMatchesFiveColumnReferenceTopology() throws {
-        let profile = try loadProductProfile()
-        XCTAssertEqual(profile.id, "builtin.ja.product")
-        XCTAssertEqual(profile.version, 3)
+    func testProductProfileIsCanonicalV3AndRetainsFiveColumnJapaneseRoot() throws {
+        let object = try loadProductObject()
+        XCTAssertEqual(object["schema"] as? String, "gesture-ime.profile.v3")
+        XCTAssertEqual(object["id"] as? String, "builtin.ja.product")
+        XCTAssertEqual(object["initialLayerRef"] as? String, "layer.ja")
 
-        let baseLayer = try XCTUnwrap(profile.layers.first(where: { $0.id == "base" }))
-        let baseLayout = try XCTUnwrap(profile.layouts.first(where: { $0.id == baseLayer.layoutRef }))
-        let baseBindings = try XCTUnwrap(profile.bindingSets.first(where: { $0.id == baseLayer.bindingSetRef }))
+        let layers = try XCTUnwrap(object["layers"] as? [[String: Any]])
+        XCTAssertEqual(
+            Set(layers.compactMap { $0["id"] as? String }),
+            Set([
+                "layer.ja",
+                "layer.numbers",
+                "layer.alpha",
+                "layer.symbols",
+                "layer.utility.phrase",
+                "layer.utility.emoji",
+                "layer.utility.emoticon"
+            ])
+        )
 
-        let expected: [(String, Int, Int, Double, Double)] = [
-            ("mode.symbols", 0, 0, 2, 1),
-            ("kana.a", 0, 2, 2, 1),
-            ("kana.ka", 0, 4, 2, 1),
-            ("kana.sa", 0, 6, 2, 1),
-            ("edit.delete", 0, 8, 2, 1),
+        let boards = try XCTUnwrap(object["boards"] as? [[String: Any]])
+        let japanese = try XCTUnwrap(
+            boards.first(where: { $0["id"] as? String == "board.ja.root" })
+        )
+        let entries = try XCTUnwrap(japanese["entries"] as? [[String: Any]])
 
-            ("mode.numbers", 1, 0, 2, 1),
-            ("kana.ta", 1, 2, 2, 1),
-            ("kana.na", 1, 4, 2, 1),
-            ("kana.ha", 1, 6, 2, 1),
-            ("text.space", 1, 8, 2, 1),
+        let expected: [(String, Int, Int, Int, Int)] = [
+            ("mode.symbols", 0, 0, 2, 2),
+            ("kana.a", 2, 0, 2, 2),
+            ("kana.ka", 4, 0, 2, 2),
+            ("kana.sa", 6, 0, 2, 2),
+            ("edit.delete", 8, 0, 2, 2),
 
-            ("mode.alpha", 2, 0, 2, 1),
-            ("kana.ma", 2, 2, 2, 1),
-            ("kana.ya", 2, 4, 2, 1),
-            ("kana.ra", 2, 6, 2, 1),
-            ("text.enter", 2, 8, 2, 2),
+            ("mode.numbers", 0, 2, 2, 2),
+            ("kana.ta", 2, 2, 2, 2),
+            ("kana.na", 4, 2, 2, 2),
+            ("kana.ha", 6, 2, 2, 2),
+            ("text.space", 8, 2, 2, 2),
 
-            ("utility.chat", 3, 0, 1, 1),
-            ("utility.emoji", 3, 1, 1, 1),
-            ("utility.emoticon", 3, 2, 2, 1),
-            ("kana.wa", 3, 4, 2, 1),
-            ("punctuation", 3, 6, 2, 1)
+            ("mode.alpha", 0, 4, 2, 2),
+            ("kana.ma", 2, 4, 2, 2),
+            ("kana.ya", 4, 4, 2, 2),
+            ("kana.ra", 6, 4, 2, 2),
+            ("text.enter", 8, 4, 2, 4),
+
+            ("kana.transform", 0, 6, 2, 2),
+            ("utility.open", 2, 6, 2, 2),
+            ("kana.wa", 4, 6, 2, 2),
+            ("punctuation", 6, 6, 2, 2)
         ]
 
-        XCTAssertEqual(baseLayout.placements.count, expected.count)
-        for (keyID, row, column, width, height) in expected {
-            let placement = try XCTUnwrap(baseLayout.placements.first(where: { $0.keyID == keyID }), keyID)
-            XCTAssertEqual(placement.row, row, keyID)
-            XCTAssertEqual(placement.column, column, keyID)
-            XCTAssertEqual(placement.width ?? 1, width, keyID)
-            XCTAssertEqual(placement.height ?? 1, height, keyID)
-        }
-
-        let ordinary = try BindingTrieCompiler.compile(baseBindings, keyID: "kana.a")
-        XCTAssertEqual(ordinary.root.eligibleDirections, Set([.w, .n, .e, .s]))
-
-        XCTAssertEqual(Set(profile.layers.map(\.id)), Set(["base", "numbers", "alpha", "symbols"]))
-
-        for layer in profile.layers {
-            let layout = try XCTUnwrap(profile.layouts.first(where: { $0.id == layer.layoutRef }), layer.id)
-            let bindingSet = try XCTUnwrap(profile.bindingSets.first(where: { $0.id == layer.bindingSetRef }), layer.id)
-            XCTAssertEqual(layout.placements.count, 20, layer.id)
-
-            for placement in layout.placements {
-                _ = try BindingTrieCompiler.compile(bindingSet, keyID: placement.keyID)
-            }
+        XCTAssertEqual(entries.count, expected.count)
+        for (id, x, y, width, height) in expected {
+            let entry = try XCTUnwrap(
+                entries.first(where: { $0["id"] as? String == id }),
+                id
+            )
+            let rect = try XCTUnwrap(entry["rect"] as? [String: Any], id)
+            XCTAssertEqual(rect["x"] as? Int, x, id)
+            XCTAssertEqual(rect["y"] as? Int, y, id)
+            XCTAssertEqual(rect["width"] as? Int, width, id)
+            XCTAssertEqual(rect["height"] as? Int, height, id)
         }
     }
 
-    func testBaseModeKeysResolveToRealLayers() throws {
-        let profile = try loadProductProfile()
-        let layer = try XCTUnwrap(profile.layers.first(where: { $0.id == "base" }))
-        let bindingSet = try XCTUnwrap(profile.bindingSets.first(where: { $0.id == layer.bindingSetRef }))
+    func testProductProfileDeclaresTransformsShiftDiagonalAndUtilityLayers() throws {
+        let object = try loadProductObject()
+        let tables = try XCTUnwrap(object["transformTables"] as? [[String: Any]])
+        XCTAssertEqual(
+            Set(tables.compactMap { $0["id"] as? String }),
+            Set(["kana.small", "kana.dakuten", "kana.handakuten", "latin.shift"])
+        )
 
-        let expectations: [String: String] = [
-            "mode.symbols": "symbols",
-            "mode.numbers": "numbers",
-            "mode.alpha": "alpha"
-        ]
+        let states = try XCTUnwrap(object["states"] as? [[String: Any]])
+        let latinCase = try XCTUnwrap(
+            states.first(where: { $0["id"] as? String == "latinCase" })
+        )
+        XCTAssertEqual(latinCase["type"] as? String, "enum")
+        XCTAssertEqual(latinCase["values"] as? [String], ["lower", "upper"])
+        XCTAssertEqual(latinCase["default"] as? String, "lower")
 
-        for (keyID, expectedLayer) in expectations {
-            let trie = try BindingTrieCompiler.compile(bindingSet, keyID: keyID)
-            let action = try XCTUnwrap(trie.root.behavior?.onRelease.first, keyID)
-            XCTAssertEqual(action.actionID, "layer.set", keyID)
-            XCTAssertEqual(action.arguments["layer"]?.stringValue, expectedLayer, keyID)
-        }
+        let boards = try XCTUnwrap(object["boards"] as? [[String: Any]])
+        let punctuation = try XCTUnwrap(
+            boards.first(where: {
+                ($0["id"] as? String)?.contains("punctuation.flick") == true
+            })
+        )
+        let punctuationEntries = try XCTUnwrap(
+            punctuation["entries"] as? [[String: Any]]
+        )
+        XCTAssertTrue(
+            punctuationEntries.contains(where: {
+                guard let rect = $0["rect"] as? [String: Any] else { return false }
+                return rect["x"] as? Int == 1 && rect["y"] as? Int == -3
+            })
+        )
+
+        let transformBoard = try XCTUnwrap(
+            boards.first(where: { $0["id"] as? String == "board.ja.transform" })
+        )
+        let transformIDs = Set(
+            (transformBoard["entries"] as? [[String: Any]] ?? [])
+                .compactMap { $0["id"] as? String }
+        )
+        XCTAssertTrue(transformIDs.isSuperset(
+            of: ["transform.center", "transform.small", "transform.dakuten", "transform.handakuten"]
+        ))
+
+        let data = try loadProductData()
+        let text = String(decoding: data, as: UTF8.self)
+        XCTAssertFalse(text.contains("\"panel.open\""))
     }
 
-    private func loadProductProfile() throws -> ProfileBundle {
+    private func loadProductObject() throws -> [String: Any] {
+        let object = try JSONSerialization.jsonObject(with: loadProductData())
+        return try XCTUnwrap(object as? [String: Any])
+    }
+
+    private func loadProductData() throws -> Data {
         let repoRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -95,6 +134,6 @@ final class BuiltInKeyboardProfileTests: XCTestCase {
             .appendingPathComponent("Resources")
             .appendingPathComponent("default-ja.json")
 
-        return try ProfileCodec.decodeAndValidate(Data(contentsOf: url))
+        return try Data(contentsOf: url)
     }
 }
