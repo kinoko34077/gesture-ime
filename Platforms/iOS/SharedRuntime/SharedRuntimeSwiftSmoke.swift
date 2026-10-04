@@ -54,7 +54,7 @@ struct SharedRuntimeSwiftSmoke {
               direct.entries.count == 3 else {
             fatalError("v3 direct Board surface mismatch")
         }
-
+        try verifyProfileV3Geometry(direct)\n
         try runtime.updateSemanticContext(
             composition: "か",
             conversionActive: true,
@@ -187,5 +187,42 @@ struct SharedRuntimeSwiftSmoke {
               final.dispatchedActions[0].actionId == "text.insert" else {
             fatalError("v2 transient baseline/action mismatch")
         }
+    }
+}
+
+
+private func verifyProfileV3Geometry(
+    _ direct: FfiProfileV3BoardSurface
+) throws {
+    guard let mapping = IOSProfileV3BoardGeometryMapping(
+        surface: direct,
+        width: 240,
+        height: 40
+    ) else {
+        throw NSError(domain: "A3Geometry", code: 1)
+    }
+
+    guard abs(mapping.logicalCellWidth - 40) < 0.0001,
+          abs(mapping.logicalCellHeight - 40) < 0.0001 else {
+        throw NSError(domain: "A3Geometry", code: 2)
+    }
+
+    let frames = Dictionary(
+        uniqueKeysWithValues: direct.entries.map {
+            ($0.id, mapping.frame(for: $0.rect))
+        }
+    )
+
+    guard frames["key.flick"]
+            == IOSProfileV3MappedFrame(x: 0, y: 0, width: 80, height: 40),
+          frames["key.return"]
+            == IOSProfileV3MappedFrame(x: 80, y: 0, width: 80, height: 40),
+          frames["key.dakuten"]
+            == IOSProfileV3MappedFrame(x: 200, y: 0, width: 40, height: 40) else {
+        throw NSError(domain: "A3Geometry", code: 3)
+    }
+
+    guard !frames.values.contains(where: { $0.contains(x: 180, y: 20) }) else {
+        throw NSError(domain: "A3Geometry", code: 4)
     }
 }
