@@ -226,3 +226,33 @@ final class ProductSettingsTests: XCTestCase {
             )
     }
 }
+
+
+// MARK: - #75 capability truth
+
+final class ProductSettingsCapabilityProbeTests: XCTestCase {
+    func testProbeIsTruthfulWithoutGuessingAnAppGroup() {
+        let none = ProductSettingsCapabilityProbe.probe(appGroupIdentifier: nil) { _ in
+            XCTFail("must not query a container without a configured group")
+            return nil
+        }
+        XCTAssertEqual(none, .unavailable(.appGroupNotConfigured))
+        XCTAssertEqual(none.capability, .appLocalOnly)
+        XCTAssertNil(none.rootURL)
+
+        XCTAssertEqual(
+            ProductSettingsCapabilityProbe.probe(appGroupIdentifier: "  ") { _ in nil },
+            .unavailable(.appGroupNotConfigured)
+        )
+
+        let missing = ProductSettingsCapabilityProbe.probe(appGroupIdentifier: "group.example") { _ in nil }
+        XCTAssertEqual(missing, .unavailable(.containerUnavailable("group.example")))
+        XCTAssertFalse(missing.capability.crossProcessAvailable)
+
+        let base = URL(fileURLWithPath: "/tmp/group")
+        let ok = ProductSettingsCapabilityProbe.probe(appGroupIdentifier: "group.example") { _ in base }
+        XCTAssertEqual(ok.capability, .sharedContainer)
+        XCTAssertEqual(ok.rootURL, base.appendingPathComponent("ProductSettings", isDirectory: true))
+        XCTAssertTrue(ProductSettingsCapabilityProbe.Unavailable.appGroupNotConfigured.japaneseReason.contains("App Group"))
+    }
+}
