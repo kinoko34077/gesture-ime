@@ -789,7 +789,7 @@ extension ProfileDocument {
 
     // MARK: - Internal v3 helpers
 
-    private func v3TopObject() throws -> [String: JSONNode] {
+    func v3TopObject() throws -> [String: JSONNode] {
         guard isProfileV3 else {
             throw ProfileAuthoringError.invalidJSON(
                 "Profile v3 operation requires gesture-ime.profile.v3"
@@ -801,7 +801,7 @@ extension ProfileDocument {
         return object
     }
 
-    private mutating func v3SetTopLevel(
+    mutating func v3SetTopLevel(
         _ key: String,
         _ value: JSONNode
     ) throws {
@@ -810,7 +810,7 @@ extension ProfileDocument {
         root = .object(object)
     }
 
-    private func v3Array(named name: String) throws -> [JSONNode] {
+    func v3Array(named name: String) throws -> [JSONNode] {
         let object = try v3TopObject()
         guard let array = object[name]?.arrayValue else {
             throw ProfileAuthoringError.missingField(name)
@@ -828,7 +828,7 @@ extension ProfileDocument {
         return array
     }
 
-    private func v3ObjectInArray(
+    func v3ObjectInArray(
         named name: String,
         id: String
     ) throws -> [String: JSONNode] {
@@ -840,7 +840,7 @@ extension ProfileDocument {
         return object
     }
 
-    private func v3EntryObject(
+    func v3EntryObject(
         boardID: String,
         entryID: String
     ) throws -> [String: JSONNode] {
@@ -879,7 +879,7 @@ extension ProfileDocument {
         try v3MutateObjectInArray(named: "boards", id: id, mutation: mutation)
     }
 
-    private mutating func v3MutateEntry(
+    mutating func v3MutateEntry(
         boardID: String,
         entryID: String,
         mutation: (inout [String: JSONNode]) throws -> Void
@@ -898,7 +898,7 @@ extension ProfileDocument {
         }
     }
 
-    private mutating func v3MutateDefaultBehavior(
+    mutating func v3MutateDefaultBehavior(
         boardID: String,
         entryID: String,
         mutation: (inout [String: JSONNode]) throws -> Void
@@ -1113,7 +1113,7 @@ extension ProfileDocument {
         return ProfileActionDraft(actionID: actionID, arguments: arguments)
     }
 
-    private static func v3ActionNode(_ action: ProfileActionDraft) -> JSONNode {
+    static func v3ActionNode(_ action: ProfileActionDraft) -> JSONNode {
         .object([
             "actionID": .string(action.actionID),
             "arguments": .object(action.arguments)
@@ -1135,7 +1135,7 @@ extension ProfileDocument {
         )
     }
 
-    private static func v3TransitionNode(
+    static func v3TransitionNode(
         _ transition: ProfileV3TransitionDraft
     ) -> JSONNode {
         .object([
@@ -1157,7 +1157,7 @@ extension ProfileDocument {
         return ProfileV3Rect(x: x, y: y, width: width, height: height)
     }
 
-    private static func v3RectNode(
+    static func v3RectNode(
         _ rect: ProfileV3Rect,
         preserving existing: JSONNode? = nil
     ) -> JSONNode {
@@ -1227,7 +1227,7 @@ extension ProfileDocument {
         }
     }
 
-    private static func v3ValidateSemanticID(
+    static func v3ValidateSemanticID(
         _ value: String,
         field: String
     ) throws {

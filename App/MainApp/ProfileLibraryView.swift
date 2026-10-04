@@ -26,9 +26,6 @@ struct ProfileLibraryView: View {
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text(profile.name)
-                                    Text(profile.id)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 if library.activeProfileID == profile.id {
@@ -41,24 +38,24 @@ struct ProfileLibraryView: View {
                             Button(role: .destructive) {
                                 library.delete(profileID: profile.id)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label("削除", systemImage: "trash")
                             }
 
                             Button {
                                 library.clone(profileID: profile.id)
                             } label: {
-                                Label("Clone", systemImage: "plus.square.on.square")
+                                Label("複製", systemImage: "plus.square.on.square")
                             }
                             .tint(.blue)
                         }
                     }
                 } header: {
-                    Text("App-local Profiles")
+                    Text("このアプリ内のキーボード")
                 } footer: {
-                    Text("Active selection is app-local in Phase 5A; Keyboard Extension delivery is a separate capability gate.")
+                    Text("使用中のキーボードの選択はこのアプリ内でのみ有効です。キーボード本体への反映は別途対応予定です。")
                 }
             }
-            .navigationTitle("Profiles")
+            .navigationTitle("キーボード")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -71,13 +68,13 @@ struct ProfileLibraryView: View {
                         Button {
                             library.createEmptyV3()
                         } label: {
-                            Label("New Profile v3", systemImage: "square.grid.3x3")
+                            Label("新しいキーボード", systemImage: "square.grid.3x3")
                         }
 
                         Button {
                             library.createFromBuiltIn()
                         } label: {
-                            Label("New legacy staging Profile", systemImage: "keyboard")
+                            Label("旧形式のキーボード（開発用）", systemImage: "keyboard")
                         }
                     } label: {
                         Image(systemName: "plus")
@@ -96,7 +93,7 @@ struct ProfileLibraryView: View {
                 }
             }
             .alert(
-                "Profile error",
+                "エラー",
                 isPresented: Binding(
                     get: { library.errorMessage != nil },
                     set: { if !$0 { library.errorMessage = nil } }
