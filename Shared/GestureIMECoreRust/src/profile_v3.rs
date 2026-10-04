@@ -250,6 +250,10 @@ pub struct BoardEntryV3 {
     pub resolver: EntryResolverV3,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gesture_policy_override: Option<GesturePolicyOverrideV3>,
+    /// Display-only flick-guide labels for this source's transition target,
+    /// keyed by target BoardEntry ID (#69 §6.2–6.3). Absent key = AUTO.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guide_label_overrides: Option<std::collections::BTreeMap<String, String>>,
     #[serde(flatten)]
     pub extra: V3Extra,
 }

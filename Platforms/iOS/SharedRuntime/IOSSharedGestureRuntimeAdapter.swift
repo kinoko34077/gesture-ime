@@ -437,6 +437,78 @@ public struct IOSHostInputFacts: Equatable {
     }
 }
 
+/// #74 / #69 §12: simple presentation-only Theme tokens read from the Profile's
+/// top-level `theme` object. Tokens never touch Board geometry or Actions; a
+/// missing/invalid token falls back to the product default renderer colour.
+public struct IOSKeyboardTheme: Equatable {
+    public struct RGBA: Equatable {
+        public let red: Double, green: Double, blue: Double, alpha: Double
+
+        /// Parses `#RRGGBB` or `#RRGGBBAA`.
+        public init?(hex: String) {
+            var text = hex.trimmingCharacters(in: .whitespaces)
+            guard text.hasPrefix("#") else { return nil }
+            text.removeFirst()
+            guard text.count == 6 || text.count == 8,
+                  let value = UInt64(text, radix: 16) else { return nil }
+            let hasAlpha = text.count == 8
+            let r = hasAlpha ? (value >> 24) & 0xFF : (value >> 16) & 0xFF
+            let g = hasAlpha ? (value >> 16) & 0xFF : (value >> 8) & 0xFF
+            let b = hasAlpha ? (value >> 8) & 0xFF : value & 0xFF
+            let a = hasAlpha ? value & 0xFF : 0xFF
+            red = Double(r) / 255; green = Double(g) / 255
+            blue = Double(b) / 255; alpha = Double(a) / 255
+        }
+
+        public var hex: String {
+            String(
+                format: "#%02X%02X%02X%02X",
+                Int((red * 255).rounded()), Int((green * 255).rounded()),
+                Int((blue * 255).rounded()), Int((alpha * 255).rounded())
+            )
+        }
+    }
+
+    public static let colorTokens = [
+        "keyboardBackground", "keyFill", "keyPressedFill", "border", "text",
+        "guideText", "candidateBackground", "candidateText", "candidateSelection",
+        "overlayFill"
+    ]
+
+    public var colors: [String: RGBA] = [:]
+    public var cornerRadius: Double?
+    public var keyFontSize: Double?
+    public var guideFontSize: Double?
+    public var guideOpacity: Double?
+
+    public init() {}
+
+    public init(themeObject: [String: Any]?) {
+        guard let object = themeObject else { return }
+        for token in Self.colorTokens {
+            if let hex = object[token] as? String, let color = RGBA(hex: hex) {
+                colors[token] = color
+            }
+        }
+        cornerRadius = Self.number(object["cornerRadius"], in: 0...24)
+        keyFontSize = Self.number(object["keyFontSize"], in: 8...40)
+        guideFontSize = Self.number(object["guideFontSize"], in: 6...24)
+        guideOpacity = Self.number(object["guideOpacity"], in: 0...1)
+    }
+
+    public init(profileJSON: String) {
+        let object = profileJSON.data(using: .utf8)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        self.init(themeObject: object?["theme"] as? [String: Any])
+    }
+
+    private static func number(_ value: Any?, in range: ClosedRange<Double>) -> Double? {
+        guard let number = (value as? NSNumber)?.doubleValue, range.contains(number) else {
+            return nil
+        }
+        return number
+    }
+}
 
 /// #80 adaptive viewport policy (presentation only).
 public enum IOSKeyboardLayoutPolicy {

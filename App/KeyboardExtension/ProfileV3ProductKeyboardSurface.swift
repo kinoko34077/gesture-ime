@@ -22,6 +22,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     let gestureCoordinator = ProductGestureCoordinator()
     let defaultPolicy: FfiProfileV3GesturePolicy
     let productSettings: ProductSettingsValues
+    let keyboardTheme: IOSKeyboardTheme
 
     private let hapticFeedback: ProductHapticFeedback
     private let onNextKeyboard: () -> Void
@@ -31,6 +32,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         runtime: IOSProfileV3RuntimeAdapter,
         composition: AzooKeyCompositionBridge,
         productSettings: ProductSettingsValues,
+        keyboardTheme: IOSKeyboardTheme = IOSKeyboardTheme(),
         onNextKeyboard: @escaping () -> Void,
         onDismissKeyboard: @escaping () -> Void
     ) throws {
@@ -38,6 +40,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         self.composition = composition
         self.defaultPolicy = runtime.defaultPolicy()
         self.productSettings = productSettings
+        self.keyboardTheme = keyboardTheme
         self.hapticFeedback = ProductHapticFeedback(settings: productSettings)
         self.onNextKeyboard = onNextKeyboard
         self.onDismissKeyboard = onDismissKeyboard
@@ -594,16 +597,18 @@ private struct ProfileV3DirectEntryView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 6)
+            let tokens = model.keyboardTheme
+            let radius = CGFloat(tokens.cornerRadius ?? 6)
+            RoundedRectangle(cornerRadius: radius)
                 .fill(
                     pressed
-                        ? theme.pushedKeyFillColor.color
-                        : theme.normalKeyFillColor.color
+                        ? tokens.color("keyPressedFill", fallback: theme.pushedKeyFillColor.color)
+                        : tokens.color("keyFill", fallback: theme.normalKeyFillColor.color)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: radius)
                         .stroke(
-                            theme.borderColor.color,
+                            tokens.color("border", fallback: theme.borderColor.color),
                             lineWidth: CGFloat(theme.borderWidth)
                         )
                 )
@@ -615,11 +620,35 @@ private struct ProfileV3DirectEntryView: View {
                 )
 
             Text(entry.text ?? "")
-                .font(.system(size: 23))
-                .foregroundStyle(theme.textColor.color)
+                .font(.system(size: CGFloat(tokens.keyFontSize ?? 23)))
+                .foregroundStyle(tokens.color("text", fallback: theme.textColor.color))
                 .minimumScaleFactor(0.45)
                 .lineLimit(2)
                 .padding(2)
+
+            // #69 §6.4: immediate flick guides before the gesture starts.
+            // Positions come from target entry geometry, not a direction table.
+            if !entry.guides.isEmpty {
+                GeometryReader { proxy in
+                    let reach = max(abs(entry.guides.map(\.centerX).max() ?? 1), 1)
+                    ForEach(entry.guides, id: \.targetEntryId) { guide in
+                        Text(guide.label)
+                            .font(.system(size: CGFloat(tokens.guideFontSize ?? 9)))
+                            .foregroundStyle(tokens.color("guideText", fallback: theme.textColor.color))
+                            .opacity(tokens.guideOpacity ?? 0.6)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .position(
+                                x: proxy.size.width / 2
+                                    + CGFloat(guide.centerX / reach) * proxy.size.width * 0.36,
+                                y: proxy.size.height / 2
+                                    + CGFloat(guide.centerY / reach) * proxy.size.height * 0.36
+                            )
+                    }
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
         }
         .contentShape(Rectangle())
         .gesture(
@@ -928,5 +957,13 @@ private struct ProfileV3PanelCompatibilityView: View {
                 )
             }
         }
+    }
+}
+
+
+extension IOSKeyboardTheme {
+    func color(_ token: String, fallback: Color) -> Color {
+        guard let value = colors[token] else { return fallback }
+        return Color(.sRGB, red: value.red, green: value.green, blue: value.blue, opacity: value.alpha)
     }
 }

@@ -20,6 +20,8 @@ final class ProfileV3EditorModel: ObservableObject {
     @Published private(set) var selectedTapText: String?
     @Published private(set) var selectedDirectionSlots: [ProfileV3DirectionSlot] = []
     @Published var tool: ProfileV3CanvasTool = .select
+    @Published private(set) var selectedGuideOverrides: [String: String] = [:]
+    @Published private(set) var themeTokens: [String: JSONNode] = [:]
     @Published private(set) var transformRows: [ProfileV3TransformTableRows] = []
     @Published private(set) var boardPath: [String] = []
     @Published var selectedLayerID = ""
@@ -392,6 +394,28 @@ final class ProfileV3EditorModel: ObservableObject {
         }
     }
 
+    // MARK: - #74 guide overrides / Theme
+
+    func setGuideLabel(targetEntryID: String, label: String) {
+        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return }
+        mutate {
+            try $0.v3SetGuideLabelOverride(
+                boardID: boardID,
+                entryID: entryID,
+                targetEntryID: targetEntryID,
+                label: label
+            )
+        }
+    }
+
+    func setThemeToken(_ key: String, value: JSONNode?) {
+        mutate { try $0.v3SetThemeToken(key, value: value) }
+    }
+
+    var keyboardTheme: IOSKeyboardTheme {
+        IOSKeyboardTheme(themeObject: themeTokens.mapValues(\.foundationValue))
+    }
+
     // MARK: - #79 Transform authoring
 
     func setTransformTable(_ table: ProfileV3TransformTableRows) {
@@ -446,12 +470,14 @@ final class ProfileV3EditorModel: ObservableObject {
               let boardID = currentBoardID,
               let entry = selectedEntry else {
             selectedOverride = nil
+            selectedGuideOverrides = [:]
             selectedSimpleText = nil
             selectedTapText = nil
             selectedDirectionSlots = []
             return
         }
         selectedOverride = try? document.v3EntryPolicyOverride(boardID: boardID, entryID: entry.id)
+        selectedGuideOverrides = (try? document.v3GuideLabelOverrides(boardID: boardID, entryID: entry.id)) ?? [:]
         selectedSimpleText = try? document.v3SimpleTextOutput(boardID: boardID, entryID: entry.id)
         if let target = entry.transition?.targetBoardID {
             selectedDirectionSlots = (try? document.v3ImmediateDirectionSlots(boardID: target)) ?? []
@@ -728,6 +754,7 @@ final class ProfileV3EditorModel: ObservableObject {
         name = document.summary.name
         policy = try document.gesturePolicy()
         policyValues = try document.v3GesturePolicyValues()
+        themeTokens = try document.v3ThemeTokens()
         layers = try document.v3LayerSummaries()
         boards = try document.v3BoardSummaries()
         states = try document.v3StateSummaries()
