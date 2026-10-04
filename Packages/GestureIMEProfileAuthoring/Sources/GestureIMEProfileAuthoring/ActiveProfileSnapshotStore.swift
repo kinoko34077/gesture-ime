@@ -45,6 +45,7 @@ public enum ActiveProfileSnapshotStoreError: Error, Equatable, Sendable {
 
 public final class ActiveProfileSnapshotStore {
     public static let manifestFileName = "active-profile-manifest.json"
+    public static let fallbackManifestFileName = "last-known-good-profile-manifest.json"
     public static let snapshotsDirectoryName = "snapshots"
 
     public let rootURL: URL
@@ -52,6 +53,7 @@ public final class ActiveProfileSnapshotStore {
     private let validator: ProfileValidator
     private let fileManager: FileManager
     private let manifestURL: URL
+    private let fallbackManifestURL: URL
     private let snapshotsURL: URL
 
     public init(
@@ -63,6 +65,7 @@ public final class ActiveProfileSnapshotStore {
         self.validator = validator
         self.fileManager = fileManager
         self.manifestURL = rootURL.appendingPathComponent(Self.manifestFileName)
+        self.fallbackManifestURL = rootURL.appendingPathComponent(Self.fallbackManifestFileName)
         self.snapshotsURL = rootURL.appendingPathComponent(
             Self.snapshotsDirectoryName,
             isDirectory: true
@@ -86,14 +89,15 @@ public final class ActiveProfileSnapshotStore {
 
         let identity = try Self.profileIdentity(in: data)
         let generation = try nextGeneration()
-        let digest = Self.sha256Hex(data)
-        let snapshotFile = "profile-\(generation)-\(digest).json"
+        let digest = ProfileSnapshotDigest.sha256Hex(data)
+        let snapshotFile = Self.snapshotFileName(generation: generation, digest: digest)
         let snapshotURL = snapshotsURL.appendingPathComponent(snapshotFile)
 
         guard !fileManager.fileExists(atPath: snapshotURL.path) else {
             throw ActiveProfileSnapshotStoreError.snapshotAlreadyExists(snapshotFile)
         }
 
+        // Candidate bytes are immutable and durable before they become active.
         try data.write(to: snapshotURL, options: .atomic)
 
         let manifest = ActiveProfileManifest(
@@ -104,33 +108,71 @@ public final class ActiveProfileSnapshotStore {
             snapshotFile: snapshotFile
         )
 
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        try encoder.encode(manifest).write(to: manifestURL, options: .atomic)
+        // Preserve only a previously published manifest whose referenced snapshot
+        // still passes the complete reader checks. Never promote an uncommitted
+        // candidate merely because its snapshot file exists.
+        do {
+            if let currentManifest = try activeManifest() {
+                _ = try validatedSnapshot(for: currentManifest)
+                try writeManifest(currentManifest, to: fallbackManifestURL)
+            }
+        } catch {
+            // A corrupt current active generation must not overwrite an older
+            // valid fallback. The new fully validated candidate may still publish.
+        }
+
+        // Publishing this small record is the final commit point.
+        try writeManifest(manifest, to: manifestURL)
         return manifest
     }
 
     public func activeManifest() throws -> ActiveProfileManifest? {
-        guard fileManager.fileExists(atPath: manifestURL.path) else {
-            return nil
-        }
-
-        let data = try Data(contentsOf: manifestURL)
-        do {
-            return try JSONDecoder().decode(ActiveProfileManifest.self, from: data)
-        } catch {
-            throw ActiveProfileSnapshotStoreError.invalidManifest
-        }
+        try readManifest(at: manifestURL)
     }
 
     public func readActive() throws -> ActiveProfileSnapshot? {
         guard let manifest = try activeManifest() else {
             return nil
         }
+        return try validatedSnapshot(for: manifest)
+    }
 
-        guard Self.isSafeSnapshotFileName(manifest.snapshotFile) else {
-            throw ActiveProfileSnapshotStoreError.invalidManifest
+    public func readLastKnownGood() throws -> ActiveProfileSnapshot? {
+        var activeFailure: Error?
+
+        do {
+            if let manifest = try activeManifest() {
+                return try validatedSnapshot(for: manifest)
+            }
+        } catch {
+            activeFailure = error
         }
+
+        do {
+            if let fallback = try readManifest(at: fallbackManifestURL) {
+                return try validatedSnapshot(for: fallback)
+            }
+        } catch {
+            if activeFailure == nil {
+                activeFailure = error
+            }
+        }
+
+        if let activeFailure {
+            throw activeFailure
+        }
+        return nil
+    }
+
+    public func snapshotURL(for manifest: ActiveProfileManifest) throws -> URL {
+        try Self.validateManifestShape(manifest)
+        return snapshotsURL.appendingPathComponent(manifest.snapshotFile)
+    }
+
+    private func validatedSnapshot(
+        for manifest: ActiveProfileManifest
+    ) throws -> ActiveProfileSnapshot {
+        try Self.validateManifestShape(manifest)
 
         let snapshotURL = snapshotsURL.appendingPathComponent(manifest.snapshotFile)
         guard fileManager.fileExists(atPath: snapshotURL.path) else {
@@ -138,7 +180,7 @@ public final class ActiveProfileSnapshotStore {
         }
 
         let data = try Data(contentsOf: snapshotURL)
-        guard Self.sha256Hex(data) == manifest.digest else {
+        guard ProfileSnapshotDigest.sha256Hex(data) == manifest.digest else {
             throw ActiveProfileSnapshotStoreError.digestMismatch
         }
 
@@ -158,15 +200,32 @@ public final class ActiveProfileSnapshotStore {
         return ActiveProfileSnapshot(manifest: manifest, data: data)
     }
 
-    public func snapshotURL(for manifest: ActiveProfileManifest) throws -> URL {
-        guard Self.isSafeSnapshotFileName(manifest.snapshotFile) else {
+    private func readManifest(at url: URL) throws -> ActiveProfileManifest? {
+        guard fileManager.fileExists(atPath: url.path) else {
+            return nil
+        }
+
+        let data = try Data(contentsOf: url)
+        let manifest: ActiveProfileManifest
+        do {
+            manifest = try JSONDecoder().decode(ActiveProfileManifest.self, from: data)
+        } catch {
             throw ActiveProfileSnapshotStoreError.invalidManifest
         }
-        return snapshotsURL.appendingPathComponent(manifest.snapshotFile)
+
+        try Self.validateManifestShape(manifest)
+        return manifest
+    }
+
+    private func writeManifest(_ manifest: ActiveProfileManifest, to url: URL) throws {
+        try Self.validateManifestShape(manifest)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        try encoder.encode(manifest).write(to: url, options: .atomic)
     }
 
     private func nextGeneration() throws -> UInt64 {
-        var greatest = try activeManifest()?.generation ?? 0
+        var greatest: UInt64 = 0
 
         let snapshotFiles = try fileManager.contentsOfDirectory(
             at: snapshotsURL,
@@ -208,15 +267,30 @@ public final class ActiveProfileSnapshotStore {
         return (id, schema)
     }
 
-    private static func isSafeSnapshotFileName(_ value: String) -> Bool {
-        guard !value.isEmpty, value == URL(fileURLWithPath: value).lastPathComponent else {
-            return false
+    private static func validateManifestShape(_ manifest: ActiveProfileManifest) throws {
+        guard
+            !manifest.profileID.isEmpty,
+            !manifest.schema.isEmpty,
+            manifest.generation > 0,
+            isLowercaseSHA256(manifest.digest),
+            manifest.snapshotFile
+                == snapshotFileName(generation: manifest.generation, digest: manifest.digest)
+        else {
+            throw ActiveProfileSnapshotStoreError.invalidManifest
         }
-        return value.hasPrefix("profile-") && value.hasSuffix(".json")
     }
 
-    private static func sha256Hex(_ data: Data) -> String {
-        ProfileSnapshotDigest.sha256Hex(data)
+    private static func snapshotFileName(generation: UInt64, digest: String) -> String {
+        "profile-\(generation)-\(digest).json"
+    }
+
+    private static func isLowercaseSHA256(_ value: String) -> Bool {
+        guard value.utf8.count == 64 else {
+            return false
+        }
+        return value.utf8.allSatisfy { byte in
+            (48...57).contains(byte) || (97...102).contains(byte)
+        }
     }
 }
 
