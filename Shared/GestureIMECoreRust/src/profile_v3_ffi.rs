@@ -132,7 +132,14 @@ pub struct FfiProfileV3SessionSnapshot {
     pub current_board_id: String,
     pub persistent_board_id: String,
     pub context: FfiProfileV3BoardContext,
+    /// Pointer origin of the active stage.
     pub anchor: FfiPoint,
+    /// Canonical render origin of the active stage Board (#69 §4.2).
+    pub visual_origin: FfiPoint,
+    pub stage_depth: i64,
+    pub rollback_count: i64,
+    /// Pending stage-rollback dwell progress in 0...1 when a dwell is running.
+    pub rollback_progress: Option<f64>,
     pub commit_anchors: Vec<FfiPoint>,
     pub candidate_entry_id: Option<String>,
     pub current_endpoint_entry_id: Option<String>,
@@ -149,6 +156,7 @@ pub struct FfiProfileV3GesturePolicy {
     pub initial_cell_commit_distance: f64,
     pub subsequent_cell_commit_distance: f64,
     pub angular_hysteresis_degrees: f64,
+    pub stage_backtrack_dwell_ms: i64,
 }
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
@@ -263,6 +271,10 @@ impl ProfileV3PlatformRuntime {
                 .board_runtime
                 .policy
                 .angular_hysteresis_degrees,
+            stage_backtrack_dwell_ms: self
+                .board_runtime
+                .policy
+                .effective_stage_backtrack_dwell_ms(),
         }
     }
 
@@ -416,6 +428,19 @@ impl ProfileV3PlatformRuntime {
         touch_down: FfiPoint,
         at_ms: i64,
     ) -> Result<Arc<ProfileV3PlatformSession>, ProfileV3PlatformError> {
+        self.begin_session_at_visual_origin(entry_id, logical_cell_size, touch_down, None, at_ms)
+    }
+
+    /// Begins a session whose first relative stage renders at the source key's
+    /// canonical center while the touch-down point is the pointer origin.
+    pub fn begin_session_at_visual_origin(
+        &self,
+        entry_id: String,
+        logical_cell_size: FfiSize,
+        touch_down: FfiPoint,
+        source_visual_origin: Option<FfiPoint>,
+        at_ms: i64,
+    ) -> Result<Arc<ProfileV3PlatformSession>, ProfileV3PlatformError> {
         let active = self.active_layer_handle()?;
         self.sync_layer_context(&active.layer_id)?;
 
@@ -424,11 +449,12 @@ impl ProfileV3PlatformRuntime {
             .board_semantics(self.semantic_context.clone());
         let session = self
             .board_runtime
-            .begin_direct_session(
+            .begin_direct_session_at(
                 active.frame,
                 &entry_id,
                 logical_cell_size.into(),
                 touch_down.into(),
+                source_visual_origin.map(Into::into),
                 at_ms,
                 Box::new(semantics),
             )
@@ -613,6 +639,10 @@ fn session_snapshot(
         persistent_board_id,
         context: session.context.into(),
         anchor: session.anchor.into(),
+        visual_origin: session.visual_origin.into(),
+        stage_depth: session.stage_depth() as i64,
+        rollback_count: session.rollback_count as i64,
+        rollback_progress: session.rollback_progress(),
         commit_anchors: session
             .commit_anchors
             .iter()

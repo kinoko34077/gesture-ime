@@ -130,6 +130,21 @@ impl ProfileV3Validator {
         }
 
         validate_gesture_policy(&profile.gesture_policy)?;
+        for board in &profile.boards {
+            for entry in &board.entries {
+                if let Some(partial) = entry.gesture_policy_override.as_ref() {
+                    // Each override field is checked in the context of the policy it
+                    // produces, so inherited + overridden values stay coherent.
+                    validate_gesture_policy(&profile.gesture_policy.with_override(Some(partial)))
+                        .map_err(|_| {
+                            ProfileValidationError::new(
+                                ProfileValidationCode::InvalidGesturePolicy,
+                                Some(format!("{}:{}", board.id, entry.id)),
+                            )
+                        })?;
+                }
+            }
+        }
 
         let layer_ids: HashSet<&str> =
             profile.layers.iter().map(|item| item.id.as_str()).collect();
@@ -224,7 +239,12 @@ fn validate_gesture_policy(policy: &GesturePolicyV3) -> Result<(), ProfileValida
         && policy.initial_cell_commit_distance >= policy.dead_zone
         && policy.subsequent_cell_commit_distance >= policy.dead_zone
         && policy.angular_hysteresis_degrees >= 0.0
-        && policy.angular_hysteresis_degrees < 45.0;
+        && policy.angular_hysteresis_degrees < 45.0
+        && policy.stage_backtrack_dwell_ms.is_none_or(|dwell| {
+            (GesturePolicyV3::MIN_STAGE_BACKTRACK_DWELL_MS
+                ..=GesturePolicyV3::MAX_STAGE_BACKTRACK_DWELL_MS)
+                .contains(&dwell)
+        });
 
     if valid {
         Ok(())

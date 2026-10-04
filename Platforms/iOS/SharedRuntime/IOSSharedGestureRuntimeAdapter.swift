@@ -191,15 +191,23 @@ public final class IOSProfileV3RuntimeAdapter {
         logicalCellHeight: Double,
         touchX: Double,
         touchY: Double,
+        sourceVisualX: Double? = nil,
+        sourceVisualY: Double? = nil,
         atMs: Int64
     ) throws -> IOSProfileV3SessionAdapter {
-        let session = try core.beginSession(
+        // #69 §4.3: the source key's canonical rendered center is the Stage 1
+        // visual origin; the physical touch-down stays the pointer origin.
+        let sourceVisualOrigin = sourceVisualX.flatMap { x in
+            sourceVisualY.map { y in FfiPoint(x: x, y: y) }
+        }
+        let session = try core.beginSessionAtVisualOrigin(
             entryId: entryID,
             logicalCellSize: FfiSize(
                 width: logicalCellWidth,
                 height: logicalCellHeight
             ),
             touchDown: FfiPoint(x: touchX, y: touchY),
+            sourceVisualOrigin: sourceVisualOrigin,
             atMs: atMs
         )
         return IOSProfileV3SessionAdapter(core: session)

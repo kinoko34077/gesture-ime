@@ -111,6 +111,13 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMaximum": 45
+        },
+        "stageBacktrackDwellMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 1000,
+          "description": "#69 §3.1/§4.8: dwell before a rollback-eligible stage pops one Stage Stack frame. Absent = 1000."
         }
       },
       "additionalProperties": true
@@ -341,6 +348,9 @@
         },
         "resolver": {
           "$ref": "#/$defs/resolver"
+        },
+        "gesturePolicyOverride": {
+          "$ref": "#/$defs/gesturePolicyOverride"
         }
       },
       "additionalProperties": true
@@ -678,6 +688,40 @@
           "items": {
             "$ref": "#/$defs/actionInvocation"
           }
+        }
+      },
+      "additionalProperties": true
+    },
+    "gesturePolicyOverride": {
+      "type": "object",
+      "description": "#69 §3.2: optional partial override for the stage entered from this source entry. Unset fields inherit gesturePolicy; the merged policy must satisfy gesturePolicy constraints.",
+      "properties": {
+        "deadZone": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "initialCellCommitDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "subsequentCellCommitDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "angularHysteresisDegrees": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 45
+        },
+        "stageBacktrackDwellMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 1000,
+          "description": "#69 §3.1/§4.8: dwell before a rollback-eligible stage pops one Stage Stack frame. Absent = 1000."
         }
       },
       "additionalProperties": true

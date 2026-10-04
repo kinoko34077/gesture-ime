@@ -121,11 +121,12 @@ fn a5_builtin_return_resolves_newline_or_conversion_commit_from_runtime_fact() {
 }
 
 #[test]
-fn a5_builtin_kana_transform_board_uses_neutral_center_and_explicit_transforms() {
+fn a5_builtin_kana_transform_board_center_tap_is_small_kana_and_directions_stay_explicit() {
     let runtime = runtime();
 
+    // #69 §5.1: center/tap performs the generic kana.small transform.
     runtime
-        .update_semantic_context("か".into(), false, false)
+        .update_semantic_context("や".into(), false, false)
         .unwrap();
 
     let neutral = runtime
@@ -150,14 +151,15 @@ fn a5_builtin_kana_transform_board_uses_neutral_center_and_explicit_transforms()
 
     let neutral_result = neutral.touch_up(Some(10)).unwrap();
     assert_eq!(neutral_result.runtime_dispatches.len(), 1);
-    assert_eq!(
-        neutral_result.runtime_dispatches[0].kind,
-        FfiProfileV3DispatchKind::Action
-    );
-    assert_eq!(
-        neutral_result.runtime_dispatches[0].action_id.as_deref(),
-        Some("noop")
-    );
+    let tap = &neutral_result.runtime_dispatches[0];
+    assert_eq!(tap.kind, FfiProfileV3DispatchKind::CompositionTailTransform);
+    assert_eq!(tap.table_id.as_deref(), Some("kana.small"));
+    assert_eq!(tap.matched_source.as_deref(), Some("や"));
+    assert_eq!(tap.replacement.as_deref(), Some("ゃ"));
+
+    runtime
+        .update_semantic_context("か".into(), false, false)
+        .unwrap();
 
     let dakuten = runtime
         .begin_session(

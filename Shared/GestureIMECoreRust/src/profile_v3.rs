@@ -11,6 +11,66 @@ pub struct GesturePolicyV3 {
     pub initial_cell_commit_distance: f64,
     pub subsequent_cell_commit_distance: f64,
     pub angular_hysteresis_degrees: f64,
+    /// Dwell before a rollback-eligible stage pops one Stage Stack frame (#69 §4.8).
+    /// Absent means [`GesturePolicyV3::DEFAULT_STAGE_BACKTRACK_DWELL_MS`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage_backtrack_dwell_ms: Option<i64>,
+    #[serde(flatten)]
+    pub extra: V3Extra,
+}
+
+impl GesturePolicyV3 {
+    pub const DEFAULT_STAGE_BACKTRACK_DWELL_MS: i64 = 1000;
+    pub const MIN_STAGE_BACKTRACK_DWELL_MS: i64 = 100;
+    pub const MAX_STAGE_BACKTRACK_DWELL_MS: i64 = 10_000;
+
+    pub fn effective_stage_backtrack_dwell_ms(&self) -> i64 {
+        self.stage_backtrack_dwell_ms
+            .unwrap_or(Self::DEFAULT_STAGE_BACKTRACK_DWELL_MS)
+    }
+
+    /// Resolves a source-entry partial override against this Profile-wide policy
+    /// (#69 §3.2). Unset override fields inherit the common value.
+    pub fn with_override(&self, partial: Option<&GesturePolicyOverrideV3>) -> Self {
+        let Some(partial) = partial else {
+            return self.clone();
+        };
+        Self {
+            dead_zone: partial.dead_zone.unwrap_or(self.dead_zone),
+            initial_cell_commit_distance: partial
+                .initial_cell_commit_distance
+                .unwrap_or(self.initial_cell_commit_distance),
+            subsequent_cell_commit_distance: partial
+                .subsequent_cell_commit_distance
+                .unwrap_or(self.subsequent_cell_commit_distance),
+            angular_hysteresis_degrees: partial
+                .angular_hysteresis_degrees
+                .unwrap_or(self.angular_hysteresis_degrees),
+            stage_backtrack_dwell_ms: Some(
+                partial
+                    .stage_backtrack_dwell_ms
+                    .unwrap_or_else(|| self.effective_stage_backtrack_dwell_ms()),
+            ),
+            extra: self.extra.clone(),
+        }
+    }
+}
+
+/// Optional per-source partial GesturePolicy override (#69 §3.2). It applies to
+/// the gesture stage entered from the BoardEntry that carries it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GesturePolicyOverrideV3 {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dead_zone: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initial_cell_commit_distance: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subsequent_cell_commit_distance: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub angular_hysteresis_degrees: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage_backtrack_dwell_ms: Option<i64>,
     #[serde(flatten)]
     pub extra: V3Extra,
 }
@@ -188,6 +248,8 @@ pub struct BoardEntryV3 {
     pub id: String,
     pub rect: BoardRectV3,
     pub resolver: EntryResolverV3,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gesture_policy_override: Option<GesturePolicyOverrideV3>,
     #[serde(flatten)]
     pub extra: V3Extra,
 }
