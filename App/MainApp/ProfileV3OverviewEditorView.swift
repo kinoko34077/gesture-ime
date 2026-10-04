@@ -22,6 +22,12 @@ struct ProfileV3OverviewEditorView: View {
         )
     }
 
+    /// #92: the 編集 tab passes the shared editor so every tab edits the same model.
+    init(library: ProfileLibraryModel, editor: ProfileV3EditorModel) {
+        self.library = library
+        _editor = StateObject(wrappedValue: editor)
+    }
+
     var body: some View {
         ProfileV3ResizableWorkspace(storageKey: "board") {
             VStack(spacing: 6) {

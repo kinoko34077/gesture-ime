@@ -6,7 +6,7 @@ struct ProfileLibraryView: View {
     @State private var importing = false
 
     var body: some View {
-        NavigationStack {
+        Group {
             List {
                 Section {
                     ForEach(library.profiles) { profile in
