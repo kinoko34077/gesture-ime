@@ -43,7 +43,7 @@ public struct ProfileDocumentHistory: Sendable {
     @discardableResult
     public mutating func redo() -> Bool {
         guard let next = redoStack.popLast() else { return false }
-        push(&undoStack, document)
+        Self.push(&undoStack, document, capacity: capacity)
         document = next
         return true
     }
