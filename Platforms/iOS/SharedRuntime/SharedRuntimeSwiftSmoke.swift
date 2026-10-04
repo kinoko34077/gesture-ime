@@ -54,7 +54,7 @@ struct SharedRuntimeSwiftSmoke {
               direct.entries.count == 3 else {
             fatalError("v3 direct Board surface mismatch")
         }
-        try verifyProfileV3Geometry(direct)\n
+        try verifyProfileV3Geometry(direct)
         try runtime.updateSemanticContext(
             composition: "か",
             conversionActive: true,
@@ -80,7 +80,7 @@ struct SharedRuntimeSwiftSmoke {
               initial.surface.entries.contains(where: { $0.id == "flick.far-east" }) else {
             fatalError("v3 relative surface mismatch")
         }
-        try verifyProfileV3RelativeGeometry(direct: direct, relative: initial)\n
+        try verifyProfileV3RelativeGeometry(direct: direct, relative: initial)
         let diagonal = try flick.move(x: 60, y: -30, atMs: 10)
         guard diagonal.currentEndpointEntryId == "flick.ne" else {
             fatalError("v3 diagonal selection mismatch")
