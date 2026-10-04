@@ -495,6 +495,7 @@ private struct ProfileV3DirectEntryView: View {
         )
         .accessibilityLabel(entry.accessibilityLabel ?? entry.text ?? entry.id)
         .onDisappear {
+            cancelSemanticSession()
             finishNativeTouch()
         }
     }
@@ -617,6 +618,11 @@ private struct ProfileV3DirectEntryView: View {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(16))
                 guard !Task.isCancelled, let session else { return }
+                guard let gestureToken,
+                      model.gestureCoordinator.isValid(gestureToken) else {
+                    cancelSemanticSession()
+                    return
+                }
 
                 do {
                     let result = try session.advanceTime(toMs: elapsedMs())
