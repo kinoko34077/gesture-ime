@@ -462,6 +462,7 @@ impl BoardSessionV3 {
 
             // A bounded/failed transition becomes the terminal endpoint for the
             // remainder of the interaction rather than accumulating retries.
+            self.cancel_timers();
             self.spatial_locked = true;
             self.candidate_entry_id = Some(entry.id);
             self.current_endpoint_entry_id = self
