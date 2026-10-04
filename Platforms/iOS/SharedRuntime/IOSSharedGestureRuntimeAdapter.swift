@@ -132,9 +132,11 @@ public extension IOSSharedGestureSessionAdapter {
 /// resolution, transition state and runtime-dispatch ordering remain owned by Rust.
 public final class IOSProfileV3RuntimeAdapter {
     private let core: ProfileV3PlatformRuntime
+    private let profileJSON: String
 
     public init(profileJSON: String) throws {
         self.core = try ProfileV3PlatformRuntime(profileJson: profileJSON)
+        self.profileJSON = profileJSON
     }
 
     public var profileID: String {
@@ -167,6 +169,31 @@ public final class IOSProfileV3RuntimeAdapter {
 
     public func directSurface() throws -> FfiProfileV3BoardSurface {
         try core.directSurface()
+    }
+
+    /// Layer ID → authored display name from the Profile JSON.
+    public func layerDisplayNames() -> [String: String] {
+        guard let data = profileJSON.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let layers = object["layers"] as? [[String: Any]] else {
+            return [:]
+        }
+        var names: [String: String] = [:]
+        for layer in layers {
+            if let id = layer["id"] as? String, let name = layer["name"] as? String {
+                names[id] = name
+            }
+        }
+        return names
+    }
+
+    public func updateHostFacts(_ facts: IOSHostInputFacts) throws {
+        try core.updateHostFacts(
+            returnKey: facts.returnKey,
+            keyboardType: facts.keyboardType,
+            autocapitalizeNext: facts.autocapitalizeNext,
+            needsInputModeSwitchKey: facts.needsInputModeSwitchKey
+        )
     }
 
     public func previewSurface(boardID: String) throws -> FfiProfileV3BoardSurface {
@@ -336,5 +363,50 @@ public struct IOSProfileV3BoardGeometryMapping {
             width: Double(rect.width) * atomicWidth,
             height: Double(rect.height) * atomicHeight
         )
+    }
+}
+
+
+/// Platform-normalized host input facts (#69 §14). UIKit trait values are
+/// mapped to the shared runtime's closed vocabulary by the Keyboard Extension;
+/// this type and its autocapitalization rule stay Foundation-only so the
+/// committed Swift smoke can exercise them.
+public struct IOSHostInputFacts: Equatable {
+    public var returnKey: String
+    public var keyboardType: String
+    public var autocapitalizeNext: Bool
+    public var needsInputModeSwitchKey: Bool
+
+    public init(
+        returnKey: String = "default",
+        keyboardType: String = "default",
+        autocapitalizeNext: Bool = false,
+        needsInputModeSwitchKey: Bool = true
+    ) {
+        self.returnKey = returnKey
+        self.keyboardType = keyboardType
+        self.autocapitalizeNext = autocapitalizeNext
+        self.needsInputModeSwitchKey = needsInputModeSwitchKey
+    }
+
+    /// `mode` is one of none | words | sentences | allCharacters.
+    public static func autocapitalizeNext(mode: String, textBefore: String?) -> Bool {
+        let before = textBefore ?? ""
+        switch mode {
+        case "allCharacters":
+            return true
+        case "words":
+            guard let last = before.last else { return true }
+            return last.isWhitespace
+        case "sentences":
+            let trimmed = before.reversed().drop { $0 == " " || $0 == "\u{3000}" }
+            guard let last = trimmed.first else { return true }
+            if last.isNewline { return true }
+            // Require a space after the terminator, as system keyboards do.
+            guard before.last == " " else { return false }
+            return ".!?。！？".contains(last)
+        default:
+            return false
+        }
     }
 }

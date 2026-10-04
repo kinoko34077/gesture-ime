@@ -276,6 +276,7 @@ fn a2_runtime_facts_and_default_fallback_execute() {
             conversion_active:true,
             conversion_has_candidates:true,
             layer_id:"layer.base".into(),
+        host: Default::default(),
         },
     );
     let mut semantics = runtime.board_semantics(context.clone());
@@ -486,6 +487,7 @@ fn a2_transform_match_and_text_transform_share_longest_suffix_semantics() {
             conversion_active:false,
             conversion_has_candidates:false,
             layer_id:"layer.base".into(),
+        host: Default::default(),
         },
     );
     let mut semantics = runtime.board_semantics(context.clone());
@@ -536,6 +538,7 @@ fn a2_transform_replacement_is_single_nonrecursive_operation() {
             conversion_active:false,
             conversion_has_candidates:false,
             layer_id:"layer.base".into(),
+        host: Default::default(),
         },
     );
     let mut semantics = runtime.board_semantics(context);
