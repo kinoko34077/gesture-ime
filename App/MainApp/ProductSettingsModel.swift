@@ -7,12 +7,17 @@ final class ProductSettingsModel: ObservableObject {
     @Published private(set) var values: ProductSettingsValues = .defaults
     @Published private(set) var deliveryCapability: ProductSettingsDeliveryCapability = .appLocalOnly
     @Published var errorMessage: String?
+    @Published private(set) var probe: ProductSettingsCapabilityProbe.Result =
+        .unavailable(.appGroupNotConfigured)
 
     private var store: ProductSettingsStore?
 
     init() {
+        let probe = ProductSettingsCapabilityProbe.probeMainBundle()
+        self.probe = probe
+        deliveryCapability = probe.capability
         do {
-            let root = try Self.appLocalRootURL()
+            let root = try probe.rootURL ?? Self.appLocalRootURL()
             let store = try ProductSettingsStore(rootURL: root)
             self.store = store
 
@@ -27,12 +32,15 @@ final class ProductSettingsModel: ObservableObject {
         }
     }
 
+    /// #69 §13: a setting is effective or visibly unavailable with a reason.
+    var isEditable: Bool { deliveryCapability.crossProcessAvailable }
+
     var deliveryStatus: String {
-        switch deliveryCapability {
-        case .sharedContainer:
-            "キーボード本体へ反映されます。"
-        case .appLocalOnly:
-            "このアプリ内のみ。署名済みの共有領域が確認できないため、キーボード本体には反映されません。"
+        switch probe {
+        case .available:
+            "キーボード本体へ反映されます（次にキーボードを開いた時）。"
+        case .unavailable(let reason):
+            reason.japaneseReason
         }
     }
 

@@ -44,39 +44,49 @@ private struct SetupView: View {
                     Text("入力欄で地球儀キーを押してキーボードを切り替えます。")
                 }
 
-                Section(ProfileV3DisplayCatalog.title(.sectionKeyboardSettings)) {
-                    Stepper(
-                        onIncrement: productSettings.incrementHaptic,
-                        onDecrement: productSettings.decrementHaptic
-                    ) {
-                        HStack {
-                            Text("触覚フィードバックの強さ")
-                            Spacer()
-                            Text(String(format: "%.2f", productSettings.values.hapticStrength))
-                                .monospacedDigit()
+                Section {
+                    Group {
+                        Stepper(
+                            onIncrement: productSettings.incrementHaptic,
+                            onDecrement: productSettings.decrementHaptic
+                        ) {
+                            HStack {
+                                Text("触覚フィードバックの強さ")
+                                Spacer()
+                                Text(String(format: "%.1f", productSettings.values.hapticStrength))
+                                    .monospacedDigit()
+                            }
+                        }
+
+                        Stepper(
+                            onIncrement: productSettings.incrementHeightScale,
+                            onDecrement: productSettings.decrementHeightScale
+                        ) {
+                            HStack {
+                                Text("キーボードの高さ")
+                                Spacer()
+                                Text(String(format: "%.2f倍", productSettings.values.keyboardHeightScale))
+                                    .monospacedDigit()
+                            }
+                        }
+
+                        Button("キーボード設定を初期値に戻す") {
+                            productSettings.reset()
                         }
                     }
-
-                    Stepper(
-                        onIncrement: productSettings.incrementHeightScale,
-                        onDecrement: productSettings.decrementHeightScale
-                    ) {
-                        HStack {
-                            Text("キーボードの高さ")
-                            Spacer()
-                            Text(String(format: "%.2fx", productSettings.values.keyboardHeightScale))
-                                .monospacedDigit()
-                        }
-                    }
-
-                    Button("キーボード設定を初期値に戻す") {
-                        productSettings.reset()
-                    }
+                    .disabled(!productSettings.isEditable)
 
                     if let errorMessage = productSettings.errorMessage {
                         Text(errorMessage)
                             .font(.caption)
                             .foregroundStyle(.red)
+                    }
+                } header: {
+                    Text(ProfileV3DisplayCatalog.title(.sectionKeyboardSettings))
+                } footer: {
+                    if !productSettings.isEditable {
+                        Label(productSettings.deliveryStatus, systemImage: "lock")
+                            .accessibilityLabel("利用できません: " + productSettings.deliveryStatus)
                     }
                 }
 
