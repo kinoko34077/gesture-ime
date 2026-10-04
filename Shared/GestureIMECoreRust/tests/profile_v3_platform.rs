@@ -193,10 +193,10 @@ fn runtime() -> std::sync::Arc<ProfileV3PlatformRuntime> {
     .unwrap()
 }
 
-fn entry_text(
-    surface: &gesture_ime_core::FfiProfileV3BoardSurface,
+fn entry_text<'a>(
+    surface: &'a gesture_ime_core::FfiProfileV3BoardSurface,
     id: &str,
-) -> Option<&str> {
+) -> Option<&'a str> {
     surface
         .entries
         .iter()
