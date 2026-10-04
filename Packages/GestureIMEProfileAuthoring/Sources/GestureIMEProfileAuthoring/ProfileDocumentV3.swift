@@ -728,6 +728,28 @@ extension ProfileDocument {
         try v3DeleteTopLevelObject(arrayName: "macros", id: id)
     }
 
+    public func v3SemanticSectionNode(
+        _ section: ProfileV3SemanticSection
+    ) throws -> JSONNode {
+        let top = try v3TopObject()
+        guard let node = top[section.rawValue], node.arrayValue != nil else {
+            throw ProfileAuthoringError.missingField(section.rawValue)
+        }
+        return node
+    }
+
+    public mutating func v3SetSemanticSectionNode(
+        _ section: ProfileV3SemanticSection,
+        node: JSONNode
+    ) throws {
+        guard node.arrayValue != nil else {
+            throw ProfileAuthoringError.invalidJSON(
+                "\(section.rawValue) must be a JSON array"
+            )
+        }
+        try v3SetTopLevel(section.rawValue, node)
+    }
+
     // MARK: - Internal v3 helpers
 
     private func v3TopObject() throws -> [String: JSONNode] {
