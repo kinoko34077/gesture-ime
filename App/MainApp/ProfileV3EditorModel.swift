@@ -17,12 +17,19 @@ final class ProfileV3EditorModel: ObservableObject {
     @Published private(set) var boardPath: [String] = []
     @Published var selectedLayerID = ""
     @Published var selectedEntryID: String?
+    @Published private(set) var hasCopiedEntry = false
     @Published var errorMessage: String?
 
     let profileID: String
 
+    private struct EntryClipboard {
+        let boardID: String
+        let entryID: String
+    }
+
     private let library: ProfileLibraryModel
     private var history: ProfileDocumentHistory?
+    private var entryClipboard: EntryClipboard?
 
     init(library: ProfileLibraryModel, profileID: String) {
         self.library = library
@@ -266,6 +273,34 @@ final class ProfileV3EditorModel: ObservableObject {
         }
         if entries.contains(where: { $0.id == id }) {
             self.selectedEntryID = id
+        }
+    }
+
+    func copySelectedEntry() {
+        guard let boardID = currentBoardID,
+              let selectedEntryID else { return }
+        entryClipboard = EntryClipboard(
+            boardID: boardID,
+            entryID: selectedEntryID
+        )
+        hasCopiedEntry = true
+    }
+
+    func pasteCopiedEntry(rect: ProfileV3Rect) {
+        guard let source = entryClipboard,
+              let targetBoardID = currentBoardID else { return }
+        let id = nextEntryID()
+        mutate {
+            try $0.v3CopyEntry(
+                sourceBoardID: source.boardID,
+                sourceEntryID: source.entryID,
+                targetBoardID: targetBoardID,
+                newEntryID: id,
+                newRect: rect
+            )
+        }
+        if entries.contains(where: { $0.id == id }) {
+            selectedEntryID = id
         }
     }
 
