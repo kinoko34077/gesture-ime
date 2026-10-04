@@ -77,18 +77,29 @@ final class ProductSettingsModel: ObservableObject {
     func reset() {
         persist(
             hapticStrength: ProductSettingsValues.defaults.hapticStrength,
-            keyboardHeightScale: ProductSettingsValues.defaults.keyboardHeightScale
+            keyboardHeightScale: ProductSettingsValues.defaults.keyboardHeightScale,
+            keySoundEnabled: ProductSettingsValues.defaults.keySoundEnabled
+        )
+    }
+
+    func setKeySound(_ enabled: Bool) {
+        persist(
+            hapticStrength: values.hapticStrength,
+            keyboardHeightScale: values.keyboardHeightScale,
+            keySoundEnabled: enabled
         )
     }
 
     private func persist(
         hapticStrength: Double,
-        keyboardHeightScale: Double
+        keyboardHeightScale: Double,
+        keySoundEnabled: Bool? = nil
     ) {
         do {
             let next = try ProductSettingsValues(
                 hapticStrength: hapticStrength,
-                keyboardHeightScale: keyboardHeightScale
+                keyboardHeightScale: keyboardHeightScale,
+                keySoundEnabled: keySoundEnabled ?? values.keySoundEnabled
             )
             guard let store else {
                 values = next

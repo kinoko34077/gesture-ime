@@ -61,6 +61,38 @@ final class ProductSettingsTests: XCTestCase {
         )
     }
 
+    // #93 / #95 §F8
+    func testKeySoundDefaultsOnAndLegacyRecordsDecodeAsOn() throws {
+        XCTAssertTrue(ProductSettingsValues.defaults.keySoundEnabled)
+        let legacy = Data(
+            """
+            {
+              "schema": "gesture-ime.product-settings.v1",
+              "generation": 3,
+              "hapticStrength": 0.5,
+              "keyboardHeightScale": 1.0
+            }
+            """.utf8
+        )
+        let decoded = try JSONDecoder().decode(ProductSettingsRecord.self, from: legacy)
+        XCTAssertTrue(try decoded.validatedValues().keySoundEnabled)
+    }
+
+    func testKeySoundOffRoundTripsThroughStore() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let store = try ProductSettingsStore(rootURL: root)
+        let values = try ProductSettingsValues(
+            hapticStrength: 0.3,
+            keyboardHeightScale: 1.0,
+            keySoundEnabled: false
+        )
+        _ = try store.publish(values)
+        XCTAssertEqual(try store.readActive()?.values, values)
+        XCTAssertEqual(try store.readActive()?.values.keySoundEnabled, false)
+    }
+
     func testMalformedAndOutOfRangeDecodedRecordsFailClosed() throws {
         let malformed = Data(
             """
