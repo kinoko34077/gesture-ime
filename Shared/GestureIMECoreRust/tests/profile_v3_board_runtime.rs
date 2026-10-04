@@ -1,8 +1,10 @@
 use gesture_ime_core::{
-    BoardContextV3, DefaultBoardSemanticsV3, GesturePoint, GestureSize, ProfileV3BoardRuntime,
+    ActionInvocationV3, BoardContextV3, BoardFrameV3, BoardSemanticsV3, BoardSessionTerminalV3,
+    DefaultBoardSemanticsV3, EndpointBehaviorV3, GesturePoint, GestureSize, ProfileV3BoardRuntime,
     ProfileV3Codec,
 };
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
+use std::sync::{Arc, Mutex};
 
 fn profile_json() -> Value {
     json!({
@@ -769,4 +771,581 @@ fn v3_equal_angle_distance_tie_uses_canonical_center_order() {
     // E and NE are equally distant in angle and equal radius.
     // center y is the next canonical tie-break, so NE (-1) precedes E (0).
     assert_eq!(session.committed_entry_ids, vec!["ne"]);
+}
+
+
+fn runtime_from_value(value: &Value) -> ProfileV3BoardRuntime {
+    let bytes = serde_json::to_vec(value).unwrap();
+    let profile = ProfileV3Codec::decode_and_validate(&bytes).unwrap();
+    ProfileV3BoardRuntime::compile(&profile, "a1b-test-custom").unwrap()
+}
+
+fn frame_for(runtime: &ProfileV3BoardRuntime) -> Arc<Mutex<BoardFrameV3>> {
+    runtime.new_frame("layer.base").unwrap()
+}
+
+fn direct_session(
+    runtime: &ProfileV3BoardRuntime,
+    frame: Arc<Mutex<BoardFrameV3>>,
+    entry_id: &str,
+) -> gesture_ime_core::BoardSessionV3 {
+    runtime
+        .begin_direct_session(
+            frame,
+            entry_id,
+            GestureSize {
+                width: 100.0,
+                height: 100.0,
+            },
+            GesturePoint { x: 0.0, y: 0.0 },
+            0,
+            Box::<DefaultBoardSemanticsV3>::default(),
+        )
+        .unwrap()
+}
+
+fn cursor_action(offset: i64) -> Value {
+    json!({"actionID":"cursor.move","arguments":{"offset":offset}})
+}
+
+fn empty_behavior_with_transition(target: &str, lifetime: &str) -> Value {
+    json!({
+        "transition":{
+            "targetBoardRef":target,
+            "lifetime":lifetime
+        }
+    })
+}
+
+fn board_json(id: &str, entries: Vec<Value>) -> Value {
+    json!({"id":id,"entries":entries})
+}
+
+fn entry_json(id: &str, rect: Value, default: Value) -> Value {
+    json!({
+        "id":id,
+        "rect":rect,
+        "resolver":{"cases":[],"default":default}
+    })
+}
+
+#[test]
+fn v3_precommit_same_ray_prefers_nearest_impending_candidate() {
+    let mut session = relative_session(100.0, 50.0);
+
+    session.move_to(GesturePoint { x: 30.0, y: 0.0 }, Some(10));
+
+    assert_eq!(session.candidate_entry_id.as_deref(), Some("east"));
+    assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("origin"));
+}
+
+#[test]
+fn v3_equal_angle_tie_uses_center_y_before_x_and_id() {
+    let mut value = profile_json();
+    value["boards"][1]["entries"] = json!([
+        entry_json(
+            "origin",
+            json!({"x":-1,"y":-1,"width":2,"height":2}),
+            json!({})
+        ),
+        entry_json(
+            "north-east",
+            json!({"x":1,"y":-3,"width":2,"height":2}),
+            json!({"onRelease":[cursor_action(31)]})
+        ),
+        entry_json(
+            "south-east",
+            json!({"x":1,"y":1,"width":2,"height":2}),
+            json!({"onRelease":[cursor_action(32)]})
+        )
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    session.move_to(GesturePoint { x: 80.0, y: 0.0 }, Some(10));
+    assert_eq!(
+        session.current_endpoint_entry_id.as_deref(),
+        Some("north-east")
+    );
+
+    session.touch_up(Some(20));
+    assert_eq!(action_offsets(&session), vec![31]);
+}
+
+#[test]
+fn v3_hysteresis_keeps_current_candidate_until_improvement_exceeds_margin() {
+    let mut value = profile_json();
+    value["boards"][1]["entries"] = json!([
+        entry_json(
+            "origin",
+            json!({"x":-1,"y":-1,"width":2,"height":2}),
+            json!({})
+        ),
+        entry_json(
+            "east",
+            json!({"x":1,"y":-1,"width":2,"height":2}),
+            json!({"onRelease":[cursor_action(41)]})
+        ),
+        entry_json(
+            "north-east",
+            json!({"x":1,"y":-3,"width":2,"height":2}),
+            json!({"onRelease":[cursor_action(42)]})
+        )
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    session.move_to(GesturePoint { x: 30.0, y: 0.0 }, Some(5));
+    assert_eq!(session.candidate_entry_id.as_deref(), Some("east"));
+
+    let radians = (-24.0_f64).to_radians();
+    session.move_to(
+        GesturePoint {
+            x: 30.0 * radians.cos(),
+            y: 30.0 * radians.sin(),
+        },
+        Some(10),
+    );
+
+    assert_eq!(session.candidate_entry_id.as_deref(), Some("east"));
+    assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("origin"));
+}
+
+#[test]
+fn v3_transient_transition_returns_to_prior_persistent_baseline() {
+    let runtime = runtime();
+    let frame = runtime.new_frame("layer.base").unwrap();
+    let mut session = runtime
+        .begin_direct_session(
+            frame,
+            "direct.transition",
+            GestureSize {
+                width: 100.0,
+                height: 50.0,
+            },
+            GesturePoint { x: 0.0, y: 0.0 },
+            0,
+            Box::<DefaultBoardSemanticsV3>::default(),
+        )
+        .unwrap();
+
+    assert_eq!(session.persistent_board_id().as_deref(), Some("board.root"));
+    session.touch_up(Some(20));
+
+    assert_eq!(session.current_board_id, "board.root");
+    assert_eq!(session.context, BoardContextV3::Direct);
+    assert_eq!(session.persistent_board_id().as_deref(), Some("board.root"));
+}
+
+#[test]
+fn v3_persistent_transition_becomes_next_direct_baseline() {
+    let mut value = profile_json();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["transition"]["lifetime"] =
+        json!("persistent");
+    value["boards"][1]["entries"].as_array_mut().unwrap().push(entry_json(
+        "direct.after",
+        json!({"x":5,"y":-1,"width":2,"height":2}),
+        json!({"onRelease":[cursor_action(50)]}),
+    ));
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+
+    let mut first = direct_session(&runtime, frame.clone(), "direct.transition");
+    assert_eq!(first.persistent_board_id().as_deref(), Some("board.flick"));
+    first.touch_up(Some(10));
+    assert_eq!(first.current_board_id, "board.flick");
+    assert_eq!(first.context, BoardContextV3::Direct);
+
+    let mut second = direct_session(&runtime, frame, "direct.after");
+    second.touch_up(Some(10));
+    assert_eq!(action_offsets(&second), vec![50]);
+}
+
+#[test]
+fn v3_persistent_transition_reached_through_transient_chain_replaces_baseline_and_reanchors() {
+    let mut value = profile_json();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.one",
+        "lifetime":"transient"
+    });
+    value["boards"] = json!([
+        value["boards"][0].clone(),
+        board_json(
+            "board.one",
+            vec![
+                entry_json(
+                    "origin.one",
+                    json!({"x":-1,"y":-1,"width":2,"height":2}),
+                    json!({})
+                ),
+                entry_json(
+                    "to.two",
+                    json!({"x":1,"y":-1,"width":2,"height":2}),
+                    empty_behavior_with_transition("board.two","persistent")
+                )
+            ]
+        ),
+        board_json(
+            "board.two",
+            vec![
+                entry_json(
+                    "origin.two",
+                    json!({"x":-1,"y":-1,"width":2,"height":2}),
+                    json!({})
+                ),
+                entry_json(
+                    "east.two",
+                    json!({"x":1,"y":-1,"width":2,"height":2}),
+                    json!({"onRelease":[cursor_action(61)]})
+                )
+            ]
+        )
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    session.move_to(GesturePoint { x: 60.0, y: 0.0 }, Some(10));
+    assert_eq!(session.current_board_id, "board.two");
+    assert_eq!(session.anchor, GesturePoint { x: 60.0, y: 0.0 });
+    assert_eq!(session.persistent_board_id().as_deref(), Some("board.two"));
+
+    session.move_to(GesturePoint { x: 105.0, y: 0.0 }, Some(20));
+    assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("origin.two"));
+
+    session.move_to(GesturePoint { x: 110.0, y: 0.0 }, Some(30));
+    assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("east.two"));
+
+    session.touch_up(Some(40));
+    assert_eq!(action_offsets(&session), vec![61]);
+    assert_eq!(session.current_board_id, "board.two");
+}
+
+#[test]
+fn v3_origin_release_actions_dispatch_before_origin_transition() {
+    let mut value = profile_json();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.one",
+        "lifetime":"transient"
+    });
+    value["boards"] = json!([
+        value["boards"][0].clone(),
+        board_json(
+            "board.one",
+            vec![entry_json(
+                "origin.one",
+                json!({"x":-1,"y":-1,"width":2,"height":2}),
+                json!({
+                    "onRelease":[cursor_action(70)],
+                    "transition":{
+                        "targetBoardRef":"board.two",
+                        "lifetime":"persistent"
+                    }
+                })
+            )]
+        ),
+        board_json(
+            "board.two",
+            vec![entry_json(
+                "origin.two",
+                json!({"x":-1,"y":-1,"width":2,"height":2}),
+                json!({})
+            )]
+        )
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    session.touch_up(Some(10));
+
+    assert_eq!(action_offsets(&session), vec![70]);
+    assert_eq!(session.persistent_board_id().as_deref(), Some("board.two"));
+    assert_eq!(session.current_board_id, "board.two");
+    assert_eq!(session.context, BoardContextV3::Direct);
+}
+
+#[test]
+fn v3_hold_without_transition_direction_locks_and_repeats_only_while_current() {
+    let mut value = profile_json();
+    value["boards"][1]["entries"][0]["resolver"]["default"] = json!({
+        "hold":{
+            "delayMs":100,
+            "onStart":[cursor_action(80)],
+            "repeat":{
+                "intervalMs":50,
+                "actions":[cursor_action(81)]
+            },
+            "suppressOnReleaseAfterStart":true
+        }
+    });
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    session.advance_time(210);
+    session.move_to(GesturePoint { x: 100.0, y: 0.0 }, Some(220));
+
+    assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("origin"));
+    assert_eq!(action_offsets(&session), vec![80,81,81]);
+
+    session.touch_up(Some(230));
+    assert_eq!(action_offsets(&session), vec![80,81,81]);
+}
+
+#[test]
+fn v3_hold_transition_dispatches_on_start_then_reanchors_and_drops_source_repeat() {
+    let mut value = profile_json();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.one",
+        "lifetime":"transient"
+    });
+    value["boards"] = json!([
+        value["boards"][0].clone(),
+        board_json(
+            "board.one",
+            vec![entry_json(
+                "origin.one",
+                json!({"x":-1,"y":-1,"width":2,"height":2}),
+                json!({
+                    "hold":{
+                        "delayMs":100,
+                        "onStart":[cursor_action(90)],
+                        "transition":{
+                            "targetBoardRef":"board.two",
+                            "lifetime":"transient"
+                        },
+                        "repeat":{
+                            "intervalMs":50,
+                            "actions":[cursor_action(91)]
+                        },
+                        "suppressOnReleaseAfterStart":true
+                    }
+                })
+            )]
+        ),
+        board_json(
+            "board.two",
+            vec![entry_json(
+                "origin.two",
+                json!({"x":-1,"y":-1,"width":2,"height":2}),
+                json!({"onRelease":[cursor_action(92)]})
+            )]
+        )
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    session.move_to(GesturePoint { x: 20.0, y: 0.0 }, Some(50));
+    session.advance_time(100);
+
+    assert_eq!(action_offsets(&session), vec![90]);
+    assert_eq!(session.current_board_id, "board.two");
+    assert_eq!(session.anchor, GesturePoint { x: 20.0, y: 0.0 });
+
+    session.advance_time(300);
+    assert_eq!(action_offsets(&session), vec![90]);
+
+    session.touch_up(Some(310));
+    assert_eq!(action_offsets(&session), vec![90,92]);
+}
+
+#[test]
+fn v3_cancel_and_invalidate_stop_future_behavior_and_restore_persistent_baseline() {
+    for invalidate in [false, true] {
+        let mut value = profile_json();
+        value["boards"][1]["entries"][0]["resolver"]["default"] = json!({
+            "hold":{
+                "delayMs":100,
+                "onStart":[cursor_action(100)],
+                "suppressOnReleaseAfterStart":false
+            },
+            "onRelease":[cursor_action(101)]
+        });
+
+        let runtime = runtime_from_value(&value);
+        let frame = frame_for(&runtime);
+        let mut session = direct_session(&runtime, frame, "direct.transition");
+
+        if invalidate {
+            session.invalidate(Some(50));
+            assert_eq!(
+                session.terminal,
+                Some(BoardSessionTerminalV3::Invalidated)
+            );
+        } else {
+            session.cancel(Some(50));
+            assert_eq!(session.terminal, Some(BoardSessionTerminalV3::Cancelled));
+        }
+
+        session.advance_time(300);
+        session.touch_up(Some(310));
+
+        assert!(action_offsets(&session).is_empty());
+        assert_eq!(session.current_board_id, "board.root");
+        assert_eq!(session.context, BoardContextV3::Direct);
+    }
+}
+
+#[test]
+fn v3_transition_budget_bounds_cycles_and_failed_transition_becomes_release_endpoint() {
+    let mut value = profile_json();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.a",
+        "lifetime":"transient"
+    });
+    value["boards"] = json!([
+        value["boards"][0].clone(),
+        board_json(
+            "board.a",
+            vec![
+                entry_json(
+                    "origin.a",
+                    json!({"x":-1,"y":-1,"width":2,"height":2}),
+                    json!({})
+                ),
+                entry_json(
+                    "to.b",
+                    json!({"x":1,"y":-1,"width":2,"height":2}),
+                    json!({
+                        "onRelease":[cursor_action(110)],
+                        "transition":{
+                            "targetBoardRef":"board.b",
+                            "lifetime":"transient"
+                        }
+                    })
+                )
+            ]
+        ),
+        board_json(
+            "board.b",
+            vec![
+                entry_json(
+                    "origin.b",
+                    json!({"x":-1,"y":-1,"width":2,"height":2}),
+                    json!({})
+                ),
+                entry_json(
+                    "to.a",
+                    json!({"x":1,"y":-1,"width":2,"height":2}),
+                    json!({
+                        "onRelease":[cursor_action(111)],
+                        "transition":{
+                            "targetBoardRef":"board.a",
+                            "lifetime":"transient"
+                        }
+                    })
+                )
+            ]
+        )
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    assert_eq!(session.transition_count, 1);
+    let mut x = 0.0;
+
+    for _ in 0..15 {
+        x += 45.0;
+        session.move_to(GesturePoint { x, y: 0.0 }, None);
+    }
+
+    assert_eq!(session.transition_count, 16);
+    assert!(!session.transition_limit_hit);
+
+    x += 45.0;
+    session.move_to(GesturePoint { x, y: 0.0 }, None);
+
+    assert_eq!(session.transition_count, 16);
+    assert!(session.transition_limit_hit);
+    assert!(session.current_endpoint_entry_id.is_some());
+
+    session.touch_up(None);
+    assert_eq!(action_offsets(&session).len(), 1);
+    assert_eq!(session.current_board_id, "board.root");
+}
+
+#[test]
+fn v3_macro_run_expands_one_level_in_runtime_dispatch() {
+    let mut value = profile_json();
+    value["macros"] = json!([
+        {
+            "id":"macro.sample",
+            "actions":[
+                cursor_action(120),
+                cursor_action(121)
+            ]
+        }
+    ]);
+    value["boards"][0]["entries"][1]["resolver"]["default"]["onRelease"] = json!([
+        {
+            "actionID":"macro.run",
+            "arguments":{"macro":"macro.sample"}
+        }
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.plain");
+    session.touch_up(Some(10));
+
+    assert_eq!(action_offsets(&session), vec![120,121]);
+}
+
+#[derive(Default)]
+struct CountingSemantics {
+    calls: Arc<Mutex<usize>>,
+}
+
+impl BoardSemanticsV3 for CountingSemantics {
+    fn resolve_endpoint(
+        &mut self,
+        entry: &gesture_ime_core::BoardEntryV3,
+    ) -> EndpointBehaviorV3 {
+        *self.calls.lock().unwrap() += 1;
+        entry.resolver.default.clone()
+    }
+
+    fn apply_dispatched_actions(&mut self, _actions: &[ActionInvocationV3]) {}
+}
+
+#[test]
+fn v3_endpoint_behavior_is_resolved_once_per_endpoint_activation() {
+    let runtime = runtime();
+    let frame = runtime.new_frame("layer.base").unwrap();
+    let calls = Arc::new(Mutex::new(0usize));
+
+    let mut session = runtime
+        .begin_direct_session(
+            frame,
+            "direct.plain",
+            GestureSize {
+                width: 100.0,
+                height: 100.0,
+            },
+            GesturePoint { x: 0.0, y: 0.0 },
+            0,
+            Box::new(CountingSemantics {
+                calls: calls.clone(),
+            }),
+        )
+        .unwrap();
+
+    assert_eq!(*calls.lock().unwrap(), 1);
+    session.move_to(GesturePoint { x: 200.0, y: 0.0 }, Some(10));
+    session.touch_up(Some(20));
+
+    assert_eq!(*calls.lock().unwrap(), 1);
 }
