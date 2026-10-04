@@ -95,6 +95,87 @@ final class AzooKeyCompositionBridge {
         !composingText.isEmpty
     }
 
+
+    /// Exact common-runtime composition input. No Unicode normalization is applied here.
+    var semanticComposition: String {
+        composingText.convertTarget
+    }
+
+    /// Conversion is active once the user has selected/cycled into a concrete candidate.
+    ///
+    /// Candidate availability is exposed separately so Profiles can distinguish
+    /// "there are candidates" from "a conversion candidate is actively selected".
+    var semanticConversionActive: Bool {
+        selectedCandidateIndex != nil
+    }
+
+    var semanticConversionHasCandidates: Bool {
+        !candidates.isEmpty
+    }
+
+    /// Replace one exact authored Unicode-scalar suffix in the active composition.
+    ///
+    /// ComposingText's editing counts are Swift Character units. The shared v3
+    /// transform contract is Unicode-scalar exact. We therefore first choose the
+    /// only Character-aligned suffix with the same Character count as matchedSource,
+    /// then require exact scalar equality before mutating. A scalar suffix that
+    /// would cut through a grapheme cluster fails closed.
+    @discardableResult
+    func replaceCompositionTail(
+        matchedSource: String,
+        replacement: String
+    ) -> Bool {
+        guard !matchedSource.isEmpty,
+              !composingText.isEmpty,
+              composingText.isAtEndIndex else {
+            return false
+        }
+
+        let sourceCharacterCount = matchedSource.count
+        guard sourceCharacterCount <= composingText.convertTarget.count else {
+            return false
+        }
+
+        let current = composingText.convertTarget
+        let boundary = current.index(
+            current.endIndex,
+            offsetBy: -sourceCharacterCount
+        )
+        let currentSuffix = current[boundary...]
+
+        guard currentSuffix.unicodeScalars.elementsEqual(
+            matchedSource.unicodeScalars
+        ) else {
+            return false
+        }
+
+        selectedCandidateIndex = nil
+        composingText.deleteBackwardFromCursorPosition(
+            count: sourceCharacterCount
+        )
+        if !replacement.isEmpty {
+            composingText.insertAtCursorPosition(
+                replacement,
+                inputStyle: .direct
+            )
+        }
+
+        displayedTextManager.updateComposingText(
+            composingText: composingText,
+            newLiveConversionText: nil
+        )
+
+        if composingText.isEmpty {
+            displayedTextManager.stopComposition()
+            clearCandidates()
+            Task { await worker.stopComposition() }
+        } else {
+            refreshCandidates()
+        }
+
+        return true
+    }
+
     func insert(_ text: String) {
         guard !text.isEmpty else { return }
 
