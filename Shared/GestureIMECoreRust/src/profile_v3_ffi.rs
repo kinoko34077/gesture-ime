@@ -296,6 +296,27 @@ impl ProfileV3PlatformRuntime {
         Ok(())
     }
 
+    /// Updates the bounded read-only host input facts (#69 §14).
+    pub fn update_host_facts(
+        &self,
+        return_key: String,
+        keyboard_type: String,
+        autocapitalize_next: bool,
+        needs_input_mode_switch_key: bool,
+    ) -> Result<(), ProfileV3PlatformError> {
+        let mut context = self
+            .semantic_context
+            .lock()
+            .map_err(|_| ProfileV3PlatformError::StateLock)?;
+        context.host = crate::profile_v3_semantics::HostInputFactsV3::normalized(
+            &return_key,
+            &keyboard_type,
+            autocapitalize_next,
+            needs_input_mode_switch_key,
+        );
+        Ok(())
+    }
+
     pub fn direct_surface(
         &self,
     ) -> Result<FfiProfileV3BoardSurface, ProfileV3PlatformError> {

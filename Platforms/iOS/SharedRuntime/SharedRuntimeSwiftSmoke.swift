@@ -13,6 +13,7 @@ struct SharedRuntimeSwiftSmoke {
         )
 
         verifyCandidatePanelState()
+        verifyHostAutocapitalization()
 
         if profileSchema(profileJSON) == "gesture-ime.profile.v3" {
             let runtime = try IOSProfileV3RuntimeAdapter(profileJSON: profileJSON)
@@ -54,6 +55,24 @@ struct SharedRuntimeSwiftSmoke {
         state.apply(.toggle(candidateCount: 2))
         state.apply(.candidatesChanged(count: 0))
         guard !state.expanded else { fatalError("empty candidates should collapse") }
+    private static func verifyHostAutocapitalization() {
+        let cases: [(String, String?, Bool)] = [
+            ("sentences", nil, true),
+            ("sentences", "", true),
+            ("sentences", "Hello", false),
+            ("sentences", "Hello. ", true),
+            ("sentences", "Hello.", false),
+            ("sentences", "line\n", true),
+            ("words", "one ", true),
+            ("words", "one", false),
+            ("allCharacters", "x", true),
+            ("none", nil, false)
+        ]
+        for (mode, before, expected) in cases {
+            guard IOSHostInputFacts.autocapitalizeNext(mode: mode, textBefore: before) == expected else {
+                fatalError("autocapitalization mismatch: \(mode) \(String(describing: before))")
+            }
+        }
     }
 
     private static func profileSchema(_ profileJSON: String) -> String? {
