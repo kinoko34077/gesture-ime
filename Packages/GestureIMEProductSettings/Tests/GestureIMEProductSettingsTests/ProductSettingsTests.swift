@@ -61,6 +61,37 @@ final class ProductSettingsTests: XCTestCase {
         )
     }
 
+    func testMalformedAndOutOfRangeDecodedRecordsFailClosed() throws {
+        let malformed = Data(
+            """
+            {
+              "schema": "gesture-ime.product-settings.v1",
+              "generation": 1,
+              "hapticStrength": 0.5
+            }
+            """.utf8
+        )
+        XCTAssertThrowsError(
+            try JSONDecoder().decode(ProductSettingsRecord.self, from: malformed)
+        )
+
+        let outOfRange = Data(
+            """
+            {
+              "schema": "gesture-ime.product-settings.v1",
+              "generation": 1,
+              "hapticStrength": 2.0,
+              "keyboardHeightScale": 1.0
+            }
+            """.utf8
+        )
+        let decoded = try JSONDecoder().decode(
+            ProductSettingsRecord.self,
+            from: outOfRange
+        )
+        XCTAssertThrowsError(try decoded.validatedValues())
+    }
+
     func testPublishReadRoundTripAndGenerationAreAtomicRecords() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
