@@ -298,3 +298,12 @@ public enum ProfileV3PlacementIssue: Equatable, Sendable {
     case extentExceeded
     case overlap(entryID: String)
 }
+
+
+public enum ProfileV3SemanticSection: String, CaseIterable, Identifiable, Sendable {
+    case states
+    case transformTables
+    case macros
+
+    public var id: String { rawValue }
+}
