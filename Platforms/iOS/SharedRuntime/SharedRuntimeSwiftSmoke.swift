@@ -26,6 +26,7 @@ struct SharedRuntimeSwiftSmoke {
             guard runtime.profileID == "profile.v3.a3.product-smoke" else {
                 fatalError("unexpected v3 profile id: \(runtime.profileID)")
             }
+            try verifyThemeIsPresentationOnly(profileJSON, baseline: runtime)
             try runProfileV3ProductSurface(runtime)
             print("Shared Swift v3 adapter smoke PASS: \(runtime.profileID)")
             return
@@ -98,6 +99,54 @@ struct SharedRuntimeSwiftSmoke {
               theme.guideOpacity == nil,
               IOSKeyboardTheme(profileJSON: "{}") == IOSKeyboardTheme() else {
             fatalError("theme token parsing mismatch")
+        }
+        // #91: every colour token drives exactly its own role.
+        let base = IOSKeyboardPresentation()
+        for role in IOSKeyboardColorRole.allCases {
+            let changed = IOSKeyboardPresentation(
+                theme: IOSKeyboardTheme(themeObject: [role.rawValue: "#010203"])
+            )
+            for other in IOSKeyboardColorRole.allCases {
+                let expected: IOSKeyboardColorValue = other == role
+                    ? .token(IOSKeyboardTheme.RGBA(hex: "#010203")!)
+                    : .system(other)
+                guard changed.color(other) == expected, base.color(other) == .system(other) else {
+                    fatalError("theme role mapping mismatch: \(role) -> \(other)")
+                }
+            }
+        }
+        guard Set(IOSKeyboardColorRole.allCases.map(\.rawValue)) == Set(IOSKeyboardTheme.colorTokens),
+              IOSKeyboardPresentation(theme: IOSKeyboardTheme(themeObject: ["keyFontWeight": "bold"]))
+                .keyFontWeight == "bold",
+              IOSKeyboardPresentation(theme: IOSKeyboardTheme(themeObject: ["keyFontWeight": "heavy9"]))
+                .keyFontWeight == IOSKeyboardPresentation.defaultKeyFontWeight,
+              base.keyFontSize == IOSKeyboardPresentation.defaultKeyFontSize else {
+            fatalError("theme presentation defaults mismatch")
+        }
+    }
+
+    /// #91: every Theme token at once leaves Board geometry and semantic
+    /// surface output unchanged.
+    private static func verifyThemeIsPresentationOnly(
+        _ profileJSON: String,
+        baseline: IOSProfileV3RuntimeAdapter
+    ) throws {
+        guard var object = try JSONSerialization.jsonObject(with: Data(profileJSON.utf8)) as? [String: Any] else {
+            fatalError("profile is not an object")
+        }
+        var theme: [String: Any] = [:]
+        for token in IOSKeyboardTheme.colorTokens { theme[token] = "#123456" }
+        theme["cornerRadius"] = 12
+        theme["keyFontSize"] = 30
+        theme["keyFontWeight"] = "bold"
+        theme["guideFontSize"] = 12
+        theme["guideOpacity"] = 0.3
+        object["theme"] = theme
+        let themedJSON = String(decoding: try JSONSerialization.data(withJSONObject: object), as: UTF8.self)
+        let themed = try IOSProfileV3RuntimeAdapter(profileJSON: themedJSON)
+        guard String(describing: try themed.directSurface()) == String(describing: try baseline.directSurface()),
+              IOSKeyboardTheme(profileJSON: themedJSON).keyFontWeight == "bold" else {
+            fatalError("theme changed semantic surface")
         }
     }
 

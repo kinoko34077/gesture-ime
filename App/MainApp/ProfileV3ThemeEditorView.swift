@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 import GestureIMEProfileAuthoring
 
-/// #74 / #69 §12: simple Theme editor with live preview through the same
-/// `IOSKeyboardTheme` token model the keyboard renderer uses. Theme edits are
+/// #74 / #91 / #95 §F9: Theme editor whose preview is the shared keyboard
+/// renderer drawing the edited Profile's actual initial Board. Theme edits are
 /// presentation-only and never touch Board geometry or Actions.
 struct ProfileV3ThemeEditorView: View {
     @ObservedObject var editor: ProfileV3EditorModel
@@ -21,13 +21,19 @@ struct ProfileV3ThemeEditorView: View {
         ("overlayFill", "フリック表示の背景")
     ]
 
+    static let weightLabels: [(String, String)] = [
+        ("light", "細い"), ("regular", "標準"), ("medium", "中"), ("semibold", "やや太い"), ("bold", "太い")
+    ]
+
     var body: some View {
         let theme = editor.keyboardTheme
+        ProfileV3ResizableWorkspace(storageKey: "design") {
+            ProfileV3ThemePreview(
+                presentation: IOSKeyboardPresentation(theme: theme),
+                surface: editor.previewSurface()
+            )
+        } secondary: {
         Form {
-            Section("プレビュー") {
-                ProfileV3ThemePreview(theme: theme)
-                    .frame(height: 120)
-            }
             Section("色") {
                 ForEach(Self.colorLabels, id: \.0) { item in
                     let token = item.0
@@ -36,7 +42,7 @@ struct ProfileV3ThemeEditorView: View {
                         ColorPicker(
                             label,
                             selection: Binding(
-                                get: { theme.uiColor(token) ?? Color.gray },
+                                get: { IOSKeyboardPresentation(theme: theme).swiftUIColor(IOSKeyboardColorRole(rawValue: token) ?? .keyFill) },
                                 set: { editor.setThemeToken(token, value: .string(Self.hex($0))) }
                             )
                         )
@@ -51,9 +57,17 @@ struct ProfileV3ThemeEditorView: View {
             Section("形・文字") {
                 numberRow("角の丸み", key: "cornerRadius", value: theme.cornerRadius, range: 0...24, fallback: 6)
                 numberRow("キー文字の大きさ", key: "keyFontSize", value: theme.keyFontSize, range: 8...40, fallback: 23)
+                Picker("キー文字の太さ", selection: Binding(
+                    get: { theme.keyFontWeight ?? "" },
+                    set: { editor.setThemeToken("keyFontWeight", value: $0.isEmpty ? nil : .string($0)) }
+                )) {
+                    Text("自動").tag("")
+                    ForEach(Self.weightLabels, id: \.0) { Text($0.1).tag($0.0) }
+                }
                 numberRow("補助表示の大きさ", key: "guideFontSize", value: theme.guideFontSize, range: 6...24, fallback: 9)
                 numberRow("補助表示の濃さ", key: "guideOpacity", value: theme.guideOpacity, range: 0...1, fallback: 0.6)
             }
+        }
         }
         .navigationTitle(ProfileV3DisplayCatalog.title(.sectionDesign))
     }
@@ -92,35 +106,60 @@ struct ProfileV3ThemeEditorView: View {
     }
 }
 
+/// Shared renderer over the actual Board, plus candidate and flick-overlay
+/// samples so every token is visible.
 private struct ProfileV3ThemePreview: View {
-    let theme: IOSKeyboardTheme
+    let presentation: IOSKeyboardPresentation
+    let surface: FfiProfileV3BoardSurface?
 
     var body: some View {
-        let radius = CGFloat(theme.cornerRadius ?? 6)
-        HStack(spacing: 6) {
-            ForEach(["あ", "か", "さ"], id: \.self) { label in
-                ZStack {
-                    RoundedRectangle(cornerRadius: radius)
-                        .fill(theme.uiColor(label == "か" ? "keyPressedFill" : "keyFill") ?? Color(.systemGray5))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: radius)
-                                .stroke(theme.uiColor("border") ?? Color(.systemGray3))
-                        )
-                    Text(label)
-                        .font(.system(size: CGFloat(theme.keyFontSize ?? 23)))
-                        .foregroundStyle(theme.uiColor("text") ?? .primary)
-                    Text("い")
-                        .font(.system(size: CGFloat(theme.guideFontSize ?? 9)))
-                        .foregroundStyle(theme.uiColor("guideText") ?? .primary)
-                        .opacity(theme.guideOpacity ?? 0.6)
-                        .offset(x: -24)
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                IOSKeyboardCandidateChip(text: "変換", selected: true, expanded: false, presentation: presentation) {}
+                IOSKeyboardCandidateChip(text: "候補", selected: false, expanded: false, presentation: presentation) {}
+                Spacer()
+            }
+            .frame(height: 34)
+            .background(presentation.swiftUIColor(.candidateBackground))
+
+            GeometryReader { geometry in
+                if let surface,
+                   let mapping = IOSProfileV3BoardGeometryMapping(
+                    surface: surface,
+                    width: Double(geometry.size.width),
+                    height: Double(geometry.size.height)
+                   ) {
+                    ZStack(alignment: .topLeading) {
+                        ForEach(surface.entries, id: \.id) { entry in
+                            let frame = mapping.frame(for: entry.rect)
+                            IOSKeyboardKeyCap(
+                                text: entry.text ?? "",
+                                guides: entry.guides,
+                                pressed: false,
+                                presentation: presentation
+                            )
+                            .frame(width: CGFloat(frame.width), height: CGFloat(frame.height))
+                            .position(x: CGFloat(frame.x + frame.width / 2), y: CGFloat(frame.y + frame.height / 2))
+                        }
+                        HStack(spacing: 2) {
+                            IOSKeyboardOverlayCell(text: "い", isCandidate: false, isEndpoint: false, presentation: presentation)
+                            IOSKeyboardOverlayCell(text: "あ", isCandidate: true, isEndpoint: true, presentation: presentation)
+                            IOSKeyboardOverlayCell(text: "う", isCandidate: false, isEndpoint: false, presentation: presentation)
+                        }
+                        .frame(width: 132, height: 40)
+                        .position(x: geometry.size.width - 74, y: 24)
+                    }
+                } else {
+                    Text("プレビューを表示できません（プロファイルにエラーがあります）")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(width: 80, height: 60)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.uiColor("keyboardBackground") ?? Color(.systemGray6))
-        .accessibilityLabel("デザインのプレビュー")
+        .padding(4)
+        .background(presentation.swiftUIColor(.keyboardBackground))
+        .accessibilityLabel("デザインのプレビュー（実際のキーボード表示）")
     }
 }
 
