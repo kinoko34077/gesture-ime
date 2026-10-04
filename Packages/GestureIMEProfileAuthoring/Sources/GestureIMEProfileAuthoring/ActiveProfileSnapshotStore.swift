@@ -111,14 +111,22 @@ public final class ActiveProfileSnapshotStore {
         // Preserve only a previously published manifest whose referenced snapshot
         // still passes the complete reader checks. Never promote an uncommitted
         // candidate merely because its snapshot file exists.
+        var currentForFallback: ActiveProfileManifest?
         do {
             if let currentManifest = try activeManifest() {
                 _ = try validatedSnapshot(for: currentManifest)
-                try writeManifest(currentManifest, to: fallbackManifestURL)
+                currentForFallback = currentManifest
             }
         } catch {
             // A corrupt current active generation must not overwrite an older
             // valid fallback. The new fully validated candidate may still publish.
+            currentForFallback = nil
+        }
+
+        if let currentForFallback {
+            // If preserving a known-good fallback fails at the storage layer,
+            // do not advance the active manifest.
+            try writeManifest(currentForFallback, to: fallbackManifestURL)
         }
 
         // Publishing this small record is the final commit point.
