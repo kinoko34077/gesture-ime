@@ -2,42 +2,72 @@ import SwiftUI
 import UniformTypeIdentifiers
 import GestureIMEProfileAuthoring
 
-/// #79 / #69 §11: Notion-like disclosure editing for TransformTables. Open /
-/// closed state is view-local and never persisted; edits write flat rows +
-/// `groupPath` metadata through the shared validated document path.
+/// #101 / frozen #95 §F6: Transform authoring v2. Ordinary UI shows table
+/// titles (internal IDs only under 詳細), real group nodes (no path text),
+/// reverse checkboxes and transient blank draft rows. Disclosure/search and
+/// drafts are view-local; only valid rows reach the Profile.
 struct ProfileV3TransformEditorView: View {
     @ObservedObject var editor: ProfileV3EditorModel
 
     @State private var query = ""
     @State private var expanded: Set<String> = []
     @State private var importing = false
-    @State private var newTableID = ""
+    @State private var drafts: [String: [ProfileV3TransformRow]] = [:]
+    @State private var renaming: RenameTarget?
+    @State private var renameText = ""
+    @State private var showAdvanced = false
 
-    private var tables: [ProfileV3TransformTableRows] { editor.transformRows }
+    private struct RenameTarget: Identifiable {
+        enum Kind { case tableTitle, group([String]), newGroup([String]) }
+        let tableID: String
+        let kind: Kind
+        var id: String {
+            switch kind {
+            case .tableTitle: "t:" + tableID
+            case .group(let p): "g:" + tableID + "/" + p.joined(separator: "/")
+            case .newGroup(let p): "n:" + tableID + "/" + p.joined(separator: "/")
+            }
+        }
+    }
+
+    /// Persisted tables merged with this view's transient draft rows.
+    private var tables: [ProfileV3TransformTableRows] {
+        editor.transformRows.map { table in
+            var copy = table
+            copy.rows += drafts[table.id] ?? []
+            return copy
+        }
+    }
 
     var body: some View {
-        let tree = ProfileV3TransformGrouping.tree(tables)
+        let current = tables
+        let tree = ProfileV3TransformGrouping.tree(current)
         let search = ProfileV3TransformGrouping.search(query, in: tree)
         List {
-            Section {
-                ForEach(tree) { node in
-                    nodeView(node, search: search)
+            ForEach(current.indices, id: \.self) { index in
+                let table = current[index]
+                let node = tree[index]
+                Section {
+                    tableHeader(table)
+                    ForEach(node.children) { child in
+                        nodeView(child, table: table, search: search)
+                    }
+                    addRowButton(table: table, path: [])
+                } header: {
+                    Text(table.displayTitle)
                 }
+            }
+            Section {
+                Button {
+                    if let id = try? editor.newTransformTableID() {
+                        editor.setTransformTable(ProfileV3TransformTableRows(id: id, title: "新しい変換表", rows: []))
+                    }
+                } label: {
+                    Label("変換表を追加", systemImage: "plus.rectangle.on.rectangle")
+                }
+                Toggle("内部IDを表示（詳細設定）", isOn: $showAdvanced)
             } footer: {
                 Text("グループは編集用の整理です。変換の結果は変わりません。")
-            }
-
-            Section("表を追加") {
-                HStack {
-                    TextField("内部ID（例: my.table）", text: $newTableID)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("追加") {
-                        editor.setTransformTable(ProfileV3TransformTableRows(id: newTableID, rows: []))
-                        newTableID = ""
-                    }
-                    .disabled(newTableID.isEmpty)
-                }
             }
         }
         .searchable(text: $query, prompt: "変換前・変換後・グループを検索")
@@ -71,6 +101,125 @@ struct ProfileV3TransformEditorView: View {
                 editor.errorMessage = "CSVはUTF-8で保存してください"
             }
         }
+        .alert(
+            renameTitle,
+            isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
+        ) {
+            TextField("名前", text: $renameText)
+            Button("キャンセル", role: .cancel) { renaming = nil }
+            Button("OK") { applyRename() }
+        }
+    }
+
+    private var renameTitle: String {
+        switch renaming?.kind {
+        case .tableTitle: "表のタイトル"
+        case .group: "グループ名を変更"
+        case .newGroup: "グループを追加"
+        case nil: ""
+        }
+    }
+
+    // MARK: Table header (title, reverseAll, advanced ID)
+
+    @ViewBuilder
+    private func tableHeader(_ table: ProfileV3TransformTableRows) -> some View {
+        HStack {
+            Button {
+                renameText = table.title ?? ""
+                renaming = RenameTarget(tableID: table.id, kind: .tableTitle)
+            } label: {
+                Label("タイトルを変更", systemImage: "pencil")
+            }
+            .buttonStyle(.borderless)
+            Spacer()
+            Menu {
+                Button("グループを追加") {
+                    renameText = ""
+                    renaming = RenameTarget(tableID: table.id, kind: .newGroup([]))
+                }
+            } label: {
+                Image(systemName: "folder.badge.plus").frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("グループを追加")
+        }
+        Toggle(
+            "すべての行を逆向きにも変換",
+            isOn: Binding(
+                get: { table.reverseAll },
+                set: { on in
+                    var updated = persisted(table.id) ?? table
+                    updated.reverseAll = on
+                    editor.setTransformTable(updated)
+                }
+            )
+        )
+        if showAdvanced {
+            LabeledContent(ProfileV3DisplayCatalog.title(.advancedInternalID)) {
+                Text(table.id).font(.caption.monospaced())
+            }
+        }
+    }
+
+    // MARK: Nodes
+
+    private func nodeView(
+        _ node: ProfileV3TransformNode,
+        table: ProfileV3TransformTableRows,
+        search: (expanded: Set<String>, matches: Set<String>)
+    ) -> AnyView {
+        switch node.kind {
+        case .group(let name):
+            let path = groupPath(of: node.id, tableID: table.id)
+            return AnyView(DisclosureGroup(isExpanded: isOpen(node.id, search: search)) {
+                ForEach(node.children) { child in
+                    nodeView(child, table: table, search: search)
+                }
+                addRowButton(table: table, path: path)
+            } label: {
+                HStack {
+                    Label(name, systemImage: "folder")
+                    Spacer()
+                    Menu {
+                        Button("名前を変更") {
+                            renameText = name
+                            renaming = RenameTarget(tableID: table.id, kind: .group(path))
+                        }
+                        Button("中にグループを追加") {
+                            renameText = ""
+                            renaming = RenameTarget(tableID: table.id, kind: .newGroup(path))
+                        }
+                        Button("グループを削除（中身は上の階層へ）", role: .destructive) {
+                            var updated = persisted(table.id) ?? table
+                            updated.deleteGroup(path)
+                            moveDrafts(tableID: table.id) { p in
+                                p.starts(with: path) ? Array(path.dropLast()) + p.dropFirst(path.count) : p
+                            }
+                            editor.setTransformTable(updated)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("グループの操作")
+                }
+            })
+        case .leaf(let row):
+            return AnyView(ProfileV3TransformRowEditor(
+                row: row,
+                reverseAll: table.reverseAll,
+                highlighted: search.matches.contains(node.id),
+                groups: table.groups,
+                onCommit: { updated in commit(updated, in: table) },
+                onDelete: { delete(row, in: table) },
+                onMove: { path in move(row, to: path, in: table) }
+            ))
+        case .table:
+            return AnyView(EmptyView())
+        }
+    }
+
+    private func groupPath(of nodeID: String, tableID: String) -> [String] {
+        ProfileV3TransformGrouping.decode(String(nodeID.dropFirst(tableID.count + 1)))
     }
 
     private func isOpen(_ id: String, search: (expanded: Set<String>, matches: Set<String>)) -> Binding<Bool> {
@@ -82,103 +231,141 @@ struct ProfileV3TransformEditorView: View {
         )
     }
 
-    private func nodeView(
-        _ node: ProfileV3TransformNode,
-        search: (expanded: Set<String>, matches: Set<String>)
-    ) -> AnyView {
-        switch node.kind {
-        case .table(let id), .group(let id):
-            let isTable: Bool = if case .table = node.kind { true } else { false }
-            return AnyView(DisclosureGroup(isExpanded: isOpen(node.id, search: search)) {
-                ForEach(node.children) { child in
-                    nodeView(child, search: search)
-                }
-                Button {
-                    addRow(under: node)
-                } label: {
-                    Label("行を追加", systemImage: "plus")
-                }
-                .font(.caption)
-            } label: {
-                Label(id, systemImage: isTable ? "tablecells" : "folder")
-                    .font(isTable ? .headline : .subheadline)
-            })
-        case .leaf(let row):
-            return AnyView(ProfileV3TransformRowEditor(
-                row: row,
-                highlighted: search.matches.contains(node.id)
-            ) { updated in
-                replace(row, with: updated, nodeID: node.id)
-            } onDelete: {
-                replace(row, with: nil, nodeID: node.id)
-            })
+    private func addRowButton(table: ProfileV3TransformTableRows, path: [String]) -> some View {
+        Button {
+            // §F6.5: blank transient draft with grey placeholders.
+            drafts[table.id, default: []].append(ProfileV3TransformRow(from: "", to: "", groupPath: path))
+        } label: {
+            Label("行を追加", systemImage: "plus")
         }
+        .font(.caption)
     }
 
-    private func tableID(of nodeID: String) -> String? {
-        tables.map(\.id).filter { nodeID == $0 || nodeID.hasPrefix($0 + "/") }.max { $0.count < $1.count }
+    // MARK: Mutations
+
+    private func persisted(_ tableID: String) -> ProfileV3TransformTableRows? {
+        editor.transformRows.first { $0.id == tableID }
     }
 
-    private func addRow(under node: ProfileV3TransformNode) {
-        guard let tableID = tableID(of: node.id),
-              var table = tables.first(where: { $0.id == tableID }) else { return }
-        let path = ProfileV3TransformGrouping.decode(
-            String(node.id.dropFirst(tableID.count).drop { $0 == "/" })
-        )
-        var from = "新しい文字"
-        var index = 2
-        while table.rows.contains(where: { $0.from == from }) {
-            from = "新しい文字\(index)"
-            index += 1
-        }
-        table.rows.append(ProfileV3TransformRow(from: from, to: from, groupPath: path))
-        editor.setTransformTable(table)
-        expanded.insert(node.id)
-    }
-
-    private func replace(_ row: ProfileV3TransformRow, with updated: ProfileV3TransformRow?, nodeID: String) {
-        guard let tableID = tableID(of: nodeID),
-              var table = tables.first(where: { $0.id == tableID }),
-              let index = table.rows.firstIndex(where: { $0.from == row.from }) else { return }
-        if let updated {
-            table.rows[index] = updated
+    private func commit(_ row: ProfileV3TransformRow, in table: ProfileV3TransformTableRows) {
+        guard var updated = persisted(table.id) else { return }
+        if let index = updated.rows.firstIndex(where: { $0.editorID == row.editorID }) {
+            updated.rows[index] = row
+        } else if !row.isDraft {
+            // A draft becomes semantic once both sides are filled.
+            updated.rows.append(row)
+            drafts[table.id]?.removeAll { $0.editorID == row.editorID }
         } else {
-            table.rows.remove(at: index)
+            if let index = drafts[table.id]?.firstIndex(where: { $0.editorID == row.editorID }) {
+                drafts[table.id]?[index] = row
+            }
+            return
         }
-        editor.setTransformTable(table)
+        editor.setTransformTable(updated)
+    }
+
+    private func delete(_ row: ProfileV3TransformRow, in table: ProfileV3TransformTableRows) {
+        if drafts[table.id]?.contains(where: { $0.editorID == row.editorID }) == true {
+            drafts[table.id]?.removeAll { $0.editorID == row.editorID }
+            return
+        }
+        guard var updated = persisted(table.id) else { return }
+        updated.rows.removeAll { $0.editorID == row.editorID }
+        editor.setTransformTable(updated)
+    }
+
+    private func move(_ row: ProfileV3TransformRow, to path: [String], in table: ProfileV3TransformTableRows) {
+        if let index = drafts[table.id]?.firstIndex(where: { $0.editorID == row.editorID }) {
+            drafts[table.id]?[index].groupPath = path
+            return
+        }
+        guard var updated = persisted(table.id) else { return }
+        updated.moveRow(editorID: row.editorID, to: path)
+        editor.setTransformTable(updated)
+    }
+
+    private func moveDrafts(tableID: String, _ transform: ([String]) -> [String]) {
+        guard var rows = drafts[tableID] else { return }
+        for index in rows.indices { rows[index].groupPath = transform(rows[index].groupPath) }
+        drafts[tableID] = rows
+    }
+
+    private func applyRename() {
+        guard let target = renaming, var updated = persisted(target.tableID) else { return }
+        let text = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        renaming = nil
+        do {
+            switch target.kind {
+            case .tableTitle:
+                updated.title = text.isEmpty ? nil : text
+            case .group(let path):
+                try updated.renameGroup(path, to: text)
+                let renamed = Array(path.dropLast()) + [text]
+                moveDrafts(tableID: target.tableID) { p in
+                    p.starts(with: path) ? renamed + p.dropFirst(path.count) : p
+                }
+            case .newGroup(let parent):
+                try updated.addGroup(named: text, under: parent)
+            }
+            editor.setTransformTable(updated)
+        } catch {
+            editor.errorMessage = error.localizedDescription
+        }
     }
 }
 
 private struct ProfileV3TransformRowEditor: View {
     let row: ProfileV3TransformRow
+    let reverseAll: Bool
     let highlighted: Bool
+    let groups: [[String]]
     let onCommit: (ProfileV3TransformRow) -> Void
     let onDelete: () -> Void
+    let onMove: ([String]) -> Void
 
     @State private var from = ""
     @State private var to = ""
-    @State private var group = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                TextField("変換前", text: $from)
-                    .onSubmit(commit)
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                TextField("変換後", text: $to)
-                    .onSubmit(commit)
-            }
-            .textFieldStyle(.roundedBorder)
-            TextField("グループ（「/」区切り、空欄でグループなし）", text: $group)
-                .font(.caption)
+        HStack(spacing: 6) {
+            TextField("変換前", text: $from)
+                .frame(minWidth: 0, maxWidth: .infinity)
                 .onSubmit(commit)
+            Image(systemName: reverseAll || row.reverse ? "arrow.left.arrow.right" : "arrow.right")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField("変換後", text: $to)
+                .frame(minWidth: 0, maxWidth: .infinity)
+                .onSubmit(commit)
+            // Row reverse: shown checked and disabled when the table reverses all.
+            Toggle(
+                "逆",
+                isOn: Binding(
+                    get: { reverseAll || row.reverse },
+                    set: { on in
+                        var updated = row
+                        updated.reverse = on
+                        onCommit(updated)
+                    }
+                )
+            )
+            .toggleStyle(.button)
+            .disabled(reverseAll || row.isDraft)
+            .accessibilityLabel("逆向きにも変換")
+            Menu {
+                Button("グループなしへ移動") { onMove([]) }
+                ForEach(groups, id: \.self) { path in
+                    Button(path.joined(separator: " › ") + " へ移動") { onMove(path) }
+                }
+                Divider()
+                Button("削除", role: .destructive, action: onDelete)
+            } label: {
+                Image(systemName: "ellipsis").frame(width: 32, height: 44)
+            }
+            .accessibilityLabel("行の操作")
         }
+        .textFieldStyle(.roundedBorder)
         .listRowBackground(highlighted ? Color.yellow.opacity(0.2) : nil)
-        .swipeActions {
-            Button("削除", role: .destructive, action: onDelete)
-        }
         .onAppear(perform: sync)
         .onChange(of: row) { _, _ in sync() }
     }
@@ -186,14 +373,15 @@ private struct ProfileV3TransformRowEditor: View {
     private func sync() {
         from = row.from
         to = row.to
-        group = ProfileV3TransformGrouping.encode(row.groupPath)
     }
 
     private func commit() {
         onCommit(ProfileV3TransformRow(
             from: from,
             to: to,
-            groupPath: ProfileV3TransformGrouping.decode(group)
+            groupPath: row.groupPath,
+            reverse: row.reverse,
+            editorID: row.editorID
         ))
     }
 }

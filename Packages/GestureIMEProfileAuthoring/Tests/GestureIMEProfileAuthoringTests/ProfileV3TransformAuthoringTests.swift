@@ -89,7 +89,7 @@ func csvRoundTripPreservesTableGroupPathAndUnicode() throws {
         ProfileV3TransformTableRows(id: "t.two", rows: [.init(from: " sp", to: "sp ")])
     ]
     let csv = ProfileV3TransformCSV.export(tables)
-    #expect(csv.hasPrefix("table,groupPath,from,to\r\n"))
+    #expect(csv.hasPrefix("table,title,groupPath,from,to,reverse\r\n"))
     let parsed = try ProfileV3TransformCSV.parse(csv)
     #expect(parsed == tables)
     #expect(try ProfileV3TransformCSV.parse("\u{FEFF}" + csv) == tables)
@@ -123,4 +123,89 @@ func csvRejectsBadHeaderDuplicatesAndShortRowsWithoutMutation() throws {
         ])
     }
     #expect(try doc.encoded(pretty: false) == before, "apply is atomic")
+}
+
+// MARK: - #101 / frozen #95 §F6
+
+@Test
+func titleRenameKeepsInternalIDAndNewIDsAreGenerated() throws {
+    var doc = try document()
+    var table = try doc.v3TransformTableRows()[0]
+    table.title = "小書き"
+    try doc.v3SetTransformTableRows(table)
+    table.title = "小さい文字"
+    try doc.v3SetTransformTableRows(table)
+    let reread = try doc.v3TransformTableRows()[0]
+    #expect(reread.id == "kana.small")
+    #expect(reread.displayTitle == "小さい文字")
+    #expect(try doc.v3NewTransformTableID() == "tt.table-1")
+}
+
+@Test
+func draftRowsAreNeverSerializedAndBlankStartsEmpty() throws {
+    var doc = try document()
+    var table = try doc.v3TransformTableRows()[0]
+    let draft = table.addDraftRow(in: [])
+    #expect(table.rows.first { $0.editorID == draft }?.from == "")
+    let before = try doc.encoded(pretty: false)
+    try doc.v3SetTransformTableRows(table)
+    #expect(try doc.encoded(pretty: false) == before, "draft row not persisted")
+    #expect(ProfileV3TransformCSV.export([table]).split(separator: "\r\n").count == 3)
+}
+
+@Test
+func reverseFlagsPersistAndConflictsAreRejected() throws {
+    var doc = try document()
+    var table = try doc.v3TransformTableRows()[0]
+    table.rows[0].reverse = true
+    try doc.v3SetTransformTableRows(table)
+    #expect(try doc.v3TransformTableRows()[0].rows[0].reverse)
+
+    table.reverseAll = true
+    try doc.v3SetTransformTableRows(table)
+    let reread = try doc.v3TransformTableRows()[0]
+    #expect(reread.reverseAll)
+    #expect(reread.effectiveReverse(reread.rows[1]))
+
+    var conflict = reread
+    conflict.rows.append(ProfileV3TransformRow(from: "ぁ", to: "x"))
+    #expect(throws: ProfileAuthoringError.self) { try doc.v3SetTransformTableRows(conflict) }
+}
+
+@Test
+func groupNodesPersistIncludingEmptyGroupsAndRenameRewritesMembers() throws {
+    var doc = try document()
+    var table = try doc.v3TransformTableRows()[0]
+    try table.addGroup(named: "小書き")
+    try table.addGroup(named: "空のグループ")
+    table.moveRow(editorID: table.rows[0].editorID, to: ["小書き"])
+    try table.renameGroup(["小書き"], to: "小さい")
+    try doc.v3SetTransformTableRows(table)
+
+    let reread = try doc.v3TransformTableRows()[0]
+    #expect(reread.groups == [["小さい"], ["空のグループ"]])
+    #expect(reread.rows[0].groupPath == ["小さい"])
+    let tree = ProfileV3TransformGrouping.tree([reread])
+    #expect(Array(tree[0].children.map(\.id).prefix(2)) == ["kana.small/小さい", "kana.small/空のグループ"])
+
+    var deleted = reread
+    deleted.deleteGroup(["小さい"])
+    #expect(deleted.rows[0].groupPath.isEmpty)
+    #expect(deleted.groups == [["空のグループ"]])
+    #expect(throws: ProfileAuthoringError.self) { try deleted.addGroup(named: "空のグループ") }
+}
+
+@Test
+func csvV2RoundTripsTitleAndReverseAndV1StillImports() throws {
+    let tables = [ProfileV3TransformTableRows(id: "t", title: "表", rows: [
+        .init(from: "a", to: "A", groupPath: ["g"], reverse: true),
+        .init(from: "b", to: "B")
+    ])]
+    let parsed = try ProfileV3TransformCSV.parse(ProfileV3TransformCSV.export(tables))
+    #expect(parsed == tables)
+    let v1 = try ProfileV3TransformCSV.parse("table,groupPath,from,to\r\nt,,a,A\r\n")
+    #expect(v1[0].rows[0].reverse == false && v1[0].title == nil)
+    #expect(throws: ProfileAuthoringError.self) {
+        try ProfileV3TransformCSV.parse("table,title,groupPath,from,to,reverse\r\nt,,,a,A,maybe\r\n")
+    }
 }
