@@ -269,3 +269,222 @@ func v2KeyLayoutAndPolicyUseSharedDocumentPath() throws {
     #expect(policy["maxDirectionalStages"] == nil)
     #expect(policy["futurePolicyField"] as? String == "keep")
 }
+
+
+@Test
+func activeProfileSnapshotPublishAndReadRoundTrip() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let data = Data(validProfile.utf8)
+
+    let manifest = try store.publish(data)
+    #expect(manifest.profileID == "test.profile")
+    #expect(manifest.schema == "gesture-ime.profile.v1")
+    #expect(manifest.generation == 1)
+    #expect(manifest.digest.count == 64)
+
+    let active = try store.readActive()
+    let snapshot = try #require(active)
+    #expect(snapshot.manifest == manifest)
+    #expect(snapshot.data == data)
+    let committedURL = try store.snapshotURL(for: manifest)
+    #expect(FileManager.default.fileExists(atPath: committedURL.path))
+}
+
+@Test
+func invalidSnapshotPublishDoesNotReplaceActiveManifest() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: { data in
+            let text = String(decoding: data, as: UTF8.self)
+            return text.contains("\"name\":\"Reject\"")
+                ? ProfileValidation(valid: false, errorCode: "REJECT", detail: "test")
+                : acceptingValidator(data)
+        }
+    )
+
+    let accepted = try store.publish(Data(validProfile.utf8))
+    let rejectedText = validProfile.replacingOccurrences(
+        of: "\"name\":\"Test\"",
+        with: "\"name\":\"Reject\""
+    )
+
+    #expect(throws: ActiveProfileSnapshotStoreError.self) {
+        try store.publish(Data(rejectedText.utf8))
+    }
+
+    let activeAfterReject = try store.activeManifest()
+    #expect(activeAfterReject == accepted)
+    let snapshotsURL = root.appendingPathComponent(
+        ActiveProfileSnapshotStore.snapshotsDirectoryName,
+        isDirectory: true
+    )
+    let snapshotFiles = try FileManager.default.contentsOfDirectory(
+        at: snapshotsURL,
+        includingPropertiesForKeys: nil
+    )
+    #expect(snapshotFiles.count == 1)
+}
+
+@Test
+func activeSnapshotDigestMismatchFailsClosed() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let manifest = try store.publish(Data(validProfile.utf8))
+    let snapshotURL = try store.snapshotURL(for: manifest)
+
+    try Data("tampered".utf8).write(to: snapshotURL, options: .atomic)
+
+    #expect(throws: ActiveProfileSnapshotStoreError.self) {
+        try store.readActive()
+    }
+    let activeAfterTamper = try store.activeManifest()
+    #expect(activeAfterTamper == manifest)
+}
+
+@Test
+func activeSnapshotGenerationRemainsMonotonicWhenManifestIsMissing() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let first = try store.publish(Data(validProfile.utf8))
+    #expect(first.generation == 1)
+
+    try FileManager.default.removeItem(
+        at: root.appendingPathComponent(ActiveProfileSnapshotStore.manifestFileName)
+    )
+
+    let secondText = validProfile.replacingOccurrences(
+        of: "\"name\":\"Test\"",
+        with: "\"name\":\"Second\""
+    )
+    let second = try store.publish(Data(secondText.utf8))
+    #expect(second.generation == 2)
+}
+
+
+@Test
+func activeSnapshotDigestUsesCanonicalSHA256() {
+    #expect(
+        ProfileSnapshotDigest.sha256Hex(Data())
+            == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    )
+    #expect(
+        ProfileSnapshotDigest.sha256Hex(Data("abc".utf8))
+            == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    )
+    let multiBlock = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+    #expect(
+        ProfileSnapshotDigest.sha256Hex(Data(multiBlock.utf8))
+            == "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+    )
+}
+
+
+@Test
+func activeSnapshotManifestMetadataMustMatchCommittedFilename() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let manifest = try store.publish(Data(validProfile.utf8))
+
+    let manifestURL = root.appendingPathComponent(
+        ActiveProfileSnapshotStore.manifestFileName
+    )
+    let manifestData = try Data(contentsOf: manifestURL)
+    let manifestObject = try JSONSerialization.jsonObject(with: manifestData)
+    var object = try #require(manifestObject as? [String: Any])
+    object["generation"] = manifest.generation + 1
+    let tampered = try JSONSerialization.data(withJSONObject: object)
+    try tampered.write(to: manifestURL, options: .atomic)
+
+    #expect(throws: ActiveProfileSnapshotStoreError.self) {
+        try store.readActive()
+    }
+}
+
+@Test
+func activeSnapshotColdStartFallsBackToPreviousPublishedValidGeneration() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+
+    let firstData = Data(validProfile.utf8)
+    let first = try store.publish(firstData)
+
+    let secondText = validProfile.replacingOccurrences(
+        of: "\"name\":\"Test\"",
+        with: "\"name\":\"Second\""
+    )
+    let second = try store.publish(Data(secondText.utf8))
+    #expect(second.generation == first.generation + 1)
+
+    let secondURL = try store.snapshotURL(for: second)
+    try Data("corrupt".utf8).write(to: secondURL, options: .atomic)
+
+    #expect(throws: ActiveProfileSnapshotStoreError.self) {
+        try store.readActive()
+    }
+
+    let recoveredOptional = try store.readLastKnownGood()
+    let recovered = try #require(recoveredOptional)
+    #expect(recovered.manifest == first)
+    #expect(recovered.data == firstData)
+}
+
+@Test
+func unpublishedNewerSnapshotIsNeverPromotedAsLastKnownGood() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-snapshot-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let published = try store.publish(Data(validProfile.utf8))
+
+    let snapshotsURL = root.appendingPathComponent(
+        ActiveProfileSnapshotStore.snapshotsDirectoryName,
+        isDirectory: true
+    )
+    let unpublished = snapshotsURL.appendingPathComponent(
+        "profile-999-" + String(repeating: "a", count: 64) + ".json"
+    )
+    try Data(validProfile.utf8).write(to: unpublished, options: .atomic)
+
+    let activeOptional = try store.readLastKnownGood()
+    let active = try #require(activeOptional)
+    #expect(active.manifest == published)
+}
