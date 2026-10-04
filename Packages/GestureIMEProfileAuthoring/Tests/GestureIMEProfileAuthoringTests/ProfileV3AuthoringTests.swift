@@ -540,3 +540,69 @@ func v3UnknownOrdinaryMembersSurviveTargetedEdits() throws {
     let defaultBehavior = try #require(resolver["default"] as? [String: Any])
     #expect(defaultBehavior["futureBehavior"] as? String == "keep")
 }
+
+
+@Test
+func profileDocumentHistoryUndoRedoAndDivergenceAreDeterministic() throws {
+    let seed = try ProfileDocument.emptyV3(
+        id: "user.v3.history",
+        name: "History"
+    )
+    var history = ProfileDocumentHistory(document: seed, capacity: 3)
+
+    try history.mutate { document in
+        try document.rename("One")
+    }
+    try history.mutate { document in
+        try document.v3CreateBoard(id: "board.one")
+    }
+    try history.mutate { document in
+        try document.v3CreateBoard(id: "board.two")
+    }
+
+    #expect(history.canUndo)
+    #expect(!history.canRedo)
+    #expect(history.document.summary.name == "One")
+    #expect(history.document.v3BoardSummaries().contains(where: { $0.id == "board.two" }))
+
+    #expect(history.undo())
+    #expect(!history.document.v3BoardSummaries().contains(where: { $0.id == "board.two" }))
+    #expect(history.canRedo)
+
+    #expect(history.redo())
+    #expect(history.document.v3BoardSummaries().contains(where: { $0.id == "board.two" }))
+
+    #expect(history.undo())
+    try history.mutate { document in
+        try document.v3CreateBoard(id: "board.branch")
+    }
+    #expect(!history.canRedo)
+    #expect(history.document.v3BoardSummaries().contains(where: { $0.id == "board.branch" }))
+
+    let beforeFailure = history.document
+    #expect(throws: ProfileAuthoringError.self) {
+        try history.mutate { document in
+            try document.v3CreateBoard(id: "board.one")
+        }
+    }
+    #expect(history.document == beforeFailure)
+}
+
+@Test
+func profileDocumentHistoryCapacityDropsOnlyOldestUndoSnapshot() throws {
+    let seed = try ProfileDocument.emptyV3(
+        id: "user.v3.history.capacity",
+        name: "Zero"
+    )
+    var history = ProfileDocumentHistory(document: seed, capacity: 2)
+
+    try history.mutate { try $0.rename("One") }
+    try history.mutate { try $0.rename("Two") }
+    try history.mutate { try $0.rename("Three") }
+
+    #expect(history.undo())
+    #expect(history.document.summary.name == "Two")
+    #expect(history.undo())
+    #expect(history.document.summary.name == "One")
+    #expect(!history.undo())
+}
