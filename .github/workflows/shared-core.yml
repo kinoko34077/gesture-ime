@@ -11,6 +11,7 @@ on:
       - "App/MainApp/**"
       - "Packages/GestureIMECore/**"
       - "Packages/GestureIMEProfileAuthoring/**"
+      - "Packages/GestureIMEProductSettings/**"
       - "spec/**"
       - "scripts/check-product-delete-contract.py"
       - ".github/workflows/shared-core.yml"
@@ -35,6 +36,10 @@ jobs:
 
       - name: Profile authoring tests
         working-directory: Packages/GestureIMEProfileAuthoring
+        run: swift test
+
+      - name: Product settings tests
+        working-directory: Packages/GestureIMEProductSettings
         run: swift test
 
       - name: Parse keyboard Swift sources
