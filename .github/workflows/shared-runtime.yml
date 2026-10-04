@@ -105,6 +105,9 @@ jobs:
           DYLD_LIBRARY_PATH="$PWD/target/debug" \
             "$BIN" "../../spec/conformance/fixtures/profile-v2-board-chain.valid.json"
 
+          DYLD_LIBRARY_PATH="$PWD/target/debug" \
+            "$BIN" "../../spec/conformance/fixtures/profile-v3-a3-product-smoke.valid.json"
+
           PRODUCT_SMOKE="../../Platforms/iOS/SharedRuntime/ProductProfileSharedRuntimeSmoke.swift"
           PRODUCT_BIN="$RUNNER_TEMP/product-profile-swift-smoke"
           swiftc \

@@ -1,0 +1,293 @@
+{
+  "schema": "gesture-ime.profile.v3",
+  "id": "profile.v3.a3.product-smoke",
+  "name": "A3 Product Smoke",
+  "version": 1,
+  "gesturePolicy": {
+    "deadZone": 0.1,
+    "initialCellCommitDistance": 0.55,
+    "subsequentCellCommitDistance": 0.45,
+    "angularHysteresisDegrees": 8
+  },
+  "initialLayerRef": "layer.base",
+  "layers": [
+    {
+      "id": "layer.base",
+      "name": "Base",
+      "rootBoardRef": "board.root"
+    }
+  ],
+  "boards": [
+    {
+      "id": "board.root",
+      "entries": [
+        {
+          "id": "key.flick",
+          "rect": {
+            "x": -4,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "あ",
+                  "transforms": []
+                }
+              },
+              "transition": {
+                "targetBoardRef": "board.flick",
+                "lifetime": "transient"
+              }
+            }
+          }
+        },
+        {
+          "id": "key.return",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [
+              {
+                "when": {
+                  "fact": "conversion.active"
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "確定",
+                      "transforms": []
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "conversion.commit",
+                      "arguments": {}
+                    }
+                  ]
+                }
+              }
+            ],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "改行",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.insert",
+                  "arguments": {
+                    "text": {
+                      "base": "\n",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "key.dakuten",
+          "rect": {
+            "x": 6,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [
+              {
+                "when": {
+                  "transformMatch": {
+                    "tableRef": "kana.dakuten",
+                    "target": "compositionTail"
+                  }
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "゛",
+                      "transforms": []
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.transform",
+                      "arguments": {
+                        "table": "kana.dakuten"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "゛",
+                  "transforms": []
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.flick",
+      "entries": [
+        {
+          "id": "flick.origin",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "あ",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.insert",
+                  "arguments": {
+                    "text": {
+                      "base": "あ",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "flick.east",
+          "rect": {
+            "x": 1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "い",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.insert",
+                  "arguments": {
+                    "text": {
+                      "base": "い",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "flick.ne",
+          "rect": {
+            "x": 1,
+            "y": -3,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "う",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.insert",
+                  "arguments": {
+                    "text": {
+                      "base": "う",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "flick.far-east",
+          "rect": {
+            "x": 3,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "え",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.insert",
+                  "arguments": {
+                    "text": {
+                      "base": "え",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "states": [],
+  "transformTables": [
+    {
+      "id": "kana.dakuten",
+      "entries": [
+        {
+          "from": "か",
+          "to": "が"
+        },
+        {
+          "from": "𛀀",
+          "to": "𛀁"
+        }
+      ]
+    }
+  ],
+  "macros": []
+}
