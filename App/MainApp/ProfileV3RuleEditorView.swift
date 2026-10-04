@@ -334,7 +334,7 @@ private struct ProfileV3RuleBranchEditor: View {
                 get: { tableID },
                 set: { condition.terms[index].test = .transformMatch(tableID: $0) }
             )) {
-                ForEach(editor.transformRows) { Text($0.id).tag($0.id) }
+                ForEach(editor.transformRows) { Text($0.displayTitle).tag($0.id) }
             }
         case .factEquals(let fact, let value):
             Picker("値", selection: Binding(
