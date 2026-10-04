@@ -12,6 +12,8 @@ struct SharedRuntimeSwiftSmoke {
             encoding: .utf8
         )
 
+        verifyHostAutocapitalization()
+
         verifyThemeTokens()
 
         if profileSchema(profileJSON) == "gesture-ime.profile.v3" {
@@ -36,6 +38,26 @@ struct SharedRuntimeSwiftSmoke {
         }
 
         print("Shared Swift adapter smoke PASS: \(runtime.profileID)")
+    }
+
+    private static func verifyHostAutocapitalization() {
+        let cases: [(String, String?, Bool)] = [
+            ("sentences", nil, true),
+            ("sentences", "", true),
+            ("sentences", "Hello", false),
+            ("sentences", "Hello. ", true),
+            ("sentences", "Hello.", false),
+            ("sentences", "line\n", true),
+            ("words", "one ", true),
+            ("words", "one", false),
+            ("allCharacters", "x", true),
+            ("none", nil, false)
+        ]
+        for (mode, before, expected) in cases {
+            guard IOSHostInputFacts.autocapitalizeNext(mode: mode, textBefore: before) == expected else {
+                fatalError("autocapitalization mismatch: \(mode) \(String(describing: before))")
+            }
+        }
     }
 
     private static func verifyThemeTokens() {

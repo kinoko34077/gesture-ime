@@ -86,6 +86,7 @@ final class KeyboardViewController: UIInputViewController {
             installKeyboardRoot(root, productSettings: productSettings)
             self.composition = composition
             self.productModel = retainedModel
+            pushHostFacts()
         } catch {
             installError(String(describing: error))
         }
@@ -94,6 +95,62 @@ final class KeyboardViewController: UIInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         composition?.setTextDocumentProxy(textDocumentProxy)
+        pushHostFacts()
+    }
+
+    override func textDidChange(_ textInput: (any UITextInput)?) {
+        super.textDidChange(textInput)
+        pushHostFacts()
+    }
+
+    override func selectionDidChange(_ textInput: (any UITextInput)?) {
+        super.selectionDidChange(textInput)
+        pushHostFacts()
+    }
+
+    /// Normalizes UIKit host traits into the shared runtime's closed fact
+    /// vocabulary; no layout decisions are made here.
+    private func pushHostFacts() {
+        guard let model = productModel as? ProfileV3ProductKeyboardViewModel else { return }
+        let proxy = textDocumentProxy
+        let returnKey: String = switch proxy.returnKeyType ?? .default {
+        case .go: "go"
+        case .search, .google, .yahoo: "search"
+        case .send: "send"
+        case .next: "next"
+        case .done: "done"
+        case .join: "join"
+        case .route: "route"
+        case .continue: "continue"
+        case .emergencyCall: "emergencyCall"
+        default: "default"
+        }
+        let keyboardType: String = switch proxy.keyboardType ?? .default {
+        case .asciiCapable: "ascii"
+        case .numbersAndPunctuation: "numbers"
+        case .URL: "url"
+        case .emailAddress: "email"
+        case .phonePad, .namePhonePad: "phone"
+        case .numberPad, .decimalPad, .asciiCapableNumberPad: "decimal"
+        case .twitter: "twitter"
+        case .webSearch: "webSearch"
+        default: "default"
+        }
+        let mode: String = switch proxy.autocapitalizationType ?? .sentences {
+        case .none: "none"
+        case .words: "words"
+        case .allCharacters: "allCharacters"
+        default: "sentences"
+        }
+        model.updateHostFacts(IOSHostInputFacts(
+            returnKey: returnKey,
+            keyboardType: keyboardType,
+            autocapitalizeNext: IOSHostInputFacts.autocapitalizeNext(
+                mode: mode,
+                textBefore: proxy.documentContextBeforeInput
+            ),
+            needsInputModeSwitchKey: needsInputModeSwitchKey
+        ))
     }
 
     override func viewWillDisappear(_ animated: Bool) {

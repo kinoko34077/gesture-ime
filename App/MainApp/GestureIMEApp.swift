@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import GestureIMEProfileAuthoring
 
 @main
 struct GestureIMEApp: App {
@@ -20,12 +21,12 @@ private struct RootView: View {
         TabView {
             ProfileLibraryView()
                 .tabItem {
-                    Label("Profiles", systemImage: "keyboard")
+                    Label("キーボード", systemImage: "keyboard")
                 }
 
             SetupView()
                 .tabItem {
-                    Label("Setup", systemImage: "gearshape")
+                    Label("設定", systemImage: "gearshape")
                 }
         }
     }
@@ -37,19 +38,19 @@ private struct SetupView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Keyboard Extension") {
-                    Text("Gesture IME contains the iOS Keyboard Extension.")
-                    Text("Enable it in Settings → General → Keyboard → Keyboards → Add New Keyboard.")
-                    Text("Then switch keyboards from the globe key in a compatible text field.")
+                Section("キーボードの追加") {
+                    Text("Gesture IME はiPhoneのキーボードとして使えます。")
+                    Text("設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加 から有効にします。")
+                    Text("入力欄で地球儀キーを押してキーボードを切り替えます。")
                 }
 
-                Section("Product settings") {
+                Section(ProfileV3DisplayCatalog.title(.sectionKeyboardSettings)) {
                     Stepper(
                         onIncrement: productSettings.incrementHaptic,
                         onDecrement: productSettings.decrementHaptic
                     ) {
                         HStack {
-                            Text("Haptic strength")
+                            Text("触覚フィードバックの強さ")
                             Spacer()
                             Text(String(format: "%.2f", productSettings.values.hapticStrength))
                                 .monospacedDigit()
@@ -61,14 +62,14 @@ private struct SetupView: View {
                         onDecrement: productSettings.decrementHeightScale
                     ) {
                         HStack {
-                            Text("Keyboard height scale")
+                            Text("キーボードの高さ")
                             Spacer()
                             Text(String(format: "%.2fx", productSettings.values.keyboardHeightScale))
                                 .monospacedDigit()
                         }
                     }
 
-                    Button("Reset product settings") {
+                    Button("キーボード設定を初期値に戻す") {
                         productSettings.reset()
                     }
 
@@ -79,14 +80,14 @@ private struct SetupView: View {
                     }
                 }
 
-                Section("Product settings delivery") {
+                Section("設定の反映") {
                     Text(productSettings.deliveryStatus)
-                    Text("Haptic and height values are device/product preferences and are not written into Profile v3 JSON.")
+                    Text("触覚と高さはこの端末の設定で、キーボード配置データには保存されません。")
                 }
 
-                Section("Profile delivery") {
-                    Text("This build edits and validates Profiles in the main app.")
-                    Text("Cross-process delivery to the Keyboard Extension is intentionally deferred to the separate shared-container capability gate.")
+                Section("キーボード配置の反映") {
+                    Text("このアプリでキーボード配置を編集・検証します。")
+                    Text("編集した配置をキーボード本体へ反映する機能は、共有領域の権限が用意されるまで利用できません。")
                 }
             }
             .navigationTitle("Gesture IME")

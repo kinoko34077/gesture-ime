@@ -30,9 +30,9 @@ final class ProductSettingsModel: ObservableObject {
     var deliveryStatus: String {
         switch deliveryCapability {
         case .sharedContainer:
-            "Shared-container delivery available."
+            "キーボード本体へ反映されます。"
         case .appLocalOnly:
-            "App-local only. This build has not proven the signed shared-container capability, so these edits are not claimed active in the Keyboard Extension."
+            "このアプリ内のみ。署名済みの共有領域が確認できないため、キーボード本体には反映されません。"
         }
     }
 

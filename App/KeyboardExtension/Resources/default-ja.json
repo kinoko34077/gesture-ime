@@ -1967,7 +1967,30 @@
                     "count": 1
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 400,
+                "onStart": [
+                  {
+                    "actionID": "edit.delete",
+                    "arguments": {
+                      "count": 1
+                    }
+                  }
+                ],
+                "repeat": {
+                  "intervalMs": 70,
+                  "actions": [
+                    {
+                      "actionID": "edit.delete",
+                      "arguments": {
+                        "count": 1
+                      }
+                    }
+                  ]
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -2088,17 +2111,10 @@
                   "transforms": []
                 }
               },
-              "onRelease": [
-                {
-                  "actionID": "text.insert",
-                  "arguments": {
-                    "text": {
-                      "base": " ",
-                      "transforms": []
-                    }
-                  }
-                }
-              ]
+              "transition": {
+                "targetBoardRef": "board.space.cursor",
+                "lifetime": "transient"
+              }
             }
           }
         },
@@ -2228,6 +2244,294 @@
                     {
                       "actionID": "conversion.commit",
                       "arguments": {}
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "search"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "検索",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "検索"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "send"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "送信",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "送信"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "next"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "次へ",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "次へ"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "go"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "開く",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "開く"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "done"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "完了",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "完了"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "join"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "参加",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "参加"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "route"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "経路",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "経路"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "continue"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "続ける",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "続ける"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "emergencyCall"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "緊急",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "緊急"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
                     }
                   ]
                 }
@@ -3936,7 +4240,30 @@
                     "count": 1
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 400,
+                "onStart": [
+                  {
+                    "actionID": "edit.delete",
+                    "arguments": {
+                      "count": 1
+                    }
+                  }
+                ],
+                "repeat": {
+                  "intervalMs": 70,
+                  "actions": [
+                    {
+                      "actionID": "edit.delete",
+                      "arguments": {
+                        "count": 1
+                      }
+                    }
+                  ]
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -4057,17 +4384,10 @@
                   "transforms": []
                 }
               },
-              "onRelease": [
-                {
-                  "actionID": "text.insert",
-                  "arguments": {
-                    "text": {
-                      "base": " ",
-                      "transforms": []
-                    }
-                  }
-                }
-              ]
+              "transition": {
+                "targetBoardRef": "board.space.cursor",
+                "lifetime": "transient"
+              }
             }
           }
         },
@@ -4197,6 +4517,294 @@
                     {
                       "actionID": "conversion.commit",
                       "arguments": {}
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "search"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "検索",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "検索"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "send"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "送信",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "送信"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "next"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "次へ",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "次へ"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "go"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "開く",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "開く"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "done"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "完了",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "完了"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "join"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "参加",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "参加"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "route"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "経路",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "経路"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "continue"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "続ける",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "続ける"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "emergencyCall"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "緊急",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "緊急"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
                     }
                   ]
                 }
@@ -4475,7 +5083,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "a",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "a",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4483,12 +5174,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4506,12 +5205,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4534,7 +5241,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "b",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "b",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4542,12 +5332,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4565,12 +5363,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4593,7 +5399,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "c",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "c",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4601,12 +5490,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4624,12 +5521,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4657,7 +5562,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "d",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "d",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4665,12 +5653,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4688,12 +5684,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4716,7 +5720,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "e",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "e",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4724,12 +5811,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4747,12 +5842,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4775,7 +5878,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "f",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "f",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4783,12 +5969,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4806,12 +6000,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4839,7 +6041,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "g",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "g",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4847,12 +6132,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4870,12 +6163,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4898,7 +6199,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "h",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "h",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4906,12 +6290,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4929,12 +6321,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -4957,7 +6357,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "i",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "i",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -4965,12 +6448,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -4988,12 +6479,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5021,7 +6520,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "j",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "j",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5029,12 +6611,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5052,12 +6642,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5080,7 +6678,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "k",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "k",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5088,12 +6769,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5111,12 +6800,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5139,7 +6836,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "l",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "l",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5147,12 +6927,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5170,12 +6958,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5203,7 +6999,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "m",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "m",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5211,12 +7090,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5234,12 +7121,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5262,7 +7157,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "n",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "n",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5270,12 +7248,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5293,12 +7279,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5321,7 +7315,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "o",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "o",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5329,12 +7406,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5352,12 +7437,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5385,7 +7478,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "p",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "p",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5393,12 +7569,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5416,12 +7600,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5444,7 +7636,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "q",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "q",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5452,12 +7727,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5475,12 +7758,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5503,7 +7794,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "r",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "r",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5511,12 +7885,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5534,12 +7916,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5562,7 +7952,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "s",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "s",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5570,12 +8043,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5593,12 +8074,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5626,7 +8115,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "t",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "t",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5634,12 +8206,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5657,12 +8237,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5685,7 +8273,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "u",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "u",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5693,12 +8364,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5716,12 +8395,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5744,7 +8431,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "v",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "v",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5752,12 +8522,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5775,12 +8553,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5808,7 +8594,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "w",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "w",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5816,12 +8685,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5839,12 +8716,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5867,7 +8752,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "x",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "x",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5875,12 +8843,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5898,12 +8874,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5926,7 +8910,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "y",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "y",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5934,12 +9001,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -5957,12 +9032,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -5985,7 +9068,90 @@
             "height": 2
           },
           "resolver": {
-            "cases": [],
+            "cases": [
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "z",
+                      "transforms": [
+                        {
+                          "when": {
+                            "any": [
+                              {
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
+                              },
+                              {
+                                "fact": "host.autocapitalizeNext"
+                              }
+                            ]
+                          },
+                          "tableRef": "latin.shift"
+                        }
+                      ]
+                    }
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.directInsert",
+                      "arguments": {
+                        "text": {
+                          "base": "z",
+                          "transforms": [
+                            {
+                              "when": {
+                                "any": [
+                                  {
+                                    "in": [
+                                      {
+                                        "state": "latinCase"
+                                      },
+                                      [
+                                        "upper",
+                                        "caps"
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "fact": "host.autocapitalizeNext"
+                                  }
+                                ]
+                              },
+                              "tableRef": "latin.shift"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "lower"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
             "default": {
               "presentation": {
                 "text": {
@@ -5993,12 +9159,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6016,12 +9190,20 @@
                       "transforms": [
                         {
                           "when": {
-                            "eq": [
+                            "any": [
                               {
-                                "state": "latinCase"
+                                "in": [
+                                  {
+                                    "state": "latinCase"
+                                  },
+                                  [
+                                    "upper",
+                                    "caps"
+                                  ]
+                                ]
                               },
                               {
-                                "literal": "upper"
+                                "fact": "host.autocapitalizeNext"
                               }
                             ]
                           },
@@ -6429,12 +9611,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6467,12 +9657,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6512,7 +9710,30 @@
                     "count": 1
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 400,
+                "onStart": [
+                  {
+                    "actionID": "edit.delete",
+                    "arguments": {
+                      "count": 1
+                    }
+                  }
+                ],
+                "repeat": {
+                  "intervalMs": 70,
+                  "actions": [
+                    {
+                      "actionID": "edit.delete",
+                      "arguments": {
+                        "count": 1
+                      }
+                    }
+                  ]
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -6561,12 +9782,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6599,12 +9828,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6637,12 +9874,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6675,17 +9920,10 @@
                   "transforms": []
                 }
               },
-              "onRelease": [
-                {
-                  "actionID": "text.insert",
-                  "arguments": {
-                    "text": {
-                      "base": " ",
-                      "transforms": []
-                    }
-                  }
-                }
-              ]
+              "transition": {
+                "targetBoardRef": "board.space.cursor",
+                "lifetime": "transient"
+              }
             }
           }
         },
@@ -6734,12 +9972,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6772,12 +10018,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6810,12 +10064,20 @@
                   "transforms": [
                     {
                       "when": {
-                        "eq": [
+                        "any": [
                           {
-                            "state": "latinCase"
+                            "in": [
+                              {
+                                "state": "latinCase"
+                              },
+                              [
+                                "upper",
+                                "caps"
+                              ]
+                            ]
                           },
                           {
-                            "literal": "upper"
+                            "fact": "host.autocapitalizeNext"
                           }
                         ]
                       },
@@ -6857,6 +10119,294 @@
                     {
                       "actionID": "conversion.commit",
                       "arguments": {}
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "search"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "検索",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "検索"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "send"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "送信",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "送信"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "next"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "次へ",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "次へ"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "go"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "開く",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "開く"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "done"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "完了",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "完了"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "join"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "参加",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "参加"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "route"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "経路",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "経路"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "continue"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "続ける",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "続ける"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "emergencyCall"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "緊急",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "緊急"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
                     }
                   ]
                 }
@@ -6988,7 +10538,7 @@
                       "base": "⇧",
                       "transforms": []
                     },
-                    "accessibilityLabel": "大文字"
+                    "accessibilityLabel": "小文字（タップで次の1文字を大文字）"
                   },
                   "onRelease": [
                     {
@@ -6996,6 +10546,36 @@
                       "arguments": {
                         "state": "latinCase",
                         "value": "upper"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "state": "latinCase"
+                    },
+                    {
+                      "literal": "upper"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "⬆︎",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "次の1文字だけ大文字（もう一度で大文字固定）"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "state.set",
+                      "arguments": {
+                        "state": "latinCase",
+                        "value": "caps"
                       }
                     }
                   ]
@@ -7008,7 +10588,7 @@
                   "base": "⇪",
                   "transforms": []
                 },
-                "accessibilityLabel": "小文字"
+                "accessibilityLabel": "大文字固定（タップで小文字）"
               },
               "onRelease": [
                 {
@@ -9091,7 +12671,30 @@
                     "count": 1
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 400,
+                "onStart": [
+                  {
+                    "actionID": "edit.delete",
+                    "arguments": {
+                      "count": 1
+                    }
+                  }
+                ],
+                "repeat": {
+                  "intervalMs": 70,
+                  "actions": [
+                    {
+                      "actionID": "edit.delete",
+                      "arguments": {
+                        "count": 1
+                      }
+                    }
+                  ]
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -9212,17 +12815,10 @@
                   "transforms": []
                 }
               },
-              "onRelease": [
-                {
-                  "actionID": "text.insert",
-                  "arguments": {
-                    "text": {
-                      "base": " ",
-                      "transforms": []
-                    }
-                  }
-                }
-              ]
+              "transition": {
+                "targetBoardRef": "board.space.cursor",
+                "lifetime": "transient"
+              }
             }
           }
         },
@@ -9352,6 +12948,294 @@
                     {
                       "actionID": "conversion.commit",
                       "arguments": {}
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "search"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "検索",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "検索"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "send"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "送信",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "送信"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "next"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "次へ",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "次へ"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "go"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "開く",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "開く"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "done"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "完了",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "完了"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "join"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "参加",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "参加"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "route"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "経路",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "経路"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "continue"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "続ける",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "続ける"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "when": {
+                  "eq": [
+                    {
+                      "fact": "host.returnKey"
+                    },
+                    {
+                      "literal": "emergencyCall"
+                    }
+                  ]
+                },
+                "behavior": {
+                  "presentation": {
+                    "text": {
+                      "base": "緊急",
+                      "transforms": []
+                    },
+                    "accessibilityLabel": "緊急"
+                  },
+                  "onRelease": [
+                    {
+                      "actionID": "text.insert",
+                      "arguments": {
+                        "text": {
+                          "base": "\n",
+                          "transforms": []
+                        }
+                      }
                     }
                   ]
                 }
@@ -10440,6 +14324,146 @@
           }
         }
       ]
+    },
+    {
+      "id": "board.space.cursor",
+      "entries": [
+        {
+          "id": "space.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "空白",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.insert",
+                  "arguments": {
+                    "text": {
+                      "base": " ",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "space.cursor.left",
+          "rect": {
+            "x": -3,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "◀",
+                  "transforms": []
+                },
+                "accessibilityLabel": "カーソルを左へ"
+              },
+              "onRelease": [
+                {
+                  "actionID": "cursor.move",
+                  "arguments": {
+                    "offset": -1
+                  }
+                }
+              ],
+              "hold": {
+                "delayMs": 300,
+                "onStart": [
+                  {
+                    "actionID": "cursor.move",
+                    "arguments": {
+                      "offset": -1
+                    }
+                  }
+                ],
+                "repeat": {
+                  "intervalMs": 80,
+                  "actions": [
+                    {
+                      "actionID": "cursor.move",
+                      "arguments": {
+                        "offset": -1
+                      }
+                    }
+                  ]
+                },
+                "suppressOnReleaseAfterStart": true
+              }
+            }
+          }
+        },
+        {
+          "id": "space.cursor.right",
+          "rect": {
+            "x": 1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "▶",
+                  "transforms": []
+                },
+                "accessibilityLabel": "カーソルを右へ"
+              },
+              "onRelease": [
+                {
+                  "actionID": "cursor.move",
+                  "arguments": {
+                    "offset": 1
+                  }
+                }
+              ],
+              "hold": {
+                "delayMs": 300,
+                "onStart": [
+                  {
+                    "actionID": "cursor.move",
+                    "arguments": {
+                      "offset": 1
+                    }
+                  }
+                ],
+                "repeat": {
+                  "intervalMs": 80,
+                  "actions": [
+                    {
+                      "actionID": "cursor.move",
+                      "arguments": {
+                        "offset": 1
+                      }
+                    }
+                  ]
+                },
+                "suppressOnReleaseAfterStart": true
+              }
+            }
+          }
+        }
+      ]
     }
   ],
   "states": [
@@ -10448,7 +14472,8 @@
       "type": "enum",
       "values": [
         "lower",
-        "upper"
+        "upper",
+        "caps"
       ],
       "default": "lower"
     }

@@ -10,6 +10,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     @Published private(set) var interactionSnapshot: FfiProfileV3SessionSnapshot?
     @Published private(set) var candidates: [CompositionCandidateSnapshot] = []
     @Published var panel: ProductUtilityPanel?
+    @Published private(set) var hostFacts = IOSHostInputFacts()
 
     let runtime: IOSProfileV3RuntimeAdapter
     let composition: AzooKeyCompositionBridge
@@ -55,6 +56,23 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
             }
         }
     }
+
+    /// Host traits are read-only facts for Profile conditions (#69 §14).
+    func updateHostFacts(_ facts: IOSHostInputFacts) {
+        guard facts != hostFacts else { return }
+        hostFacts = facts
+        try? runtime.updateHostFacts(facts)
+        if interactionSnapshot == nil {
+            refreshDirectSurface()
+        }
+    }
+
+    /// Current input language / Layer, visible in the product bar (#69 §14).
+    var layerTitle: String {
+        layerNames[surface.layerId] ?? ""
+    }
+
+    private lazy var layerNames: [String: String] = runtime.layerDisplayNames()
 
     func syncSemanticContext() {
         try? runtime.updateSemanticContext(
@@ -300,6 +318,14 @@ struct ProfileV3ProductKeyboardRoot: View {
 
     private var productBar: some View {
         HStack(spacing: 6) {
+            if !model.layerTitle.isEmpty {
+                Text(model.layerTitle)
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .overlay(Capsule().stroke(theme.resultTextColor.color.opacity(0.5)))
+                    .accessibilityLabel("入力中: " + model.layerTitle)
+            }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                     if model.candidates.isEmpty {
@@ -324,11 +350,14 @@ struct ProfileV3ProductKeyboardRoot: View {
                 }
             }
 
-            Button(action: model.nextKeyboard) {
-                Image(systemName: "globe")
-                    .frame(width: 30, height: 30)
+            if model.hostFacts.needsInputModeSwitchKey {
+                Button(action: model.nextKeyboard) {
+                    Image(systemName: "globe")
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("次のキーボード")
             }
-            .buttonStyle(.plain)
         }
         .foregroundStyle(theme.resultTextColor.color)
         .background(theme.resultBackgroundColor.color)
