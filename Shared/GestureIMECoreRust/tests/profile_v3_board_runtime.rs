@@ -1576,3 +1576,123 @@ fn v3_persistent_board_is_the_direct_baseline_for_the_next_interaction() {
     second.touch_up(Some(40));
     assert_eq!(action_offsets(&second), vec![43]);
 }
+
+
+#[test]
+fn v3_direct_transition_suppresses_source_hold_as_well_as_source_release() {
+    let mut value = profile_json();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["hold"] = json!({
+        "delayMs":50,
+        "onStart":[cursor_action(130)],
+        "suppressOnReleaseAfterStart":false
+    });
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    session.advance_time(100);
+    session.touch_up(Some(110));
+
+    assert_eq!(action_offsets(&session), vec![10]);
+    assert!(!action_offsets(&session).contains(&9));
+    assert!(!action_offsets(&session).contains(&130));
+}
+
+#[test]
+fn v3_direct_acquisition_does_not_consume_initial_spatial_threshold() {
+    let mut value = profile_json();
+    value["boards"][1]["entries"][1]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.second",
+        "lifetime":"transient"
+    });
+
+    value["boards"]
+        .as_array_mut()
+        .unwrap()
+        .push(board_json(
+            "board.second",
+            vec![
+                entry_json(
+                    "second.origin",
+                    json!({"x":-1,"y":-1,"width":2,"height":2}),
+                    json!({})
+                ),
+                entry_json(
+                    "second.east",
+                    json!({"x":1,"y":-1,"width":2,"height":2}),
+                    json!({
+                        "transition":{
+                            "targetBoardRef":"board.third",
+                            "lifetime":"transient"
+                        }
+                    })
+                )
+            ]
+        ));
+    value["boards"]
+        .as_array_mut()
+        .unwrap()
+        .push(board_json(
+            "board.third",
+            vec![entry_json(
+                "third.origin",
+                json!({"x":-1,"y":-1,"width":2,"height":2}),
+                json!({})
+            )]
+        ));
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    // Direct acquisition already transitioned to board.flick, but the first
+    // relative spatial stage still uses initialCellCommitDistance = 0.55.
+    session.move_to(GesturePoint { x:50.0, y:0.0 }, Some(10));
+    assert!(session.committed_entry_ids.is_empty());
+    assert_eq!(session.candidate_entry_id.as_deref(), Some("east"));
+
+    session.move_to(GesturePoint { x:56.0, y:0.0 }, Some(20));
+    assert_eq!(session.committed_entry_ids, vec!["east"]);
+    assert_eq!(session.current_board_id, "board.second");
+    assert_eq!(session.anchor, GesturePoint { x:56.0, y:0.0 });
+
+    // After that relative transition/re-anchor, the subsequent threshold 0.45
+    // applies, so 0.46 logical cells commits the next stage.
+    session.move_to(GesturePoint { x:102.0, y:0.0 }, Some(30));
+    assert_eq!(session.committed_entry_ids, vec!["east", "second.east"]);
+    assert_eq!(session.current_board_id, "board.third");
+}
+
+#[test]
+fn v3_relative_board_without_origin_releases_without_endpoint_action() {
+    let mut value = profile_json();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.no-origin",
+        "lifetime":"transient"
+    });
+    value["boards"]
+        .as_array_mut()
+        .unwrap()
+        .push(board_json(
+            "board.no-origin",
+            vec![entry_json(
+                "only.east",
+                json!({"x":1,"y":-1,"width":2,"height":2}),
+                json!({"onRelease":[cursor_action(140)]})
+            )]
+        ));
+
+    let runtime = runtime_from_value(&value);
+    let frame = frame_for(&runtime);
+    let mut session = direct_session(&runtime, frame, "direct.transition");
+
+    assert_eq!(session.current_board_id, "board.no-origin");
+    assert_eq!(session.current_endpoint_entry_id, None);
+
+    session.touch_up(Some(20));
+
+    assert!(action_offsets(&session).is_empty());
+    assert_eq!(session.current_board_id, "board.root");
+    assert_eq!(session.context, BoardContextV3::Direct);
+}
