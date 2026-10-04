@@ -80,7 +80,7 @@ struct SharedRuntimeSwiftSmoke {
               initial.surface.entries.contains(where: { $0.id == "flick.far-east" }) else {
             fatalError("v3 relative surface mismatch")
         }
-
+        try verifyProfileV3RelativeGeometry(direct: direct, relative: initial)\n
         let diagonal = try flick.move(x: 60, y: -30, atMs: 10)
         guard diagonal.currentEndpointEntryId == "flick.ne" else {
             fatalError("v3 diagonal selection mismatch")
@@ -224,5 +224,35 @@ private func verifyProfileV3Geometry(
 
     guard !frames.values.contains(where: { $0.contains(x: 180, y: 20) }) else {
         throw NSError(domain: "A3Geometry", code: 4)
+    }
+}
+
+
+private func verifyProfileV3RelativeGeometry(
+    direct: FfiProfileV3BoardSurface,
+    relative: FfiProfileV3SessionSnapshot
+) throws {
+    guard let mapping = IOSProfileV3BoardGeometryMapping(
+        surface: direct,
+        width: 240,
+        height: 40
+    ),
+    let diagonal = relative.surface.entries.first(where: { $0.id == "flick.ne" })
+    else {
+        throw NSError(domain: "A3RelativeGeometry", code: 1)
+    }
+
+    let frame = mapping.relativeFrame(
+        for: diagonal.rect,
+        anchorX: 100,
+        anchorY: 100
+    )
+    guard frame == IOSProfileV3MappedFrame(
+        x: 120,
+        y: 40,
+        width: 40,
+        height: 40
+    ) else {
+        throw NSError(domain: "A3RelativeGeometry", code: 2)
     }
 }
