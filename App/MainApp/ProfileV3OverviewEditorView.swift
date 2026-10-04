@@ -256,13 +256,24 @@ struct ProfileV3OverviewEditorView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(editor.inboundReferences) { reference in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(reference.kind.rawValue)
-                            .font(.caption.bold())
-                        Text(reference.path)
-                            .font(.caption2.monospaced())
-                            .foregroundStyle(.secondary)
+                    Button {
+                        editor.openInboundReference(reference)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(reference.kind.rawValue)
+                                    .font(.caption.bold())
+                                Text(reference.path)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.left")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -1361,8 +1372,7 @@ private struct ProfileV3RuntimePreviewSheet: View {
 
     private func load() {
         do {
-            let runtime = try editor.previewRuntime()
-            surface = try runtime.directSurface()
+            surface = try editor.previewSurface()
         } catch {
             self.error = error.localizedDescription
         }
