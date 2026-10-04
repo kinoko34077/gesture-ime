@@ -382,25 +382,28 @@ final class ProfileV3EditorModel: ObservableObject {
         return String(data: data, encoding: .utf8)
     }
 
-    func setSelectedResolverJSON(_ text: String) {
+    @discardableResult
+    func setSelectedResolverJSON(_ text: String) -> Bool {
         guard let boardID = currentBoardID,
               let entryID = selectedEntryID,
               let data = text.data(using: .utf8) else {
-            return
+            return false
         }
 
         do {
             let object = try JSONSerialization.jsonObject(with: data)
             let node = try JSONNode(foundation: object)
-            mutateThrowing {
+            try mutateThrowing {
                 try $0.v3SetEntryResolver(
                     boardID: boardID,
                     entryID: entryID,
                     resolver: node
                 )
             }
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
@@ -416,19 +419,22 @@ final class ProfileV3EditorModel: ObservableObject {
         return String(data: data, encoding: .utf8)
     }
 
+    @discardableResult
     func setSemanticSectionJSON(
         _ section: ProfileV3SemanticSection,
         text: String
-    ) {
-        guard let data = text.data(using: .utf8) else { return }
+    ) -> Bool {
+        guard let data = text.data(using: .utf8) else { return false }
         do {
             let object = try JSONSerialization.jsonObject(with: data)
             let node = try JSONNode(foundation: object)
-            mutateThrowing {
+            try mutateThrowing {
                 try $0.v3SetSemanticSectionNode(section, node: node)
             }
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
