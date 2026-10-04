@@ -90,3 +90,37 @@ func simpleTextBehaviorRoundTrips() throws {
     try document.v3SetEntryRules(boardID: board, entryID: entry, rules: rules)
     #expect(try document.v3EntryRules(boardID: board, entryID: entry) == rules)
 }
+
+@Test
+func closedCatalogLiteralsOutsideTheListAreAdvanced() throws {
+    let resolver = try json("""
+    {"cases":[{"when":{"eq":[{"fact":"host.returnKey"},{"literal":"launch"}]},"behavior":\(behaviorA)}],"default":\(behaviorB)}
+    """)
+    #expect(try ProfileV3Rules.parse(resolver).branches[0].isAdvanced)
+}
+
+@Test
+func branchBehaviorEditsKeepUnknownMembers() throws {
+    let original = ProfileV3Rules.textBehavior("か")
+    var object = original.objectValue!
+    object["hold"] = .object(["x": .integer(1)])
+    let behavior = JSONNode.object(object)
+
+    var edit = ProfileV3BranchBehavior(behavior)
+    #expect(edit.displayText == "か")
+    #expect(edit.action?.actionID == "text.insert")
+    #expect(edit.applied(to: behavior) == behavior)
+
+    edit.displayText = "が"
+    edit.action = ProfileActionDraft(actionID: "edit.delete", arguments: ["count": .integer(1)])
+    edit.transition = ProfileV3TransitionDraft(targetBoardID: "board.next")
+    let updated = edit.applied(to: behavior)
+    #expect(updated.objectValue?["hold"] == .object(["x": .integer(1)]))
+    #expect(ProfileV3BranchBehavior(updated) == edit)
+
+    let multi = try json(#"{"onRelease":[{"actionID":"a","arguments":{}},{"actionID":"b","arguments":{}}]}"#)
+    var locked = ProfileV3BranchBehavior(multi)
+    #expect(!locked.actionsEditable)
+    locked.displayText = "x"
+    #expect(locked.applied(to: multi).objectValue?["onRelease"] == multi.objectValue?["onRelease"])
+}

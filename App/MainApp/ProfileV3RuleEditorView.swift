@@ -15,6 +15,16 @@ struct ProfileV3RuleSection: View {
                 Text("条件で変える（もし〜なら）").font(.subheadline.bold())
                 ForEach(Array(rules.branches.enumerated()), id: \.offset) { index, branch in
                     branchRow(rules: rules, index: index, branch: branch)
+                        .draggable(String(index))
+                        .dropDestination(for: String.self) { items, _ in
+                            guard let from = items.first.flatMap(Int.init), from != index,
+                                  rules.branches.indices.contains(from) else { return false }
+                            var updated = rules
+                            let moved = updated.branches.remove(at: from)
+                            updated.branches.insert(moved, at: index)
+                            editor.setSelectedRules(updated)
+                            return true
+                        }
                 }
                 HStack {
                     Text("それ以外").font(.caption.bold())
@@ -47,7 +57,7 @@ struct ProfileV3RuleSection: View {
         HStack(alignment: .top) {
             switch branch {
             case .advanced:
-                Label("詳細条件（読み取り専用・詳細設定のJSONで編集）", systemImage: "lock")
+                Label("詳細設定で編集された条件", systemImage: "lock")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             case .editable(let condition, let behavior, let extra):
@@ -55,12 +65,13 @@ struct ProfileV3RuleSection: View {
                     ProfileV3RuleBranchEditor(
                         editor: editor,
                         condition: condition,
-                        output: ProfileV3Rules.simpleText(of: behavior),
-                        onSave: { newCondition, newOutput in
+                        behavior: ProfileV3BranchBehavior(behavior),
+                        onSave: { newCondition, newBehavior in
                             var updated = rules
-                            let newBehavior = newOutput.map(ProfileV3Rules.textBehavior) ?? behavior
                             updated.branches[index] = .editable(
-                                condition: newCondition, behavior: newBehavior, extra: extra
+                                condition: newCondition,
+                                behavior: newBehavior.applied(to: behavior),
+                                extra: extra
                             )
                             editor.setSelectedRules(updated)
                         }
@@ -68,7 +79,7 @@ struct ProfileV3RuleSection: View {
                 } label: {
                     VStack(alignment: .leading) {
                         Text("もし " + Self.describe(condition)).font(.caption)
-                        Text(ProfileV3Rules.simpleText(of: behavior).map { "→「\($0)」" } ?? "→ 詳細な動作")
+                        Text(Self.describe(ProfileV3BranchBehavior(behavior)))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -108,11 +119,24 @@ struct ProfileV3RuleSection: View {
         let base: String
         switch term.test {
         case .flag(let flag): base = ProfileV3RuleKind.flag(flag).title
-        case .factEquals(let fact, let value): base = "\(ProfileV3RuleKind.fact(fact).title)が「\(value)」"
+        case .factEquals(let fact, let value):
+            base = "\(ProfileV3RuleKind.fact(fact).title)が「\(ProfileV3RuleKind.valueLabel(fact, value))」"
         case .stateEquals(let state, let value): base = "状態 \(state) が「\(Self.literalText(value))」"
         case .transformMatch(let table): base = "直前の文字が変換表 \(table) に含まれる"
         }
         return term.negated ? "「\(base)」でない" : base
+    }
+
+    static func describe(_ behavior: ProfileV3BranchBehavior) -> String {
+        var parts: [String] = []
+        if let text = behavior.displayText { parts.append("表示「\(text)」") }
+        if !behavior.actionsEditable {
+            parts.append("複数の動作")
+        } else if let action = behavior.action {
+            parts.append(action.actionID)
+        }
+        if let target = behavior.transition?.targetBoardID { parts.append("次の段階 \(target)") }
+        return "→ " + (parts.isEmpty ? "何もしない" : parts.joined(separator: "・"))
     }
 
     static func literalText(_ value: JSONNode) -> String {
@@ -151,6 +175,21 @@ enum ProfileV3RuleKind: Hashable, Identifiable {
         }
     }
 
+    static func valueLabel(_ fact: ProfileV3RuleStringFact, _ value: String) -> String {
+        let labels: [String: String] = switch fact {
+        case .returnKey: [
+            "default": "標準", "go": "開く", "search": "検索", "send": "送信", "next": "次へ",
+            "done": "完了", "join": "参加", "route": "経路", "continue": "続ける", "emergencyCall": "緊急"
+        ]
+        case .keyboardType: [
+            "default": "標準", "ascii": "英字", "numbers": "数字と記号", "url": "URL", "email": "メール",
+            "phone": "電話番号", "decimal": "小数", "twitter": "SNS", "webSearch": "Web検索"
+        ]
+        case .layerID: [:]
+        }
+        return labels[value] ?? value
+    }
+
     init(_ test: ProfileV3RuleTest) {
         switch test {
         case .flag(let flag): self = .flag(flag)
@@ -163,32 +202,43 @@ enum ProfileV3RuleKind: Hashable, Identifiable {
 
 private struct ProfileV3RuleBranchEditor: View {
     @ObservedObject var editor: ProfileV3EditorModel
-    @State var condition: ProfileV3RuleCondition
-    @State var output: String?
-    let onSave: (ProfileV3RuleCondition, String?) -> Void
+    let onSave: (ProfileV3RuleCondition, ProfileV3BranchBehavior) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var outputText = ""
+    @State private var condition: ProfileV3RuleCondition
+    @State private var behavior: ProfileV3BranchBehavior
+    @State private var actionOption: CommonActionOption
+    @State private var actionArgument: String
 
     init(
         editor: ProfileV3EditorModel,
         condition: ProfileV3RuleCondition,
-        output: String?,
-        onSave: @escaping (ProfileV3RuleCondition, String?) -> Void
+        behavior: ProfileV3BranchBehavior,
+        onSave: @escaping (ProfileV3RuleCondition, ProfileV3BranchBehavior) -> Void
     ) {
         self.editor = editor
-        _condition = State(initialValue: condition)
-        _output = State(initialValue: output)
-        _outputText = State(initialValue: output ?? "")
         self.onSave = onSave
+        _condition = State(initialValue: condition)
+        _behavior = State(initialValue: behavior)
+        let option = behavior.action.map { CommonActionOption.from($0.actionID) } ?? .noop
+        _actionOption = State(initialValue: option)
+        _actionArgument = State(initialValue: behavior.action.flatMap { action in
+            option.argumentKey.flatMap { key in
+                switch action.arguments[key] {
+                case .string(let text): text
+                case .integer(let number): String(number)
+                default: nil
+                }
+            }
+        } ?? "")
     }
 
     var body: some View {
         Form {
             if condition.terms.count > 1 {
                 Picker("組み合わせ", selection: $condition.combine) {
-                    Text("すべて当てはまる").tag(ProfileV3RuleCondition.Combine.all)
-                    Text("いずれかが当てはまる").tag(ProfileV3RuleCondition.Combine.any)
+                    Text("すべて満たす").tag(ProfileV3RuleCondition.Combine.all)
+                    Text("いずれかを満たす").tag(ProfileV3RuleCondition.Combine.any)
                 }
             }
             ForEach(condition.terms.indices, id: \.self) { index in
@@ -208,12 +258,38 @@ private struct ProfileV3RuleBranchEditor: View {
             } label: {
                 Label("条件を重ねる", systemImage: "plus")
             }
-            Section("そのときの動作") {
-                if output != nil {
-                    TextField("入力する文字", text: $outputText)
+
+            Section("表示") {
+                TextField("キーに表示する文字", text: Binding(
+                    get: { behavior.displayText ?? "" },
+                    set: { behavior.displayText = $0.isEmpty ? nil : $0 }
+                ))
+            }
+            Section("動作") {
+                if behavior.actionsEditable {
+                    Picker("動作", selection: $actionOption) {
+                        ForEach(CommonActionOption.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    if actionOption.argumentKey != nil {
+                        TextField("値", text: $actionArgument)
+                            .keyboardType(actionOption.integerArgument ? .numbersAndPunctuation : .default)
+                    }
                 } else {
-                    Text("詳細な動作です（詳細設定で編集）").foregroundStyle(.secondary)
-                    Button("文字の入力に置き換える") { output = "" }
+                    Text("複数の動作です（詳細設定で編集）").foregroundStyle(.secondary)
+                }
+            }
+            Section("次の段階") {
+                Picker("移動先", selection: Binding(
+                    get: { behavior.transition?.targetBoardID ?? "" },
+                    set: { target in
+                        behavior.transition = target.isEmpty ? nil : ProfileV3TransitionDraft(
+                            targetBoardID: target,
+                            lifetime: behavior.transition?.lifetime ?? .transient
+                        )
+                    }
+                )) {
+                    Text("なし").tag("")
+                    ForEach(editor.boards) { Text($0.id).tag($0.id) }
                 }
             }
         }
@@ -221,10 +297,22 @@ private struct ProfileV3RuleBranchEditor: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存") {
-                    onSave(condition, output == nil ? nil : outputText)
+                    var result = behavior
+                    if result.actionsEditable {
+                        let draft = actionOption.makeDraft(argumentText: actionArgument)
+                        if actionOption == .noop {
+                            result.action = nil
+                        } else if let previous = result.action, previous.actionID == draft.actionID {
+                            result.action = ProfileActionDraft(
+                                actionID: draft.actionID, arguments: draft.arguments, extra: previous.extra
+                            )
+                        } else {
+                            result.action = draft
+                        }
+                    }
+                    onSave(condition, result)
                     dismiss()
                 }
-                .disabled(output != nil && outputText.isEmpty)
             }
         }
     }
@@ -241,20 +329,22 @@ private struct ProfileV3RuleBranchEditor: View {
         switch term.test {
         case .flag:
             EmptyView()
-        case .transformMatch:
+        case .transformMatch(let tableID):
             Picker("変換表", selection: Binding(
-                get: { if case .transformMatch(let id) = condition.terms[index].test { id } else { "" } },
+                get: { tableID },
                 set: { condition.terms[index].test = .transformMatch(tableID: $0) }
             )) {
-                ForEach(editor.transformTables) { Text($0.id).tag($0.id) }
+                ForEach(editor.transformRows) { Text($0.id).tag($0.id) }
             }
         case .factEquals(let fact, let value):
-            TextField("値", text: Binding(
+            Picker("値", selection: Binding(
                 get: { value },
                 set: { condition.terms[index].test = .factEquals(fact, $0) }
-            ))
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
+            )) {
+                ForEach(values(for: fact, current: value), id: \.self) {
+                    Text(ProfileV3RuleKind.valueLabel(fact, $0)).tag($0)
+                }
+            }
         case .stateEquals(let stateID, let value):
             Picker("状態", selection: Binding(
                 get: { stateID },
@@ -265,6 +355,11 @@ private struct ProfileV3RuleBranchEditor: View {
             stateValuePicker(index: index, stateID: stateID, value: value)
         }
         Toggle("「〜でない」にする", isOn: $condition.terms[index].negated)
+    }
+
+    private func values(for fact: ProfileV3RuleStringFact, current: String) -> [String] {
+        let list = fact.catalog ?? editor.layers.map(\.id)
+        return list.contains(current) || current.isEmpty ? list : [current] + list
     }
 
     @ViewBuilder
@@ -289,7 +384,7 @@ private struct ProfileV3RuleBranchEditor: View {
         ProfileV3RuleKind.all.filter {
             switch $0 {
             case .state: !editor.states.isEmpty
-            case .transformMatch: !editor.transformTables.isEmpty
+            case .transformMatch: !editor.transformRows.isEmpty
             default: true
             }
         }
@@ -303,10 +398,10 @@ private struct ProfileV3RuleBranchEditor: View {
     private func defaultTest(for kind: ProfileV3RuleKind) -> ProfileV3RuleTest {
         switch kind {
         case .flag(let flag): .flag(flag)
-        case .fact(let fact): .factEquals(fact, "")
+        case .fact(let fact): .factEquals(fact, fact.catalog?.first ?? editor.layers.first?.id ?? "")
         case .state:
             .stateEquals(stateID: editor.states.first?.id ?? "", value: defaultValue(for: editor.states.first?.id ?? ""))
-        case .transformMatch: .transformMatch(tableID: editor.transformTables.first?.id ?? "")
+        case .transformMatch: .transformMatch(tableID: editor.transformRows.first?.id ?? "")
         }
     }
 }

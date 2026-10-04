@@ -16,6 +16,19 @@ public enum ProfileV3RuleStringFact: String, CaseIterable, Sendable {
     case returnKey = "host.returnKey"        // Return用途
     case keyboardType = "host.keyboardType"  // 入力欄の種類
     case layerID = "layer.id"                // キーボード面
+
+    /// Closed literal catalogs (mirrors the runtime's `HostInputFactsV3`).
+    /// `nil` = the catalog is the document's Layer IDs.
+    public var catalog: [String]? {
+        switch self {
+        case .returnKey:
+            ["default", "go", "search", "send", "next", "done", "join", "route", "continue", "emergencyCall"]
+        case .keyboardType:
+            ["default", "ascii", "numbers", "url", "email", "phone", "decimal", "twitter", "webSearch"]
+        case .layerID:
+            nil
+        }
+    }
 }
 
 public enum ProfileV3RuleTest: Equatable, Sendable {
@@ -185,7 +198,8 @@ public enum ProfileV3Rules {
                   let right = pair[1].objectValue, right.count == 1,
                   let literal = right["literal"] else { return nil }
             if let fact = left["fact"]?.stringValue.flatMap(ProfileV3RuleStringFact.init(rawValue:)),
-               let text = literal.stringValue {
+               let text = literal.stringValue,
+               fact.catalog?.contains(text) ?? true {
                 return .factEquals(fact, text)
             }
             if let state = left["state"]?.stringValue {
@@ -224,5 +238,72 @@ extension ProfileV3Rules {
     /// A behavior that shows and inserts `text` (same shape as presets).
     public static func textBehavior(_ text: String) -> JSONNode {
         ProfileDocument.v3TextResolver(text).objectValue?["default"] ?? .null
+    }
+}
+
+/// #95 §F4 branch behavior editor: 表示 / 動作 / 次の段階. Unknown behavior
+/// members and anything beyond one onRelease action are kept unchanged.
+public struct ProfileV3BranchBehavior: Equatable, Sendable {
+    public var displayText: String?
+    /// `nil` with `actionsEditable` = no action.
+    public var action: ProfileActionDraft?
+    /// False when onRelease holds more than one action (edited in 詳細設定).
+    public let actionsEditable: Bool
+    public var transition: ProfileV3TransitionDraft?
+
+    public init(_ behavior: JSONNode) {
+        let object = behavior.objectValue ?? [:]
+        displayText = object["presentation"]?.objectValue?["text"]?.objectValue?["base"]?.stringValue
+        let actions = object["onRelease"]?.arrayValue ?? []
+        actionsEditable = actions.count <= 1
+        action = actions.count == 1 ? actions[0].objectValue.flatMap { item in
+            guard let id = item["actionID"]?.stringValue else { return nil }
+            var extra = item
+            extra.removeValue(forKey: "actionID")
+            let arguments = extra.removeValue(forKey: "arguments")?.objectValue ?? [:]
+            return ProfileActionDraft(actionID: id, arguments: arguments, extra: extra)
+        } : nil
+        transition = object["transition"]?.objectValue.flatMap { item in
+            guard let target = item["targetBoardRef"]?.stringValue,
+                  let lifetime = item["lifetime"]?.stringValue.flatMap(ProfileV3TransitionLifetime.init(rawValue:))
+            else { return nil }
+            return ProfileV3TransitionDraft(targetBoardID: target, lifetime: lifetime)
+        }
+    }
+
+    public func applied(to behavior: JSONNode) -> JSONNode {
+        var object = behavior.objectValue ?? [:]
+        var presentation = object["presentation"]?.objectValue ?? [:]
+        if let displayText, !displayText.isEmpty {
+            var text = presentation["text"]?.objectValue ?? ["transforms": .array([])]
+            text["base"] = .string(displayText)
+            presentation["text"] = .object(text)
+        } else {
+            presentation.removeValue(forKey: "text")
+        }
+        if presentation.isEmpty {
+            object.removeValue(forKey: "presentation")
+        } else {
+            object["presentation"] = .object(presentation)
+        }
+        if actionsEditable {
+            if let action {
+                var node = action.extra
+                node["actionID"] = .string(action.actionID)
+                node["arguments"] = .object(action.arguments)
+                object["onRelease"] = .array([.object(node)])
+            } else {
+                object.removeValue(forKey: "onRelease")
+            }
+        }
+        if let transition {
+            var node = object["transition"]?.objectValue ?? [:]
+            node["targetBoardRef"] = .string(transition.targetBoardID)
+            node["lifetime"] = .string(transition.lifetime.rawValue)
+            object["transition"] = .object(node)
+        } else {
+            object.removeValue(forKey: "transition")
+        }
+        return .object(object)
     }
 }
