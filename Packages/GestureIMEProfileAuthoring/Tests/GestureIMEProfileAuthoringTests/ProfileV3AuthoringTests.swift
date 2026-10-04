@@ -572,16 +572,19 @@ func profileDocumentHistoryUndoRedoAndDivergenceAreDeterministic() throws {
     var historyBoards = try history.document.v3BoardSummaries()
     #expect(historyBoards.contains(where: { $0.id == "board.two" }))
 
-    #expect(history.undo())
+    let firstUndo = history.undo()
+    #expect(firstUndo)
     historyBoards = try history.document.v3BoardSummaries()
     #expect(!historyBoards.contains(where: { $0.id == "board.two" }))
     #expect(history.canRedo)
 
-    #expect(history.redo())
+    let firstRedo = history.redo()
+    #expect(firstRedo)
     historyBoards = try history.document.v3BoardSummaries()
     #expect(historyBoards.contains(where: { $0.id == "board.two" }))
 
-    #expect(history.undo())
+    let branchUndo = history.undo()
+    #expect(branchUndo)
     try history.mutate { document in
         try document.v3CreateBoard(id: "board.branch")
     }
@@ -610,9 +613,12 @@ func profileDocumentHistoryCapacityDropsOnlyOldestUndoSnapshot() throws {
     try history.mutate { try $0.rename("Two") }
     try history.mutate { try $0.rename("Three") }
 
-    #expect(history.undo())
+    let capacityUndoOne = history.undo()
+    #expect(capacityUndoOne)
     #expect(history.document.summary.name == "Two")
-    #expect(history.undo())
+    let capacityUndoTwo = history.undo()
+    #expect(capacityUndoTwo)
     #expect(history.document.summary.name == "One")
-    #expect(!history.undo())
+    let capacityUndoThree = history.undo()
+    #expect(!capacityUndoThree)
 }
