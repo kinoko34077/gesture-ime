@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import AzooKeyUtils
+import GestureIMEProductSettings
 import KeyboardViews
 
 @MainActor
@@ -14,6 +15,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     let composition: AzooKeyCompositionBridge
     let gestureCoordinator = ProductGestureCoordinator()
     let defaultPolicy: FfiProfileV3GesturePolicy
+    let productSettings: ProductSettingsValues
 
     private let onNextKeyboard: () -> Void
     private let onDismissKeyboard: () -> Void
@@ -21,12 +23,14 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     init(
         runtime: IOSProfileV3RuntimeAdapter,
         composition: AzooKeyCompositionBridge,
+        productSettings: ProductSettingsValues,
         onNextKeyboard: @escaping () -> Void,
         onDismissKeyboard: @escaping () -> Void
     ) throws {
         self.runtime = runtime
         self.composition = composition
         self.defaultPolicy = runtime.defaultPolicy()
+        self.productSettings = productSettings
         self.onNextKeyboard = onNextKeyboard
         self.onDismissKeyboard = onDismissKeyboard
 
