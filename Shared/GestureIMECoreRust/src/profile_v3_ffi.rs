@@ -344,10 +344,15 @@ impl ProfileV3PlatformRuntime {
                 .layer_stack
                 .lock()
                 .map_err(|_| ProfileV3PlatformError::StateLock)?;
-            *stack = vec![LayerFrameHandleV3 {
+            let replacement = LayerFrameHandleV3 {
                 layer_id: layer_id.clone(),
                 frame,
-            }];
+            };
+            if let Some(active) = stack.last_mut() {
+                *active = replacement;
+            } else {
+                stack.push(replacement);
+            }
         }
 
         self.sync_layer_context(&layer_id)?;

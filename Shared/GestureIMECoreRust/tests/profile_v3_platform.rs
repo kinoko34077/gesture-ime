@@ -434,6 +434,61 @@ fn a3_platform_runtime_dispatch_order_and_transform_projection_are_lossless() {
 }
 
 #[test]
+fn a3_platform_layer_set_replaces_only_active_frame_and_preserves_lower_baseline_and_state() {
+    let runtime = runtime();
+
+    let toggle = runtime
+        .begin_session(
+            "toggle".into(),
+            FfiSize {
+                width: 100.0,
+                height: 80.0,
+            },
+            FfiPoint { x: 10.0, y: 10.0 },
+            0,
+        )
+        .unwrap();
+    toggle.touch_up(Some(10)).unwrap();
+
+    let persist = runtime
+        .begin_session(
+            "persist".into(),
+            FfiSize {
+                width: 100.0,
+                height: 100.0,
+            },
+            FfiPoint { x: 20.0, y: 20.0 },
+            20,
+        )
+        .unwrap();
+    persist.touch_up(Some(30)).unwrap();
+    assert_eq!(runtime.direct_surface().unwrap().board_id, "board.relative");
+
+    runtime.push_layer("layer.other".into()).unwrap();
+    assert_eq!(runtime.active_layer_id().unwrap(), "layer.other");
+    assert_eq!(runtime.direct_surface().unwrap().board_id, "board.other");
+
+    runtime.set_layer("layer.base".into()).unwrap();
+    assert_eq!(runtime.active_layer_id().unwrap(), "layer.base");
+    assert_eq!(runtime.direct_surface().unwrap().board_id, "board.root");
+
+    runtime.set_layer("layer.other".into()).unwrap();
+    assert_eq!(runtime.active_layer_id().unwrap(), "layer.other");
+    assert_eq!(runtime.direct_surface().unwrap().board_id, "board.other");
+
+    runtime.pop_layer().unwrap();
+    assert_eq!(runtime.active_layer_id().unwrap(), "layer.base");
+    assert_eq!(runtime.direct_surface().unwrap().board_id, "board.relative");
+    assert_eq!(
+        entry_text(
+            &runtime.preview_surface("board.root".into()).unwrap(),
+            "conditional"
+        ),
+        Some("UP")
+    );
+}
+
+#[test]
 fn a3_platform_layer_stack_set_push_pop_and_bound_are_deterministic() {
     let runtime = runtime();
 
