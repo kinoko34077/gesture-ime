@@ -29,7 +29,9 @@ struct ProfileV3ThemeEditorView: View {
                     .frame(height: 120)
             }
             Section("色") {
-                ForEach(Self.colorLabels, id: \.0) { token, label in
+                ForEach(Self.colorLabels, id: \.0) { item in
+                    let token = item.0
+                    let label = item.1
                     HStack {
                         ColorPicker(
                             label,
