@@ -611,3 +611,142 @@ fn v3_transform_total_and_string_limits_are_enforced() {
         json!("x".repeat(4097));
     expect_code(&long_string, ProfileValidationCode::ArgumentTooLarge);
 }
+
+
+#[test]
+fn v3_sparse_spans_and_persistent_transient_transitions_validate() {
+    let mut value = base_profile();
+    value["boards"] = json!([
+        {
+            "id":"board.root",
+            "entries":[
+                {
+                    "id":"wide",
+                    "rect":{"x":-4,"y":-1,"width":4,"height":2},
+                    "resolver":{
+                        "cases":[],
+                        "default":{
+                            "transition":{
+                                "targetBoardRef":"board.next",
+                                "lifetime":"persistent"
+                            }
+                        }
+                    }
+                },
+                {
+                    "id":"half",
+                    "rect":{"x":2,"y":0,"width":1,"height":1},
+                    "resolver":{
+                        "cases":[],
+                        "default":{
+                            "transition":{
+                                "targetBoardRef":"board.next",
+                                "lifetime":"transient"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id":"board.next",
+            "entries":[]
+        }
+    ]);
+    validate(&value).unwrap();
+}
+
+#[test]
+fn v3_conditional_return_and_valid_dakuten_transform_validate() {
+    let mut value = base_profile();
+    value["boards"][0]["entries"][0]["resolver"] = json!({
+        "cases":[
+            {
+                "when":{"fact":"conversion.active"},
+                "behavior":{
+                    "presentation":{"text":{"base":"確定","transforms":[]}},
+                    "onRelease":[
+                        {"actionID":"conversion.commit","arguments":{}}
+                    ]
+                }
+            }
+        ],
+        "default":{
+            "presentation":{"text":{"base":"改行","transforms":[]}},
+            "onRelease":[
+                {
+                    "actionID":"text.insert",
+                    "arguments":{"text":{"base":"\n","transforms":[]}}
+                },
+                {
+                    "actionID":"text.transform",
+                    "arguments":{"table":"kana.dakuten"}
+                }
+            ]
+        }
+    });
+    validate(&value).unwrap();
+}
+
+#[test]
+fn v3_missing_initial_layer_or_resolver_default_is_rejected() {
+    let mut missing_initial = base_profile();
+    if let Some(root) = missing_initial.as_object_mut() {
+        root.remove("initialLayerRef");
+    }
+    expect_code(
+        &missing_initial,
+        ProfileValidationCode::UnsupportedSchema,
+    );
+
+    let mut missing_default = base_profile();
+    if let Some(resolver) =
+        missing_default["boards"][0]["entries"][0]["resolver"].as_object_mut()
+    {
+        resolver.remove("default");
+    }
+    expect_code(
+        &missing_default,
+        ProfileValidationCode::UnsupportedSchema,
+    );
+}
+
+#[test]
+fn v3_zero_negative_rects_and_duplicate_ids_are_rejected() {
+    let mut zero_width = base_profile();
+    zero_width["boards"][0]["entries"][0]["rect"]["width"] = json!(0);
+    expect_code(&zero_width, ProfileValidationCode::BoardRect);
+
+    let mut negative_height = base_profile();
+    negative_height["boards"][0]["entries"][0]["rect"]["height"] = json!(-1);
+    expect_code(&negative_height, ProfileValidationCode::BoardRect);
+
+    let mut duplicate_board = base_profile();
+    duplicate_board["boards"].as_array_mut().unwrap().push(json!({
+        "id":"board.root",
+        "entries":[]
+    }));
+    expect_code(&duplicate_board, ProfileValidationCode::DuplicateId);
+
+    let mut duplicate_entry = base_profile();
+    duplicate_entry["boards"][0]["entries"].as_array_mut().unwrap().push(json!({
+        "id":"key.a",
+        "rect":{"x":2,"y":0,"width":1,"height":1},
+        "resolver":{"cases":[],"default":{}}
+    }));
+    expect_code(&duplicate_entry, ProfileValidationCode::DuplicateId);
+}
+
+#[test]
+fn v3_schema_file_is_valid_json_and_names_v3_contract() {
+    let schema_text = include_str!(
+        "../../../spec/profile/gesture-ime.profile.v3.schema.json"
+    );
+    let schema: Value = serde_json::from_str(schema_text).unwrap();
+    assert_eq!(schema["properties"]["schema"]["const"], "gesture-ime.profile.v3");
+    assert_eq!(schema["properties"]["boards"]["maxItems"], 16384);
+    assert_eq!(
+        schema["$defs"]["board"]["properties"]["entries"]["maxItems"],
+        400
+    );
+}
