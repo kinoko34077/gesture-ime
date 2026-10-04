@@ -11,28 +11,32 @@ struct ProductProfileSharedRuntimeSmoke {
             contentsOfFile: CommandLine.arguments[1],
             encoding: .utf8
         )
-        let runtime = try IOSSharedGestureRuntimeAdapter(profileJSON: profileJSON)
+        let runtime = try IOSProfileV3RuntimeAdapter(profileJSON: profileJSON)
 
         guard runtime.profileID == "builtin.ja.product" else {
             fatalError("unexpected profile id: \(runtime.profileID)")
         }
 
-        let expectedLayers = ["base", "numbers", "alpha", "symbols"]
-        for layerID in expectedLayers {
-            let layout = try runtime.compileLayout(layerID: layerID)
-            guard layout.keys.count == 20 else {
-                fatalError("\(layerID): expected 20 keys, got \(layout.keys.count)")
+        let expectedLayers: [(String, String)] = [
+            ("layer.ja", "board.ja.root"),
+            ("layer.numbers", "board.numbers.root"),
+            ("layer.alpha", "board.alpha.root"),
+            ("layer.symbols", "board.symbols.root"),
+        ]
+
+        for (layerID, boardID) in expectedLayers {
+            let surface = try runtime.setLayer(layerID)
+            guard surface.layerId == layerID else {
+                fatalError("\(layerID): unexpected layer \(surface.layerId)")
+            }
+            guard surface.boardId == boardID else {
+                fatalError("\(layerID): expected \(boardID), got \(surface.boardId)")
+            }
+            guard !surface.entries.isEmpty else {
+                fatalError("\(layerID): expected authored v3 entries")
             }
         }
 
-        let base = try runtime.compileLayout(layerID: "base")
-        let ids = Set(base.keys.map(\.id))
-        for required in ["kana.a", "edit.delete", "text.space", "text.enter", "mode.symbols", "mode.numbers", "mode.alpha"] {
-            guard ids.contains(required) else {
-                fatalError("base layout missing \(required)")
-            }
-        }
-
-        print("Shared Swift product Profile smoke PASS")
+        print("Shared Swift v3 product Profile smoke PASS")
     }
 }
