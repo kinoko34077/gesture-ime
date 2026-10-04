@@ -10,6 +10,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     @Published private(set) var interactionSnapshot: FfiProfileV3SessionSnapshot?
     @Published private(set) var candidates: [CompositionCandidateSnapshot] = []
     @Published var panel: ProductUtilityPanel?
+    @Published private(set) var candidatePanel = IOSCandidatePanelState()
     @Published private(set) var hostFacts = IOSHostInputFacts()
 
     let runtime: IOSProfileV3RuntimeAdapter
@@ -47,6 +48,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         composition.onCandidatesChanged = { [weak self] snapshots in
             guard let self else { return }
             self.candidates = snapshots
+            self.candidatePanel.apply(.candidatesChanged(count: snapshots.count))
             self.syncSemanticContext()
             if self.interactionSnapshot == nil {
                 self.refreshDirectSurface()
@@ -121,7 +123,17 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         syncSemanticContext()
     }
 
+    func toggleCandidatePanel() {
+        candidatePanel.apply(.toggle(candidateCount: candidates.count))
+    }
+
+    /// Closes only the candidate surface; composition and candidates remain.
+    func closeCandidatePanel() {
+        candidatePanel.apply(.close)
+    }
+
     func selectCandidate(_ index: Int) {
+        candidatePanel.apply(.candidateSelected)
         composition.selectCandidate(at: index)
         syncSemanticContext()
         if interactionSnapshot == nil {
@@ -295,6 +307,11 @@ struct ProfileV3ProductKeyboardRoot: View {
                     .coordinateSpace(name: boardCoordinateSpace)
                 }
             }
+            .overlay {
+                if model.candidatePanel.expanded {
+                    expandedCandidates
+                }
+            }
         }
         .padding(.horizontal, 5)
         .padding(.vertical, 4)
@@ -311,6 +328,45 @@ struct ProfileV3ProductKeyboardRoot: View {
                 )
             }
         }
+    }
+
+    /// #69 §7.2: expanded candidates over the keyboard area; the top-right
+    /// close returns to the keyboard without dismissing it or the composition.
+    private var expandedCandidates: some View {
+        ZStack(alignment: .topTrailing) {
+            ScrollView {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 64), spacing: 6)],
+                    spacing: 6
+                ) {
+                    ForEach(model.candidates, id: \.index) { candidate in
+                        Button(candidate.text) {
+                            model.selectCandidate(candidate.index)
+                        }
+                        .buttonStyle(.plain)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(
+                            candidate.selected
+                                ? theme.pushedKeyFillColor.color
+                                : theme.normalKeyFillColor.color,
+                            in: RoundedRectangle(cornerRadius: 7)
+                        )
+                        .accessibilityAddTraits(candidate.selected ? .isSelected : [])
+                    }
+                }
+                .padding(.top, 44)
+                .padding(6)
+            }
+            Button(action: model.closeCandidatePanel) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("変換候補を閉じる")
+        }
+        .background(theme.backgroundColor.color)
     }
 
     private var productBar: some View {
@@ -346,6 +402,14 @@ struct ProfileV3ProductKeyboardRoot: View {
                     }
                 }
             }
+
+            Button(action: model.toggleCandidatePanel) {
+                Image(systemName: model.candidatePanel.expanded ? "chevron.up" : "chevron.down")
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+            .disabled(model.candidates.isEmpty)
+            .accessibilityLabel(model.candidatePanel.expanded ? "変換候補を閉じる" : "変換候補を広げる")
 
             if model.hostFacts.needsInputModeSwitchKey {
                 Button(action: model.nextKeyboard) {
