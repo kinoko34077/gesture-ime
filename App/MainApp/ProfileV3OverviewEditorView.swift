@@ -187,6 +187,12 @@ struct ProfileV3OverviewEditorView: View {
             }
             .accessibilityHint(Catalog.help(.sectionInputSettings))
 
+            NavigationLink {
+                ProfileV3ThemeEditorView(editor: editor)
+            } label: {
+                Label(Catalog.title(.sectionDesign), systemImage: "paintpalette")
+            }
+
             Menu {
                 ForEach(ProfileV3Preset.allCases) { preset in
                     Button(Catalog.title(preset.displayKey)) {
@@ -1027,11 +1033,23 @@ private struct ProfileV3DirectionGrid: View {
                 GridRow {
                     ForEach(0..<3, id: \.self) { column in
                         if let direction = layout[row][column] {
-                            ProfileV3DirectionField(
-                                direction: direction,
-                                initial: text(for: direction)
-                            ) { value in
-                                editor.setDirectionText(direction, text: value)
+                            VStack(spacing: 2) {
+                                ProfileV3DirectionField(
+                                    direction: direction,
+                                    initial: text(for: direction)
+                                ) { value in
+                                    editor.setDirectionText(direction, text: value)
+                                }
+                                if let target = targetID(for: direction) {
+                                    // #69 §6.2: blank = AUTO, grey placeholder shows
+                                    // the derived label; display only.
+                                    ProfileV3GuideLabelField(
+                                        autoLabel: text(for: direction),
+                                        initial: editor.selectedGuideOverrides[target] ?? ""
+                                    ) { value in
+                                        editor.setGuideLabel(targetEntryID: target, label: value)
+                                    }
+                                }
                             }
                         } else {
                             Text(editor.selectedTapText ?? "")
@@ -1046,9 +1064,32 @@ private struct ProfileV3DirectionGrid: View {
         }
     }
 
+    private func targetID(for direction: ProfileV3Direction) -> String? {
+        editor.selectedDirectionSlots.first { $0.direction == direction }?.entry?.id
+    }
+
     private func text(for direction: ProfileV3Direction) -> String {
         editor.selectedDirectionSlots.first { $0.direction == direction }?
             .entry?.presentationText ?? ""
+    }
+}
+
+private struct ProfileV3GuideLabelField: View {
+    let autoLabel: String
+    let initial: String
+    let onCommit: (String) -> Void
+
+    @State private var text = ""
+
+    var body: some View {
+        TextField(autoLabel.isEmpty ? "自動" : autoLabel, text: $text)
+            .font(.caption2)
+            .multilineTextAlignment(.center)
+            .textFieldStyle(.roundedBorder)
+            .onSubmit { onCommit(text) }
+            .accessibilityLabel("フリック補助表示（空欄で自動: \(autoLabel)）")
+            .onAppear { text = initial }
+            .onChange(of: initial) { _, next in text = next }
     }
 }
 

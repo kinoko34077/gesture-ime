@@ -315,3 +315,41 @@ func presetsGenerateOrdinaryEditableBoards(preset: ProfileV3Preset) throws {
         #expect(slots.allSatisfy { $0.entry != nil })
     }
 }
+
+// MARK: - #74
+
+@Test
+func guideOverridesAreSourceScopedDisplayOnlyAndClearToAuto() throws {
+    var document = try emptyDocument()
+    try document.v3CreateBoard(id: "board.flick")
+    let east = try #require(try document.v3SetDirectionText(boardID: "board.flick", direction: .east, text: "え"))
+    for id in ["src.a", "src.b"] {
+        try document.v3CreateEntry(
+            boardID: "board.base",
+            id: id,
+            rect: ProfileV3Rect(x: id == "src.a" ? -4 : 0, y: -1, width: 2, height: 2),
+            resolver: ProfileDocument.v3TextResolver(id, transitionTo: "board.flick")
+        )
+    }
+    let before = try entryObject(document, board: "board.flick", entry: east)
+    try document.v3SetGuideLabelOverride(boardID: "board.base", entryID: "src.a", targetEntryID: east, label: "エ")
+    #expect(try document.v3GuideLabelOverrides(boardID: "board.base", entryID: "src.a") == [east: "エ"])
+    #expect(try document.v3GuideLabelOverrides(boardID: "board.base", entryID: "src.b").isEmpty)
+    // Target entry (output/action/geometry) untouched.
+    #expect(NSDictionary(dictionary: try entryObject(document, board: "board.flick", entry: east))
+        .isEqual(to: before))
+
+    try document.v3SetGuideLabelOverride(boardID: "board.base", entryID: "src.a", targetEntryID: east, label: "")
+    #expect(try entryObject(document, board: "board.base", entry: "src.a")["guideLabelOverrides"] == nil)
+}
+
+@Test
+func themeTokensLiveOutsideBoardSemantics() throws {
+    var document = try emptyDocument()
+    let boardsBefore = try json(document)["boards"] as? [[String: Any]]
+    try document.v3SetThemeToken("keyFill", value: .string("#112233"))
+    #expect(try document.v3ThemeTokens()["keyFill"]?.stringValue == "#112233")
+    #expect(NSArray(array: try json(document)["boards"] as? [[String: Any]] ?? []).isEqual(to: boardsBefore ?? []))
+    try document.v3SetThemeToken("keyFill", value: nil)
+    #expect(try json(document)["theme"] == nil)
+}
