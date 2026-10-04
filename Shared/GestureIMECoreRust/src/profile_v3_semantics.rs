@@ -421,101 +421,101 @@ fn evaluate_condition(
     snapshot: &SemanticSnapshotV3,
     tables: &HashMap<String, TransformTableV3>,
 ) -> bool {
-    let Some(object) = condition.0.as_object() else {
-        return false;
-    };
+    evaluate_condition_checked(condition, snapshot, tables).unwrap_or(false)
+}
+
+fn evaluate_condition_checked(
+    condition: &ConditionV3,
+    snapshot: &SemanticSnapshotV3,
+    tables: &HashMap<String, TransformTableV3>,
+) -> Option<bool> {
+    let object = condition.0.as_object()?;
     if object.len() != 1 {
-        return false;
+        return None;
     }
 
-    let Some((operator, operand)) = object.iter().next() else {
-        return false;
-    };
+    let (operator, operand) = object.iter().next()?;
 
     match operator.as_str() {
-        "state" | "fact" | "literal" => value_expression(&condition.0, snapshot)
-            .and_then(|value| value.as_bool().map(|value| value.to_owned()))
-            .unwrap_or(false),
+        "state" | "fact" | "literal" => {
+            value_expression(&condition.0, snapshot)?.as_bool()
+        }
         "eq" => {
-            let Some(values) = operand.as_array() else {
-                return false;
-            };
+            let values = operand.as_array()?;
             if values.len() != 2 {
-                return false;
+                return None;
             }
-            match (
-                value_expression(&values[0], snapshot),
-                value_expression(&values[1], snapshot),
-            ) {
-                (Some(lhs), Some(rhs)) => lhs == rhs,
-                _ => false,
-            }
+            let lhs = value_expression(&values[0], snapshot)?;
+            let rhs = value_expression(&values[1], snapshot)?;
+            Some(lhs == rhs)
         }
         "in" => {
-            let Some(values) = operand.as_array() else {
-                return false;
-            };
+            let values = operand.as_array()?;
             if values.len() != 2 {
-                return false;
+                return None;
             }
-            let Some(lhs) = value_expression(&values[0], snapshot) else {
-                return false;
-            };
-            let Some(items) = values[1].as_array() else {
-                return false;
-            };
-            items.iter().any(|item| item == &lhs)
+            let lhs = value_expression(&values[0], snapshot)?;
+            let items = values[1].as_array()?;
+            if items.is_empty()
+                || items
+                    .iter()
+                    .any(|item| !matches!(item, Value::Bool(_) | Value::String(_)))
+            {
+                return None;
+            }
+            Some(items.iter().any(|item| item == &lhs))
         }
-        "all" => operand
-            .as_array()
-            .is_some_and(|items| {
-                !items.is_empty()
-                    && items.iter().all(|item| {
-                        evaluate_condition(
-                            &ConditionV3(item.clone()),
-                            snapshot,
-                            tables,
-                        )
-                    })
-            }),
-        "any" => operand
-            .as_array()
-            .is_some_and(|items| {
-                !items.is_empty()
-                    && items.iter().any(|item| {
-                        evaluate_condition(
-                            &ConditionV3(item.clone()),
-                            snapshot,
-                            tables,
-                        )
-                    })
-            }),
-        "not" => !evaluate_condition(
+        "all" => {
+            let items = operand.as_array()?;
+            if items.is_empty() {
+                return None;
+            }
+            let mut result = true;
+            for item in items {
+                result &= evaluate_condition_checked(
+                    &ConditionV3(item.clone()),
+                    snapshot,
+                    tables,
+                )?;
+            }
+            Some(result)
+        }
+        "any" => {
+            let items = operand.as_array()?;
+            if items.is_empty() {
+                return None;
+            }
+            let mut result = false;
+            for item in items {
+                result |= evaluate_condition_checked(
+                    &ConditionV3(item.clone()),
+                    snapshot,
+                    tables,
+                )?;
+            }
+            Some(result)
+        }
+        "not" => Some(!evaluate_condition_checked(
             &ConditionV3(operand.clone()),
             snapshot,
             tables,
-        ),
+        )?),
         "transformMatch" => {
-            let Some(match_object) = operand.as_object() else {
-                return false;
-            };
-            if match_object.get("target").and_then(Value::as_str)
-                != Some("compositionTail")
+            let match_object = operand.as_object()?;
+            if match_object.len() != 2
+                || match_object.get("target").and_then(Value::as_str)
+                    != Some("compositionTail")
             {
-                return false;
+                return None;
             }
-            let Some(table_ref) = match_object.get("tableRef").and_then(Value::as_str)
-            else {
-                return false;
-            };
-            tables
-                .get(table_ref)
-                .and_then(|table| {
-                    longest_suffix_match(table, &snapshot.context.composition)
-                })
-                .is_some()
+            let table_ref = match_object.get("tableRef")?.as_str()?;
+            let table = tables.get(table_ref)?;
+            Some(
+                longest_suffix_match(table, &snapshot.context.composition)
+                    .is_some(),
+            )
         }
-        _ => false,
+        _ => None,
     }
 }
 
