@@ -61,6 +61,14 @@ public struct ProfileDocument: Equatable, Sendable {
         schemaID == "gesture-ime.profile.v2"
     }
 
+    public var isUnifiedBoardV3: Bool {
+        schemaID == "gesture-ime.profile.v3"
+    }
+
+    public var isProfileV3: Bool {
+        schemaID == "gesture-ime.profile.v3"
+    }
+
     public func gesturePolicy() throws -> ProfileGesturePolicy {
         let object = try topObject()
         guard let policy = object["gesturePolicy"]?.objectValue else {
@@ -73,12 +81,14 @@ public struct ProfileDocument: Equatable, Sendable {
             throw ProfileAuthoringError.invalidJSON("Invalid gesturePolicy")
         }
 
-        if isBoardGraphV2 {
+        if isBoardGraphV2 || isProfileV3 {
             guard
                 let initial = policy["initialCellCommitDistance"]?.doubleValue,
                 let subsequent = policy["subsequentCellCommitDistance"]?.doubleValue
             else {
-                throw ProfileAuthoringError.invalidJSON("Invalid v2 gesturePolicy")
+                throw ProfileAuthoringError.invalidJSON(
+                    isProfileV3 ? "Invalid v3 gesturePolicy" : "Invalid v2 gesturePolicy"
+                )
             }
             return ProfileGesturePolicy(
                 deadZone: deadZone,
@@ -110,7 +120,7 @@ public struct ProfileDocument: Equatable, Sendable {
         var object = rootObject["gesturePolicy"]?.objectValue ?? [:]
         object["deadZone"] = .decimal(policy.deadZone)
         object["angularHysteresisDegrees"] = .decimal(policy.angularHysteresisDegrees)
-        if isBoardGraphV2 {
+        if isBoardGraphV2 || isProfileV3 {
             object["initialCellCommitDistance"] = .decimal(policy.stage1CommitDistance)
             object["subsequentCellCommitDistance"] = .decimal(policy.stage2CommitDistance)
             object.removeValue(forKey: "stage1CommitDistance")

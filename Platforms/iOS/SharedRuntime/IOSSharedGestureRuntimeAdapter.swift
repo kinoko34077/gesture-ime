@@ -169,6 +169,10 @@ public final class IOSProfileV3RuntimeAdapter {
         try core.directSurface()
     }
 
+    public func previewSurface(boardID: String) throws -> FfiProfileV3BoardSurface {
+        try core.previewSurface(boardId: boardID)
+    }
+
     public func setLayer(_ layerID: String) throws -> FfiProfileV3BoardSurface {
         try core.setLayer(layerId: layerID)
     }

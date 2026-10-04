@@ -61,6 +61,25 @@ final class ProfileLibraryModel: ObservableObject {
         }
     }
 
+    func createEmptyV3() {
+        guard let store else { return }
+        do {
+            let suffix = Int(Date().timeIntervalSince1970 * 1000)
+            let document = try ProfileDocument.emptyV3(
+                id: "user.v3.\(suffix)",
+                name: "新しいv3プロファイル"
+            )
+            _ = try store.save(document)
+            try reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func isProfileV3(profileID: String) -> Bool {
+        (try? document(id: profileID).isProfileV3) == true
+    }
+
     func clone(profileID: String) {
         guard let store else { return }
         do {

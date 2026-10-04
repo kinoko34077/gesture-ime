@@ -90,10 +90,16 @@ public struct ProfileKeySummary: Identifiable, Equatable, Sendable {
 public struct ProfileActionDraft: Equatable, Sendable {
     public var actionID: String
     public var arguments: [String: JSONNode]
+    public var extra: [String: JSONNode]
 
-    public init(actionID: String, arguments: [String: JSONNode] = [:]) {
+    public init(
+        actionID: String,
+        arguments: [String: JSONNode] = [:],
+        extra: [String: JSONNode] = [:]
+    ) {
         self.actionID = actionID
         self.arguments = arguments
+        self.extra = extra
     }
 }
 

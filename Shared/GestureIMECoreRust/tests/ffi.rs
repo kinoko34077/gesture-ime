@@ -13,6 +13,28 @@ fn fixture(name: &str) -> String {
     fs::read_to_string(path).expect("fixture")
 }
 
+
+#[test]
+fn ffi_validation_accepts_profile_v3_and_preserves_v2_validation() {
+    let v3 = validate_profile_json(fixture("profile-v3-a3-product-smoke.valid.json"));
+    assert!(v3.valid, "{:?}", v3.detail);
+
+    let v2 = validate_profile_json(fixture("profile-v2-board-chain.valid.json"));
+    assert!(v2.valid, "{:?}", v2.detail);
+}
+
+#[test]
+fn ffi_validation_reports_profile_v3_canonical_error_code() {
+    let mut profile: serde_json::Value =
+        serde_json::from_str(&fixture("profile-v3-a3-product-smoke.valid.json"))
+            .expect("v3 fixture JSON");
+    profile["initialLayerRef"] = serde_json::json!("layer.missing");
+
+    let result = validate_profile_json(profile.to_string());
+    assert!(!result.valid);
+    assert_eq!(result.error_code.as_deref(), Some("E_MISSING_REFERENCE"));
+}
+
 #[test]
 fn ffi_validation_preserves_canonical_error_code() {
     let result = validate_profile_json(fixture("profile-duplicate-path.invalid.json"));
