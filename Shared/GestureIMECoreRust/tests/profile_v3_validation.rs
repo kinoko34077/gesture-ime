@@ -783,3 +783,48 @@ fn v3_macro_conditions_do_not_share_a_resolver_budget() {
     value["macros"][0]["actions"] = Value::Array(actions);
     validate(&value).unwrap();
 }
+
+
+#[test]
+fn v3_profile_switch_with_release_transition_is_control_flow_conflict() {
+    let mut value = base_profile();
+    value["boards"][0]["entries"][0]["resolver"]["default"] = json!({
+        "onRelease":[
+            {
+                "actionID":"profile.switch",
+                "arguments":{"profile":"profile.other"}
+            }
+        ],
+        "transition":{
+            "targetBoardRef":"board.root",
+            "lifetime":"transient"
+        }
+    });
+    expect_code(
+        &value,
+        ProfileValidationCode::ConflictingControlFlow,
+    );
+}
+
+#[test]
+fn v3_profile_switch_with_hold_transition_is_control_flow_conflict() {
+    let mut value = base_profile();
+    value["boards"][0]["entries"][0]["resolver"]["default"]["hold"] = json!({
+        "delayMs":350,
+        "onStart":[
+            {
+                "actionID":"profile.switch",
+                "arguments":{"profile":"profile.other"}
+            }
+        ],
+        "transition":{
+            "targetBoardRef":"board.root",
+            "lifetime":"persistent"
+        },
+        "suppressOnReleaseAfterStart":true
+    });
+    expect_code(
+        &value,
+        ProfileValidationCode::ConflictingControlFlow,
+    );
+}
