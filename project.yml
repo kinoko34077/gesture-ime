@@ -46,6 +46,7 @@ targets:
       - path: App/MainApp
       - path: .build/GestureIMECoreSharedIOS/Sources
       - path: Platforms/iOS/SharedRuntime/IOSSharedGestureRuntimeAdapter.swift
+      - path: Platforms/iOS/SharedRuntime/IOSKeyboardRenderer.swift
       - path: App/KeyboardExtension/Resources/default-ja.json
         buildPhase: resources
     dependencies:
@@ -90,6 +91,7 @@ targets:
       - path: App/KeyboardExtension/Resources
         buildPhase: resources
       - path: Platforms/iOS/SharedRuntime/IOSSharedGestureRuntimeAdapter.swift
+      - path: Platforms/iOS/SharedRuntime/IOSKeyboardRenderer.swift
       - path: .build/GestureIMECoreSharedIOS/Sources
     dependencies:
       - package: AzooKeyCore

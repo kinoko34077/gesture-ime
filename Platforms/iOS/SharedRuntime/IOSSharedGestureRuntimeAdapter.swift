@@ -480,6 +480,10 @@ public struct IOSKeyboardTheme: Equatable {
     public var keyFontSize: Double?
     public var guideFontSize: Double?
     public var guideOpacity: Double?
+    /// #91 / #95 §F9: `light|regular|medium|semibold|bold`.
+    public var keyFontWeight: String?
+
+    public static let fontWeights = ["light", "regular", "medium", "semibold", "bold"]
 
     public init() {}
 
@@ -494,6 +498,9 @@ public struct IOSKeyboardTheme: Equatable {
         keyFontSize = Self.number(object["keyFontSize"], in: 8...40)
         guideFontSize = Self.number(object["guideFontSize"], in: 6...24)
         guideOpacity = Self.number(object["guideOpacity"], in: 0...1)
+        if let weight = object["keyFontWeight"] as? String, Self.fontWeights.contains(weight) {
+            keyFontWeight = weight
+        }
     }
 
     public init(profileJSON: String) {
@@ -508,6 +515,44 @@ public struct IOSKeyboardTheme: Equatable {
         }
         return number
     }
+}
+
+/// #91 / #95 §F9: the single presentation model shared by the product
+/// keyboard and the Main App Design preview. Every ordinary Theme token maps
+/// to exactly one role; an absent token resolves to the product default
+/// (`.system(role)`), which the shared SwiftUI renderer turns into a colour.
+public enum IOSKeyboardColorRole: String, CaseIterable, Equatable {
+    case keyboardBackground, keyFill, keyPressedFill, border, text, guideText
+    case candidateBackground, candidateText, candidateSelection, overlayFill
+}
+
+public enum IOSKeyboardColorValue: Equatable {
+    case token(IOSKeyboardTheme.RGBA)
+    case system(IOSKeyboardColorRole)
+}
+
+public struct IOSKeyboardPresentation: Equatable {
+    public static let defaultCornerRadius = 6.0
+    public static let defaultKeyFontSize = 23.0
+    public static let defaultGuideFontSize = 9.0
+    public static let defaultGuideOpacity = 0.6
+    public static let defaultKeyFontWeight = "regular"
+
+    public let theme: IOSKeyboardTheme
+
+    public init(theme: IOSKeyboardTheme = IOSKeyboardTheme()) {
+        self.theme = theme
+    }
+
+    public func color(_ role: IOSKeyboardColorRole) -> IOSKeyboardColorValue {
+        theme.colors[role.rawValue].map(IOSKeyboardColorValue.token) ?? .system(role)
+    }
+
+    public var cornerRadius: Double { theme.cornerRadius ?? Self.defaultCornerRadius }
+    public var keyFontSize: Double { theme.keyFontSize ?? Self.defaultKeyFontSize }
+    public var keyFontWeight: String { theme.keyFontWeight ?? Self.defaultKeyFontWeight }
+    public var guideFontSize: Double { theme.guideFontSize ?? Self.defaultGuideFontSize }
+    public var guideOpacity: Double { theme.guideOpacity ?? Self.defaultGuideOpacity }
 }
 
 /// #80 adaptive viewport policy (presentation only).

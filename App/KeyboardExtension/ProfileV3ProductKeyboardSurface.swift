@@ -23,6 +23,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     let defaultPolicy: FfiProfileV3GesturePolicy
     let productSettings: ProductSettingsValues
     let keyboardTheme: IOSKeyboardTheme
+    var presentation: IOSKeyboardPresentation { IOSKeyboardPresentation(theme: keyboardTheme) }
 
     private let hapticFeedback: ProductHapticFeedback
     private let onNextKeyboard: () -> Void
@@ -286,7 +287,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
 struct ProfileV3ProductKeyboardRoot: View {
     @ObservedObject var model: ProfileV3ProductKeyboardViewModel
 
-    private let theme: AzooKeyTheme = .base
+    private var look: IOSKeyboardPresentation { model.presentation }
     private let boardCoordinateSpace = "GestureIME.ProfileV3Board"
 
     var body: some View {
@@ -322,14 +323,14 @@ struct ProfileV3ProductKeyboardRoot: View {
         }
         .padding(.horizontal, 5)
         .padding(.vertical, 4)
-        .foregroundStyle(theme.textColor.color)
-        .background(theme.backgroundColor.color)
+        .foregroundStyle(look.swiftUIColor(.text))
+        .background(look.swiftUIColor(.keyboardBackground))
         .overlay {
             if let panel = model.panel {
                 ProfileV3PanelCompatibilityView(
                     panel: panel,
                     policy: model.defaultPolicy,
-                    theme: theme,
+                    look: look,
                     onInsert: model.insertUtilityText,
                     onClose: model.closePanel
                 )
@@ -347,19 +348,14 @@ struct ProfileV3ProductKeyboardRoot: View {
                     spacing: 6
                 ) {
                     ForEach(model.candidates, id: \.index) { candidate in
-                        Button(candidate.text) {
+                        IOSKeyboardCandidateChip(
+                            text: candidate.text,
+                            selected: candidate.selected,
+                            expanded: true,
+                            presentation: look
+                        ) {
                             model.selectCandidate(candidate.index)
                         }
-                        .buttonStyle(.plain)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(
-                            candidate.selected
-                                ? theme.pushedKeyFillColor.color
-                                : theme.normalKeyFillColor.color,
-                            in: RoundedRectangle(cornerRadius: 7)
-                        )
-                        .accessibilityAddTraits(candidate.selected ? .isSelected : [])
                     }
                 }
                 .padding(.top, 44)
@@ -371,9 +367,10 @@ struct ProfileV3ProductKeyboardRoot: View {
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
+            .foregroundStyle(look.swiftUIColor(.candidateText))
             .accessibilityLabel("変換候補を閉じる")
         }
-        .background(theme.backgroundColor.color)
+        .background(look.swiftUIColor(.candidateBackground))
     }
 
     private var productBar: some View {
@@ -383,7 +380,7 @@ struct ProfileV3ProductKeyboardRoot: View {
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .overlay(Capsule().stroke(theme.resultTextColor.color.opacity(0.5)))
+                    .overlay(Capsule().stroke(look.swiftUIColor(.candidateText).opacity(0.5)))
                     .accessibilityLabel("入力中: " + model.layerTitle)
             }
             ScrollView(.horizontal, showsIndicators: false) {
@@ -393,18 +390,14 @@ struct ProfileV3ProductKeyboardRoot: View {
                             .frame(minWidth: 24)
                     } else {
                         ForEach(model.candidates, id: \.index) { candidate in
-                            Button(candidate.text) {
+                            IOSKeyboardCandidateChip(
+                                text: candidate.text,
+                                selected: candidate.selected,
+                                expanded: false,
+                                presentation: look
+                            ) {
                                 model.selectCandidate(candidate.index)
                             }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                candidate.selected
-                                    ? theme.pushedKeyFillColor.color
-                                    : Color.clear,
-                                in: RoundedRectangle(cornerRadius: 7)
-                            )
                         }
                     }
                 }
@@ -427,8 +420,8 @@ struct ProfileV3ProductKeyboardRoot: View {
                 .accessibilityLabel("次のキーボード")
             }
         }
-        .foregroundStyle(theme.resultTextColor.color)
-        .background(theme.resultBackgroundColor.color)
+        .foregroundStyle(look.swiftUIColor(.candidateText))
+        .background(look.swiftUIColor(.candidateBackground))
     }
 
     @ViewBuilder
@@ -442,8 +435,7 @@ struct ProfileV3ProductKeyboardRoot: View {
                 model: model,
                 logicalCellSize: mapping.logicalCellSize,
                 sourceVisualAnchor: CGPoint(x: frame.midX, y: frame.midY),
-                coordinateSpaceName: boardCoordinateSpace,
-                theme: theme
+                coordinateSpaceName: boardCoordinateSpace
             )
             .frame(width: frame.width, height: frame.height)
             .position(x: frame.midX, y: frame.midY)
@@ -471,30 +463,12 @@ struct ProfileV3ProductKeyboardRoot: View {
             let isCandidate = entry.id == candidateID
             let isEndpoint = entry.id == snapshot.currentEndpointEntryId
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(
-                        isCandidate
-                            ? theme.pushedKeyFillColor.color.opacity(0.95)
-                            : theme.normalKeyFillColor.color.opacity(
-                                isEndpoint ? 0.88 : 0.72
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(
-                                theme.borderColor.color.opacity(0.9),
-                                lineWidth: isCandidate ? 2 : 1
-                            )
-                    )
-
-                Text(entry.text ?? "")
-                    .font(.system(size: 16, weight: isCandidate ? .bold : .regular))
-                    .foregroundStyle(theme.textColor.color)
-                    .minimumScaleFactor(0.45)
-                    .lineLimit(2)
-                    .padding(2)
-            }
+            IOSKeyboardOverlayCell(
+                text: entry.text ?? "",
+                isCandidate: isCandidate,
+                isEndpoint: isEndpoint,
+                presentation: look
+            )
             .frame(width: frame.width, height: frame.height)
             .position(x: frame.midX, y: frame.midY)
             .accessibilityLabel(entry.accessibilityLabel ?? entry.text ?? entry.id)
@@ -504,21 +478,21 @@ struct ProfileV3ProductKeyboardRoot: View {
             // #69 §4.8: visible pending one-stage rollback.
             ZStack {
                 Circle()
-                    .stroke(theme.borderColor.color.opacity(0.35), lineWidth: 4)
+                    .stroke(look.swiftUIColor(.border).opacity(0.35), lineWidth: 4)
                 Circle()
                     .trim(from: 0, to: CGFloat(progress))
                     .stroke(
-                        theme.textColor.color,
+                        look.swiftUIColor(.text),
                         style: StrokeStyle(lineWidth: 4, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                 Text("戻る")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(theme.textColor.color)
+                    .foregroundStyle(look.swiftUIColor(.text))
             }
             .frame(width: 44, height: 44)
             .background(
-                Circle().fill(theme.normalKeyFillColor.color.opacity(0.9))
+                Circle().fill(look.swiftUIColor(.overlayFill).opacity(0.9))
             )
             .position(x: visualAnchor.x, y: visualAnchor.y)
             .allowsHitTesting(false)
@@ -584,7 +558,6 @@ private struct ProfileV3DirectEntryView: View {
     let logicalCellSize: CGSize
     let sourceVisualAnchor: CGPoint
     let coordinateSpaceName: String
-    let theme: AzooKeyTheme
 
     @State private var session: IOSProfileV3SessionAdapter?
     @State private var semanticClockTask: Task<Void, Never>?
@@ -596,60 +569,12 @@ private struct ProfileV3DirectEntryView: View {
     @State private var nativeTouchID = UUID()
 
     var body: some View {
-        ZStack {
-            let tokens = model.keyboardTheme
-            let radius = CGFloat(tokens.cornerRadius ?? 6)
-            RoundedRectangle(cornerRadius: radius)
-                .fill(
-                    pressed
-                        ? tokens.color("keyPressedFill", fallback: theme.pushedKeyFillColor.color)
-                        : tokens.color("keyFill", fallback: theme.normalKeyFillColor.color)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: radius)
-                        .stroke(
-                            tokens.color("border", fallback: theme.borderColor.color),
-                            lineWidth: CGFloat(theme.borderWidth)
-                        )
-                )
-                .shadow(
-                    color: .black.opacity(0.12),
-                    radius: 0.5,
-                    x: 0,
-                    y: 0.75
-                )
-
-            Text(entry.text ?? "")
-                .font(.system(size: CGFloat(tokens.keyFontSize ?? 23)))
-                .foregroundStyle(tokens.color("text", fallback: theme.textColor.color))
-                .minimumScaleFactor(0.45)
-                .lineLimit(2)
-                .padding(2)
-
-            // #69 §6.4: immediate flick guides before the gesture starts.
-            // Positions come from target entry geometry, not a direction table.
-            if !entry.guides.isEmpty {
-                GeometryReader { proxy in
-                    let reach = max(abs(entry.guides.map(\.centerX).max() ?? 1), 1)
-                    ForEach(entry.guides, id: \.targetEntryId) { guide in
-                        Text(guide.label)
-                            .font(.system(size: CGFloat(tokens.guideFontSize ?? 9)))
-                            .foregroundStyle(tokens.color("guideText", fallback: theme.textColor.color))
-                            .opacity(tokens.guideOpacity ?? 0.6)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .position(
-                                x: proxy.size.width / 2
-                                    + CGFloat(guide.centerX / reach) * proxy.size.width * 0.36,
-                                y: proxy.size.height / 2
-                                    + CGFloat(guide.centerY / reach) * proxy.size.height * 0.36
-                            )
-                    }
-                }
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-            }
-        }
+        IOSKeyboardKeyCap(
+            text: entry.text ?? "",
+            guides: entry.guides,
+            pressed: pressed,
+            presentation: model.presentation
+        )
         .contentShape(Rectangle())
         .gesture(
             DragGesture(
@@ -876,7 +801,7 @@ private struct ProfileV3DirectEntryView: View {
 private struct ProfileV3PanelCompatibilityView: View {
     let panel: ProductUtilityPanel
     let policy: FfiProfileV3GesturePolicy
-    let theme: AzooKeyTheme
+    let look: IOSKeyboardPresentation
     let onInsert: (String) -> Void
     let onClose: () -> Void
 
@@ -917,14 +842,11 @@ private struct ProfileV3PanelCompatibilityView: View {
             }
         }
         .padding(12)
-        .foregroundStyle(theme.textColor.color)
-        .background(theme.backgroundColor.color)
+        .foregroundStyle(look.swiftUIColor(.text))
+        .background(look.swiftUIColor(.keyboardBackground))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(
-                    theme.borderColor.color,
-                    lineWidth: CGFloat(max(0.5, theme.borderWidth))
-                )
+                .stroke(look.swiftUIColor(.border), lineWidth: 1)
         )
         .padding(8)
     }
@@ -952,18 +874,10 @@ private struct ProfileV3PanelCompatibilityView: View {
                 .padding(.vertical, 9)
                 .frame(maxWidth: .infinity)
                 .background(
-                    theme.normalKeyFillColor.color,
+                    look.swiftUIColor(.keyFill),
                     in: RoundedRectangle(cornerRadius: 7)
                 )
             }
         }
-    }
-}
-
-
-extension IOSKeyboardTheme {
-    func color(_ token: String, fallback: Color) -> Color {
-        guard let value = colors[token] else { return fallback }
-        return Color(.sRGB, red: value.red, green: value.green, blue: value.blue, opacity: value.alpha)
     }
 }
