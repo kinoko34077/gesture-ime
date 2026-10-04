@@ -4,9 +4,8 @@ import Testing
 
 private func v3JSON(_ document: ProfileDocument) throws -> [String: Any] {
     let data = try document.encoded(pretty: false)
-    return try #require(
-        JSONSerialization.jsonObject(with: data) as? [String: Any]
-    )
+    let object = try JSONSerialization.jsonObject(with: data)
+    return try #require(object as? [String: Any])
 }
 
 private func v3DefaultResolver(
@@ -42,7 +41,8 @@ func emptyV3SeedAndGesturePolicyUseCanonicalV3Shape() throws {
     )
 
     #expect(document.isProfileV3)
-    #expect(try document.v3InitialLayerID() == "layer.base")
+    let initialLayerID = try document.v3InitialLayerID()
+    #expect(initialLayerID == "layer.base")
 
     let layers = try document.v3LayerSummaries()
     #expect(layers.count == 1)
@@ -126,8 +126,10 @@ func v3LayerLifecycleProtectsInitialLayerAndDuplicatesOnlyRootBoard() throws {
 
     try document.v3SetInitialLayer("layer.copy")
     try document.v3DeleteLayer(id: "layer.base")
-    #expect(try document.v3InitialLayerID() == "layer.copy")
-    #expect(try document.v3LayerSummaries().map(\.id) == ["layer.copy"])
+    let initialAfterDelete = try document.v3InitialLayerID()
+    let layersAfterDelete = try document.v3LayerSummaries()
+    #expect(initialAfterDelete == "layer.copy")
+    #expect(layersAfterDelete.map(\.id) == ["layer.copy"])
 }
 
 @Test
@@ -187,7 +189,8 @@ func v3BoardDuplicationRetargetsOnlySelfReferencesAndDeletionIsReferenceSafe() t
 
     try document.v3CreateBoard(id: "board.unused")
     try document.v3DeleteBoard(id: "board.unused")
-    #expect(!document.v3BoardSummaries().contains(where: { $0.id == "board.unused" }))
+    let boardsAfterDelete = try document.v3BoardSummaries()
+    #expect(!boardsAfterDelete.contains(where: { $0.id == "board.unused" }))
 }
 
 @Test
@@ -368,9 +371,9 @@ func v3DefaultBehaviorEditingCoversPresentationActionsTransitionAndHold() throws
         )
     )
 
+    let behaviorEntries = try document.v3BoardEntries(boardID: "board.base")
     let entry = try #require(
-        document.v3BoardEntries(boardID: "board.base")
-            .first(where: { $0.id == "entry.behavior" })
+        behaviorEntries.first(where: { $0.id == "entry.behavior" })
     )
     #expect(entry.presentationText == "𛀀")
     #expect(entry.accessibilityLabel == "変体仮名")
@@ -406,8 +409,9 @@ func v3StateTransformAndMacroEditsPreserveUnicodeAndClearEnumValuesOnBoolean() t
         defaultValue: true
     )
 
+    let states = try document.v3StateSummaries()
     let state = try #require(
-        document.v3StateSummaries().first(where: { $0.id == "latinCase" })
+        states.first(where: { $0.id == "latinCase" })
     )
     #expect(state.type == .boolean)
     #expect(state.values.isEmpty)
@@ -422,8 +426,9 @@ func v3StateTransformAndMacroEditsPreserveUnicodeAndClearEnumValuesOnBoolean() t
         id: "unicode.transform",
         entries: unicodeEntries
     )
+    let transformTables = try document.v3TransformTableSummaries()
     #expect(
-        try document.v3TransformTableSummaries()
+        transformTables
             .first(where: { $0.id == "unicode.transform" })?
             .entries == unicodeEntries
     )
@@ -452,8 +457,9 @@ func v3StateTransformAndMacroEditsPreserveUnicodeAndClearEnumValuesOnBoolean() t
             )
         ]
     )
+    let macros = try document.v3MacroSummaries()
     #expect(
-        try document.v3MacroSummaries()
+        macros
             .first(where: { $0.id == "macro.sample" })?
             .actions.first?.actionID == "text.directInsert"
     )
@@ -563,21 +569,25 @@ func profileDocumentHistoryUndoRedoAndDivergenceAreDeterministic() throws {
     #expect(history.canUndo)
     #expect(!history.canRedo)
     #expect(history.document.summary.name == "One")
-    #expect(history.document.v3BoardSummaries().contains(where: { $0.id == "board.two" }))
+    var historyBoards = try history.document.v3BoardSummaries()
+    #expect(historyBoards.contains(where: { $0.id == "board.two" }))
 
     #expect(history.undo())
-    #expect(!history.document.v3BoardSummaries().contains(where: { $0.id == "board.two" }))
+    historyBoards = try history.document.v3BoardSummaries()
+    #expect(!historyBoards.contains(where: { $0.id == "board.two" }))
     #expect(history.canRedo)
 
     #expect(history.redo())
-    #expect(history.document.v3BoardSummaries().contains(where: { $0.id == "board.two" }))
+    historyBoards = try history.document.v3BoardSummaries()
+    #expect(historyBoards.contains(where: { $0.id == "board.two" }))
 
     #expect(history.undo())
     try history.mutate { document in
         try document.v3CreateBoard(id: "board.branch")
     }
     #expect(!history.canRedo)
-    #expect(history.document.v3BoardSummaries().contains(where: { $0.id == "board.branch" }))
+    historyBoards = try history.document.v3BoardSummaries()
+    #expect(historyBoards.contains(where: { $0.id == "board.branch" }))
 
     let beforeFailure = history.document
     #expect(throws: ProfileAuthoringError.self) {
