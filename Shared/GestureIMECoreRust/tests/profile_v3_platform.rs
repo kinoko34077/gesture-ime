@@ -483,3 +483,96 @@ fn a3_platform_profile_switch_remains_unavailable_at_activation() {
         other => panic!("unexpected error: {other:?}"),
     }
 }
+
+
+#[test]
+fn a3_product_smoke_fixture_exercises_v3_surface_condition_diagonal_far_and_transform() {
+    let profile_json = include_str!(
+        "../../../spec/conformance/fixtures/profile-v3-a3-product-smoke.valid.json"
+    );
+    let runtime = ProfileV3PlatformRuntime::new(profile_json.to_owned()).unwrap();
+
+    let direct = runtime.direct_surface().unwrap();
+    assert_eq!(direct.board_id, "board.root");
+    assert_eq!(
+        entry_text(&direct, "key.return"),
+        Some("改行")
+    );
+
+    runtime
+        .update_semantic_context("か".into(), true, true)
+        .unwrap();
+    let conversion = runtime.direct_surface().unwrap();
+    assert_eq!(
+        entry_text(&conversion, "key.return"),
+        Some("確定")
+    );
+
+    let flick = runtime
+        .begin_session(
+            "key.flick".into(),
+            FfiSize {
+                width:100.0,
+                height:50.0,
+            },
+            FfiPoint { x:0.0, y:0.0 },
+            0,
+        )
+        .unwrap();
+
+    let initial = flick.snapshot().unwrap();
+    assert_eq!(initial.current_board_id, "board.flick");
+    assert_eq!(initial.context, FfiProfileV3BoardContext::Relative);
+    assert!(initial
+        .surface
+        .entries
+        .iter()
+        .any(|entry| entry.id == "flick.ne"));
+    assert!(initial
+        .surface
+        .entries
+        .iter()
+        .any(|entry| entry.id == "flick.far-east"));
+
+    let diagonal = flick
+        .move_to(
+            FfiPoint { x:60.0, y:-30.0 },
+            Some(10),
+        )
+        .unwrap();
+    assert_eq!(
+        diagonal.current_endpoint_entry_id.as_deref(),
+        Some("flick.ne")
+    );
+
+    runtime
+        .update_semantic_context("か".into(), false, false)
+        .unwrap();
+    let transform = runtime
+        .begin_session(
+            "key.dakuten".into(),
+            FfiSize {
+                width:100.0,
+                height:50.0,
+            },
+            FfiPoint { x:0.0, y:0.0 },
+            0,
+        )
+        .unwrap()
+        .touch_up(Some(10))
+        .unwrap();
+
+    assert_eq!(transform.runtime_dispatches.len(), 1);
+    assert_eq!(
+        transform.runtime_dispatches[0].kind,
+        FfiProfileV3DispatchKind::CompositionTailTransform
+    );
+    assert_eq!(
+        transform.runtime_dispatches[0].matched_source.as_deref(),
+        Some("か")
+    );
+    assert_eq!(
+        transform.runtime_dispatches[0].replacement.as_deref(),
+        Some("が")
+    );
+}
