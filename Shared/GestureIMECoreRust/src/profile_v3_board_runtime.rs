@@ -3,6 +3,7 @@ use crate::profile_v3::{
     ActionInvocationV3, BoardEntryV3, BoardTransitionLifetimeV3, BoardTransitionV3, BoardV3,
     EndpointBehaviorV3, GesturePolicyV3, LayerV3, ProfileBundleV3,
 };
+use crate::profile_v3_semantics::RuntimeDispatchV3;
 use crate::profile_v3_validation::ProfileV3Validator;
 use crate::validation::{ProfileLimits, ProfileValidationCode, ProfileValidationError};
 use serde_json::Value;
@@ -82,6 +83,18 @@ pub trait BoardSemanticsV3: Send {
     fn resolve_endpoint(&mut self, entry: &BoardEntryV3) -> EndpointBehaviorV3;
 
     fn apply_dispatched_actions(&mut self, _actions: &[ActionInvocationV3]) {}
+
+    fn resolve_dispatch_batch(
+        &mut self,
+        actions: &[ActionInvocationV3],
+    ) -> Vec<RuntimeDispatchV3> {
+        self.apply_dispatched_actions(actions);
+        actions
+            .iter()
+            .cloned()
+            .map(RuntimeDispatchV3::Action)
+            .collect()
+    }
 }
 
 #[derive(Debug, Default)]
@@ -206,6 +219,7 @@ pub struct BoardSessionV3 {
     pub transition_limit_hit: bool,
     pub terminal: Option<BoardSessionTerminalV3>,
     pub dispatched_actions: Vec<ActionInvocationV3>,
+    pub runtime_dispatches: Vec<RuntimeDispatchV3>,
     pub commit_anchors: Vec<GesturePoint>,
 
     frame: Arc<Mutex<BoardFrameV3>>,
@@ -283,6 +297,7 @@ impl BoardSessionV3 {
             transition_limit_hit: false,
             terminal: None,
             dispatched_actions: Vec::new(),
+            runtime_dispatches: Vec::new(),
             commit_anchors: Vec::new(),
             frame,
             boards,
@@ -718,7 +733,8 @@ impl BoardSessionV3 {
             }
         }
 
-        self.semantics.apply_dispatched_actions(&expanded);
+        let resolved = self.semantics.resolve_dispatch_batch(&expanded);
+        self.runtime_dispatches.extend(resolved);
         self.dispatched_actions.extend(expanded);
     }
 
