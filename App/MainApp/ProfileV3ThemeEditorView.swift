@@ -27,14 +27,13 @@ struct ProfileV3ThemeEditorView: View {
 
     var body: some View {
         let theme = editor.keyboardTheme
+        ProfileV3ResizableWorkspace(storageKey: "design") {
+            ProfileV3ThemePreview(
+                presentation: IOSKeyboardPresentation(theme: theme),
+                surface: editor.previewSurface()
+            )
+        } secondary: {
         Form {
-            Section("プレビュー") {
-                ProfileV3ThemePreview(
-                    presentation: IOSKeyboardPresentation(theme: theme),
-                    surface: editor.previewSurface()
-                )
-                .frame(height: 260)
-            }
             Section("色") {
                 ForEach(Self.colorLabels, id: \.0) { item in
                     let token = item.0
@@ -68,6 +67,7 @@ struct ProfileV3ThemeEditorView: View {
                 numberRow("補助表示の大きさ", key: "guideFontSize", value: theme.guideFontSize, range: 6...24, fallback: 9)
                 numberRow("補助表示の濃さ", key: "guideOpacity", value: theme.guideOpacity, range: 0...1, fallback: 0.6)
             }
+        }
         }
         .navigationTitle(ProfileV3DisplayCatalog.title(.sectionDesign))
     }
