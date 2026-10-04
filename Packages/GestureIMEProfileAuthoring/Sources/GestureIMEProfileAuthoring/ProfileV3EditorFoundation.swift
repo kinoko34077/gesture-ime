@@ -763,3 +763,56 @@ public struct ProfileV3CanvasInteraction: Equatable, Sendable {
         return viewport
     }
 }
+
+// MARK: - #74 flick-guide overrides (display only) and simple Theme
+
+extension ProfileDocument {
+    /// Source-scoped guide label overrides keyed by target entry ID (#69 §6.3).
+    public func v3GuideLabelOverrides(boardID: String, entryID: String) throws -> [String: String] {
+        let entry = try v3EntryObject(boardID: boardID, entryID: entryID)
+        var result: [String: String] = [:]
+        for (key, value) in entry["guideLabelOverrides"]?.objectValue ?? [:] {
+            if let label = value.stringValue { result[key] = label }
+        }
+        return result
+    }
+
+    /// Empty/nil label restores AUTO. Never touches Actions, output or geometry.
+    public mutating func v3SetGuideLabelOverride(
+        boardID: String,
+        entryID: String,
+        targetEntryID: String,
+        label: String?
+    ) throws {
+        let trimmed = label?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard trimmed.count <= 16 else {
+            throw ProfileAuthoringError.invalidJSON("補助表示は16文字までです")
+        }
+        try v3MutateEntry(boardID: boardID, entryID: entryID) { entry in
+            var map = entry["guideLabelOverrides"]?.objectValue ?? [:]
+            if trimmed.isEmpty {
+                map.removeValue(forKey: targetEntryID)
+            } else {
+                map[targetEntryID] = .string(trimmed)
+            }
+            if map.isEmpty {
+                entry.removeValue(forKey: "guideLabelOverrides")
+            } else {
+                entry["guideLabelOverrides"] = .object(map)
+            }
+        }
+    }
+
+    /// Top-level presentation-only Theme tokens (#69 §12).
+    public func v3ThemeTokens() throws -> [String: JSONNode] {
+        try v3TopObject()["theme"]?.objectValue ?? [:]
+    }
+
+    public mutating func v3SetThemeToken(_ key: String, value: JSONNode?) throws {
+        var top = try v3TopObject()
+        var theme = top["theme"]?.objectValue ?? [:]
+        if let value { theme[key] = value } else { theme.removeValue(forKey: key) }
+        if theme.isEmpty { top.removeValue(forKey: "theme") } else { top["theme"] = .object(theme) }
+        root = .object(top)
+    }
+}

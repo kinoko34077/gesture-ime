@@ -132,6 +132,9 @@ impl ProfileV3Validator {
         validate_gesture_policy(&profile.gesture_policy)?;
         for board in &profile.boards {
             for entry in &board.entries {
+                if let Some(overrides) = entry.guide_label_overrides.as_ref() {
+                    validate_guide_label_overrides(profile, board, entry, overrides)?;
+                }
                 if let Some(partial) = entry.gesture_policy_override.as_ref() {
                     // Each override field is checked in the context of the policy it
                     // produces, so inherited + overridden values stay coherent.
@@ -224,6 +227,39 @@ impl ProfileV3Validator {
 
         Ok(())
     }
+}
+
+fn validate_guide_label_overrides(
+    profile: &ProfileBundleV3,
+    board: &crate::profile_v3::BoardV3,
+    entry: &crate::profile_v3::BoardEntryV3,
+    overrides: &std::collections::BTreeMap<String, String>,
+) -> Result<(), ProfileValidationError> {
+    let invalid = || {
+        ProfileValidationError::new(
+            ProfileValidationCode::InvalidPresentation,
+            Some(format!("{}:{}", board.id, entry.id)),
+        )
+    };
+    // Overrides belong to the source transition context: every key must be an
+    // entry of the source's default transition target Board.
+    let target = entry
+        .resolver
+        .default
+        .transition
+        .as_ref()
+        .and_then(|transition| profile.boards.iter().find(|b| b.id == transition.target_board_ref))
+        .ok_or_else(invalid)?;
+    if overrides.len() > 32 {
+        return Err(invalid());
+    }
+    for (target_entry, label) in overrides {
+        let scalars = label.chars().count();
+        if !target.entries.iter().any(|e| &e.id == target_entry) || scalars == 0 || scalars > 16 {
+            return Err(invalid());
+        }
+    }
+    Ok(())
 }
 
 fn validate_gesture_policy(policy: &GesturePolicyV3) -> Result<(), ProfileValidationError> {

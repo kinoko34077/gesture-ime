@@ -15,6 +15,8 @@ struct SharedRuntimeSwiftSmoke {
         verifyCandidatePanelState()
         verifyHostAutocapitalization()
 
+        verifyThemeTokens()
+
         if profileSchema(profileJSON) == "gesture-ime.profile.v3" {
             let runtime = try IOSProfileV3RuntimeAdapter(profileJSON: profileJSON)
             guard runtime.profileID == "profile.v3.a3.product-smoke" else {
@@ -74,6 +76,24 @@ struct SharedRuntimeSwiftSmoke {
             guard IOSHostInputFacts.autocapitalizeNext(mode: mode, textBefore: before) == expected else {
                 fatalError("autocapitalization mismatch: \(mode) \(String(describing: before))")
             }
+        }
+    }
+
+    private static func verifyThemeTokens() {
+        let theme = IOSKeyboardTheme(themeObject: [
+            "keyFill": "#112233",
+            "text": "#AABBCC80",
+            "border": "red",
+            "cornerRadius": 9,
+            "guideOpacity": 4
+        ])
+        guard theme.colors["keyFill"]?.hex == "#112233FF",
+              theme.colors["text"]?.hex == "#AABBCC80",
+              theme.colors["border"] == nil,
+              theme.cornerRadius == 9,
+              theme.guideOpacity == nil,
+              IOSKeyboardTheme(profileJSON: "{}") == IOSKeyboardTheme() else {
+            fatalError("theme token parsing mismatch")
         }
     }
 
