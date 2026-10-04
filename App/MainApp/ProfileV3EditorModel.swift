@@ -419,6 +419,13 @@ final class ProfileV3EditorModel: ObservableObject {
 
     // MARK: - #79 Transform authoring
 
+    func newTransformTableID() throws -> String {
+        guard let document = history?.document else {
+            throw ProfileAuthoringError.invalidJSON("Editor document is unavailable")
+        }
+        return try document.v3NewTransformTableID()
+    }
+
     func setTransformTable(_ table: ProfileV3TransformTableRows) {
         mutate { try $0.v3SetTransformTableRows(table) }
     }
