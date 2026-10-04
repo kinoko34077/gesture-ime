@@ -1,5 +1,5 @@
 use gesture_ime_core::{
-    ActionInvocationV3, BoardContextV3, BoardFrameV3, BoardSemanticsV3, BoardSessionTerminalV3,
+    ActionInvocationV3, BoardContextV3, BoardEntryV3, BoardFrameV3, BoardSemanticsV3, BoardSessionTerminalV3,
     DefaultBoardSemanticsV3, EndpointBehaviorV3, GesturePoint, GestureSize, ProfileV3BoardRuntime,
     ProfileV3Codec,
 };
