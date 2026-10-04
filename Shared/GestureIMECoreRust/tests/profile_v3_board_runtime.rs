@@ -1349,3 +1349,216 @@ fn v3_endpoint_behavior_is_resolved_once_per_endpoint_activation() {
 
     assert_eq!(*calls.lock().unwrap(), 1);
 }
+
+
+#[derive(Clone)]
+struct RecordingSemantics {
+    events: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
+}
+
+impl BoardSemanticsV3 for RecordingSemantics {
+    fn resolve_endpoint(&mut self, entry: &BoardEntryV3) -> EndpointBehaviorV3 {
+        self.events
+            .lock()
+            .unwrap()
+            .push(format!("resolve:{}", entry.id));
+        entry.resolver.default.clone()
+    }
+
+    fn apply_dispatched_actions(
+        &mut self,
+        actions: &[gesture_ime_core::ActionInvocationV3],
+    ) {
+        let offsets = actions
+            .iter()
+            .filter_map(|action| action.arguments.get("offset")?.as_i64())
+            .map(|value| value.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        self.events
+            .lock()
+            .unwrap()
+            .push(format!("actions:{offsets}"));
+    }
+}
+
+#[test]
+fn v3_hold_transition_catches_up_target_hold_within_same_time_advance() {
+    let mut value = profile_json();
+    value["boards"][1]["entries"][0]["resolver"]["default"]["hold"] = json!({
+        "delayMs":100,
+        "onStart":[
+            {"actionID":"cursor.move","arguments":{"offset":30}}
+        ],
+        "transition":{
+            "targetBoardRef":"board.second",
+            "lifetime":"transient"
+        },
+        "suppressOnReleaseAfterStart":true
+    });
+
+    value["boards"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({
+            "id":"board.second",
+            "entries":[
+                {
+                    "id":"second.origin",
+                    "rect":{"x":-1,"y":-1,"width":2,"height":2},
+                    "resolver":{
+                        "cases":[],
+                        "default":{
+                            "onRelease":[],
+                            "hold":{
+                                "delayMs":50,
+                                "onStart":[
+                                    {"actionID":"cursor.move","arguments":{"offset":41}}
+                                ],
+                                "suppressOnReleaseAfterStart":false
+                            }
+                        }
+                    }
+                }
+            ]
+        }));
+
+    let runtime = runtime_from_value(&value);
+    let frame = runtime.new_frame("layer.base").unwrap();
+    let mut session = runtime
+        .begin_direct_session(
+            frame,
+            "direct.transition",
+            GestureSize { width:100.0, height:50.0 },
+            GesturePoint { x:0.0, y:0.0 },
+            0,
+            Box::<DefaultBoardSemanticsV3>::default(),
+        )
+        .unwrap();
+
+    session.advance_time(200);
+
+    assert_eq!(session.current_board_id, "board.second");
+    assert_eq!(action_offsets(&session), vec![30, 41]);
+}
+
+#[test]
+fn v3_action_observer_runs_before_release_transition_target_resolution() {
+    let mut value = profile_json();
+    add_origin_board(&mut value, "board.persist", "persist.origin", 43);
+    value["boards"][1]["entries"][0]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.persist",
+        "lifetime":"persistent"
+    });
+
+    let runtime = runtime_from_value(&value);
+    let frame = runtime.new_frame("layer.base").unwrap();
+    let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let semantics = RecordingSemantics {
+        events: events.clone(),
+    };
+
+    let mut session = runtime
+        .begin_direct_session(
+            frame,
+            "direct.transition",
+            GestureSize { width:100.0, height:50.0 },
+            GesturePoint { x:0.0, y:0.0 },
+            0,
+            Box::new(semantics),
+        )
+        .unwrap();
+
+    session.touch_up(Some(10));
+
+    assert_eq!(
+        *events.lock().unwrap(),
+        vec![
+            "resolve:direct.transition",
+            "resolve:origin",
+            "actions:10",
+            "resolve:persist.origin"
+        ]
+    );
+}
+
+#[test]
+fn v3_macro_run_expands_before_action_observer_output() {
+    let mut value = profile_json();
+    value["macros"] = json!([
+        {
+            "id":"macro.two",
+            "actions":[
+                {"actionID":"cursor.move","arguments":{"offset":60}},
+                {"actionID":"cursor.move","arguments":{"offset":61}}
+            ]
+        }
+    ]);
+    value["boards"][1]["entries"][0]["resolver"]["default"]["onRelease"] = json!([
+        {"actionID":"macro.run","arguments":{"macro":"macro.two"}}
+    ]);
+
+    let runtime = runtime_from_value(&value);
+    let frame = runtime.new_frame("layer.base").unwrap();
+    let mut session = runtime
+        .begin_direct_session(
+            frame,
+            "direct.transition",
+            GestureSize { width:100.0, height:50.0 },
+            GesturePoint { x:0.0, y:0.0 },
+            0,
+            Box::<DefaultBoardSemanticsV3>::default(),
+        )
+        .unwrap();
+
+    session.touch_up(Some(10));
+    assert_eq!(action_offsets(&session), vec![60, 61]);
+    assert!(!session
+        .dispatched_actions
+        .iter()
+        .any(|action| action.action_id == "macro.run"));
+}
+
+#[test]
+fn v3_persistent_board_is_the_direct_baseline_for_the_next_interaction() {
+    let mut value = profile_json();
+    add_origin_board(&mut value, "board.persist", "persist.origin", 43);
+    value["boards"][1]["entries"][1]["resolver"]["default"]["transition"] = json!({
+        "targetBoardRef":"board.persist",
+        "lifetime":"persistent"
+    });
+
+    let runtime = runtime_from_value(&value);
+    let frame = runtime.new_frame("layer.base").unwrap();
+
+    let mut first = runtime
+        .begin_direct_session(
+            frame.clone(),
+            "direct.transition",
+            GestureSize { width:100.0, height:50.0 },
+            GesturePoint { x:0.0, y:0.0 },
+            0,
+            Box::<DefaultBoardSemanticsV3>::default(),
+        )
+        .unwrap();
+    first.move_to(GesturePoint { x:60.0, y:0.0 }, Some(10));
+    first.touch_up(Some(20));
+
+    assert_eq!(first.persistent_board_id().as_deref(), Some("board.persist"));
+
+    let mut second = runtime
+        .begin_direct_session(
+            frame,
+            "persist.origin",
+            GestureSize { width:100.0, height:50.0 },
+            GesturePoint { x:5.0, y:5.0 },
+            30,
+            Box::<DefaultBoardSemanticsV3>::default(),
+        )
+        .unwrap();
+
+    assert_eq!(second.context, BoardContextV3::Direct);
+    assert_eq!(second.current_board_id, "board.persist");
+    second.touch_up(Some(40));
+    assert_eq!(action_offsets(&second), vec![43]);
+}
