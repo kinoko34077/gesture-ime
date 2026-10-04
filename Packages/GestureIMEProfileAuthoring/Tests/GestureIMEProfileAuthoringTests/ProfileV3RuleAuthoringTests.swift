@@ -46,7 +46,7 @@ func unsupportedConditionsStayAdvancedAndUnchanged() throws {
     ],"default":\(behaviorB)}
     """)
     var rules = try ProfileV3Rules.parse(resolver)
-    #expect(rules.branches.allSatisfy(\.isAdvanced))
+    #expect(rules.branches.allSatisfy { $0.isAdvanced })
     #expect(try ProfileV3Rules.encode(rules) == resolver)
 
     // Adding an editable IF in front keeps every advanced branch byte-identical.
