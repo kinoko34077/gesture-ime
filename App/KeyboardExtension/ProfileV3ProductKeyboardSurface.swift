@@ -429,10 +429,10 @@ private struct ProfileV3DirectBoardMapping {
             anchorY: Double(anchor.y)
         )
         return CGRect(
-            x: mapped.x,
-            y: mapped.y,
-            width: mapped.width,
-            height: mapped.height
+            x: CGFloat(mapped.x),
+            y: CGFloat(mapped.y),
+            width: CGFloat(mapped.width),
+            height: CGFloat(mapped.height)
         )
     }
 }
