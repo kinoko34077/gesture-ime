@@ -244,6 +244,23 @@ final class ProfileV3EditorModel: ObservableObject {
         try? refreshBoardDerived()
     }
 
+    func openInboundReference(_ reference: ProfileV3BoardReference) {
+        switch reference.kind {
+        case .layerRoot:
+            if let layerID = reference.layerID {
+                selectLayer(layerID)
+            }
+
+        case .entryTransition, .holdTransition:
+            guard let sourceBoardID = reference.sourceBoardID else { return }
+            navigate(to: sourceBoardID)
+            if let sourceEntryID = reference.sourceEntryID,
+               entries.contains(where: { $0.id == sourceEntryID }) {
+                selectedEntryID = sourceEntryID
+            }
+        }
+    }
+
     func selectEntry(_ entryID: String?) {
         selectedEntryID = entryID
     }
@@ -448,6 +465,14 @@ final class ProfileV3EditorModel: ObservableObject {
             _ = try runtime.setLayer(selectedLayerID)
         }
         return runtime
+    }
+
+    func previewSurface() throws -> FfiProfileV3BoardSurface {
+        let runtime = try previewRuntime()
+        if let currentBoardID {
+            return try runtime.previewSurface(boardID: currentBoardID)
+        }
+        return try runtime.directSurface()
     }
 
     private func mutate(
