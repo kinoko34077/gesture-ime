@@ -240,7 +240,7 @@ fn a5_builtin_kana_transform_board_uses_neutral_center_and_explicit_transforms()
 }
 
 #[test]
-fn a5_builtin_alpha_shift_uses_profile_state_and_resolved_string_table() {
+fn a5_builtin_alpha_shift_uses_profile_state_and_conventional_single_character_flicks() {
     let runtime = runtime();
     runtime.set_layer("layer.alpha".into()).unwrap();
 
@@ -248,9 +248,11 @@ fn a5_builtin_alpha_shift_uses_profile_state_and_resolved_string_table() {
     assert_eq!(entry_text(&lower, "alpha.abc"), Some("abc"));
     assert_eq!(entry_text(&lower, "alpha.shift"), Some("⇧"));
 
-    let shift = runtime
+    // The root keytop remains the group label, while the transient flick Board
+    // follows conventional 12-key Latin ordering: tap=a, west=b, north=c.
+    let a = runtime
         .begin_session(
-            "alpha.shift".into(),
+            "alpha.abc".into(),
             FfiSize {
                 width: 80.0,
                 height: 80.0,
@@ -258,15 +260,15 @@ fn a5_builtin_alpha_shift_uses_profile_state_and_resolved_string_table() {
             FfiPoint { x: 0.0, y: 0.0 },
             0,
         )
+        .unwrap()
+        .touch_up(Some(10))
         .unwrap();
-    let shifted = shift.touch_up(Some(10)).unwrap();
-    assert!(shifted.runtime_dispatches.is_empty());
+    assert_eq!(
+        a.runtime_dispatches[0].arguments_json.as_deref(),
+        Some("{\"text\":\"a\"}")
+    );
 
-    let upper = runtime.direct_surface().unwrap();
-    assert_eq!(entry_text(&upper, "alpha.abc"), Some("ABC"));
-    assert_eq!(entry_text(&upper, "alpha.shift"), Some("⇪"));
-
-    let abc = runtime
+    let b = runtime
         .begin_session(
             "alpha.abc".into(),
             FfiSize {
@@ -276,18 +278,124 @@ fn a5_builtin_alpha_shift_uses_profile_state_and_resolved_string_table() {
             FfiPoint { x: 0.0, y: 0.0 },
             20,
         )
+        .unwrap();
+    b.move_to(FfiPoint { x: -80.0, y: 0.0 }, Some(30))
+        .unwrap();
+    let b = b.touch_up(Some(40)).unwrap();
+    assert_eq!(
+        b.runtime_dispatches[0].arguments_json.as_deref(),
+        Some("{\"text\":\"b\"}")
+    );
+
+    let c = runtime
+        .begin_session(
+            "alpha.abc".into(),
+            FfiSize {
+                width: 80.0,
+                height: 80.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            50,
+        )
+        .unwrap();
+    c.move_to(FfiPoint { x: 0.0, y: -80.0 }, Some(60))
+        .unwrap();
+    let c = c.touch_up(Some(70)).unwrap();
+    assert_eq!(
+        c.runtime_dispatches[0].arguments_json.as_deref(),
+        Some("{\"text\":\"c\"}")
+    );
+
+    let shift = runtime
+        .begin_session(
+            "alpha.shift".into(),
+            FfiSize {
+                width: 80.0,
+                height: 80.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            80,
+        )
+        .unwrap();
+    let shifted = shift.touch_up(Some(90)).unwrap();
+    assert!(shifted.runtime_dispatches.is_empty());
+
+    let upper = runtime.direct_surface().unwrap();
+    assert_eq!(entry_text(&upper, "alpha.abc"), Some("ABC"));
+    assert_eq!(entry_text(&upper, "alpha.shift"), Some("⇪"));
+
+    let a_upper = runtime
+        .begin_session(
+            "alpha.abc".into(),
+            FfiSize {
+                width: 80.0,
+                height: 80.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            100,
+        )
         .unwrap()
-        .touch_up(Some(30))
+        .touch_up(Some(110))
         .unwrap();
 
-    assert_eq!(abc.runtime_dispatches.len(), 1);
+    assert_eq!(a_upper.runtime_dispatches.len(), 1);
     assert_eq!(
-        abc.runtime_dispatches[0].action_id.as_deref(),
+        a_upper.runtime_dispatches[0].action_id.as_deref(),
         Some("text.directInsert")
     );
     assert_eq!(
-        abc.runtime_dispatches[0].arguments_json.as_deref(),
-        Some("{\"text\":\"ABC\"}")
+        a_upper.runtime_dispatches[0].arguments_json.as_deref(),
+        Some("{\"text\":\"A\"}")
+    );
+}
+
+#[test]
+fn a7_builtin_arrow_exposes_a_real_two_stage_reanchored_path() {
+    let runtime = runtime();
+    runtime.set_layer("layer.symbols".into()).unwrap();
+
+    let session = runtime
+        .begin_session(
+            "sym.arrow".into(),
+            FfiSize {
+                width: 80.0,
+                height: 80.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            0,
+        )
+        .unwrap();
+
+    let first = session
+        .move_to(FfiPoint { x: 80.0, y: -80.0 }, Some(10))
+        .unwrap();
+    assert_eq!(
+        first.current_board_id,
+        "board.symbols.sym.arrow.stage2"
+    );
+    assert_eq!(
+        first.committed_entry_ids,
+        vec!["sym.arrow.ne.stage2".to_owned()]
+    );
+    assert_eq!(first.anchor, FfiPoint { x: 80.0, y: -80.0 });
+
+    let second = session
+        .move_to(FfiPoint { x: 80.0, y: -160.0 }, Some(20))
+        .unwrap();
+    assert_eq!(
+        second.current_endpoint_entry_id.as_deref(),
+        Some("sym.arrow.stage2.n")
+    );
+
+    let released = session.touch_up(Some(30)).unwrap();
+    assert_eq!(released.runtime_dispatches.len(), 1);
+    assert_eq!(
+        released.runtime_dispatches[0].action_id.as_deref(),
+        Some("text.directInsert")
+    );
+    assert_eq!(
+        released.runtime_dispatches[0].arguments_json.as_deref(),
+        Some("{\"text\":\"↗\"}")
     );
 }
 
