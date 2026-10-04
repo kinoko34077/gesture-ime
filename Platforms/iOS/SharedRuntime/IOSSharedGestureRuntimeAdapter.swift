@@ -389,6 +389,10 @@ public struct IOSCandidatePanelState: Equatable {
             expanded = false
         case .candidatesChanged(let count):
             if count == 0 { expanded = false }
+        }
+    }
+}
+
 /// Platform-normalized host input facts (#69 §14). UIKit trait values are
 /// mapped to the shared runtime's closed vocabulary by the Keyboard Extension;
 /// this type and its autocapitalization rule stay Foundation-only so the

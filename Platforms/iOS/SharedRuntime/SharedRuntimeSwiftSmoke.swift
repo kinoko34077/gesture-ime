@@ -55,6 +55,8 @@ struct SharedRuntimeSwiftSmoke {
         state.apply(.toggle(candidateCount: 2))
         state.apply(.candidatesChanged(count: 0))
         guard !state.expanded else { fatalError("empty candidates should collapse") }
+    }
+
     private static func verifyHostAutocapitalization() {
         let cases: [(String, String?, Bool)] = [
             ("sentences", nil, true),
