@@ -774,12 +774,6 @@ fn v3_equal_angle_distance_tie_uses_canonical_center_order() {
 }
 
 
-fn runtime_from_value(value: &Value) -> ProfileV3BoardRuntime {
-    let bytes = serde_json::to_vec(value).unwrap();
-    let profile = ProfileV3Codec::decode_and_validate(&bytes).unwrap();
-    ProfileV3BoardRuntime::compile(&profile, "a1b-test-custom").unwrap()
-}
-
 fn frame_for(runtime: &ProfileV3BoardRuntime) -> Arc<Mutex<BoardFrameV3>> {
     runtime.new_frame("layer.base").unwrap()
 }
