@@ -27,7 +27,7 @@ public struct ProfileDocumentHistory: Sendable {
         try mutation(&next)
         guard next != document else { return }
 
-        push(&undoStack, document)
+        Self.push(&undoStack, document, capacity: capacity)
         document = next
         redoStack.removeAll(keepingCapacity: true)
     }
@@ -35,7 +35,7 @@ public struct ProfileDocumentHistory: Sendable {
     @discardableResult
     public mutating func undo() -> Bool {
         guard let previous = undoStack.popLast() else { return false }
-        push(&redoStack, document)
+        Self.push(&redoStack, document, capacity: capacity)
         document = previous
         return true
     }
@@ -54,9 +54,10 @@ public struct ProfileDocumentHistory: Sendable {
         redoStack.removeAll(keepingCapacity: false)
     }
 
-    private func push(
+    private static func push(
         _ stack: inout [ProfileDocument],
-        _ value: ProfileDocument
+        _ value: ProfileDocument,
+        capacity: Int
     ) {
         stack.append(value)
         if stack.count > capacity {
