@@ -750,3 +750,36 @@ fn v3_schema_file_is_valid_json_and_names_v3_contract() {
         400
     );
 }
+
+
+#[test]
+fn v3_macro_conditions_do_not_share_a_resolver_budget() {
+    let mut value = base_profile();
+
+    let actions: Vec<Value> = (0..32)
+        .map(|_| {
+            json!({
+                "actionID":"text.insert",
+                "arguments":{
+                    "text":{
+                        "base":"a",
+                        "transforms":[
+                            {
+                                "when":{
+                                    "eq":[
+                                        {"state":"latinCase"},
+                                        {"literal":"upper"}
+                                    ]
+                                },
+                                "tableRef":"latin.shift"
+                            }
+                        ]
+                    }
+                }
+            })
+        })
+        .collect();
+
+    value["macros"][0]["actions"] = Value::Array(actions);
+    validate(&value).unwrap();
+}
