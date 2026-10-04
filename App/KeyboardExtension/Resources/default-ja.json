@@ -4478,7 +4478,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "abc",
+                  "base": "a",
                   "transforms": [
                     {
                       "when": {
@@ -4501,7 +4501,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "abc",
+                      "base": "a",
                       "transforms": [
                         {
                           "when": {
@@ -4641,65 +4641,6 @@
               ]
             }
           }
-        },
-        {
-          "id": "alpha.abc.e",
-          "rect": {
-            "x": 1,
-            "y": -1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "a",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "a",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -4719,7 +4660,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "def",
+                  "base": "d",
                   "transforms": [
                     {
                       "when": {
@@ -4742,7 +4683,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "def",
+                      "base": "d",
                       "transforms": [
                         {
                           "when": {
@@ -4882,65 +4823,6 @@
               ]
             }
           }
-        },
-        {
-          "id": "alpha.def.e",
-          "rect": {
-            "x": 1,
-            "y": -1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "d",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "d",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -4960,7 +4842,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "ghi",
+                  "base": "g",
                   "transforms": [
                     {
                       "when": {
@@ -4983,7 +4865,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "ghi",
+                      "base": "g",
                       "transforms": [
                         {
                           "when": {
@@ -5123,65 +5005,6 @@
               ]
             }
           }
-        },
-        {
-          "id": "alpha.ghi.e",
-          "rect": {
-            "x": 1,
-            "y": -1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "g",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "g",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -5201,7 +5024,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "jkl",
+                  "base": "j",
                   "transforms": [
                     {
                       "when": {
@@ -5224,7 +5047,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "jkl",
+                      "base": "j",
                       "transforms": [
                         {
                           "when": {
@@ -5364,65 +5187,6 @@
               ]
             }
           }
-        },
-        {
-          "id": "alpha.jkl.e",
-          "rect": {
-            "x": 1,
-            "y": -1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "j",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "j",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -5442,7 +5206,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "mno",
+                  "base": "m",
                   "transforms": [
                     {
                       "when": {
@@ -5465,7 +5229,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "mno",
+                      "base": "m",
                       "transforms": [
                         {
                           "when": {
@@ -5605,65 +5369,6 @@
               ]
             }
           }
-        },
-        {
-          "id": "alpha.mno.e",
-          "rect": {
-            "x": 1,
-            "y": -1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "m",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "m",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -5683,7 +5388,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "pqrs",
+                  "base": "p",
                   "transforms": [
                     {
                       "when": {
@@ -5706,7 +5411,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "pqrs",
+                      "base": "p",
                       "transforms": [
                         {
                           "when": {
@@ -5905,65 +5610,6 @@
               ]
             }
           }
-        },
-        {
-          "id": "alpha.pqrs.s",
-          "rect": {
-            "x": -1,
-            "y": 1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "p",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "p",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -5983,7 +5629,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "tuv",
+                  "base": "t",
                   "transforms": [
                     {
                       "when": {
@@ -6006,7 +5652,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "tuv",
+                      "base": "t",
                       "transforms": [
                         {
                           "when": {
@@ -6146,65 +5792,6 @@
               ]
             }
           }
-        },
-        {
-          "id": "alpha.tuv.e",
-          "rect": {
-            "x": 1,
-            "y": -1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "t",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "t",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -6224,7 +5811,7 @@
             "default": {
               "presentation": {
                 "text": {
-                  "base": "wxyz",
+                  "base": "w",
                   "transforms": [
                     {
                       "when": {
@@ -6247,7 +5834,7 @@
                   "actionID": "text.directInsert",
                   "arguments": {
                     "text": {
-                      "base": "wxyz",
+                      "base": "w",
                       "transforms": [
                         {
                           "when": {
@@ -6425,65 +6012,6 @@
                   "arguments": {
                     "text": {
                       "base": "z",
-                      "transforms": [
-                        {
-                          "when": {
-                            "eq": [
-                              {
-                                "state": "latinCase"
-                              },
-                              {
-                                "literal": "upper"
-                              }
-                            ]
-                          },
-                          "tableRef": "latin.shift"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        },
-        {
-          "id": "alpha.wxyz.s",
-          "rect": {
-            "x": -1,
-            "y": 1,
-            "width": 2,
-            "height": 2
-          },
-          "resolver": {
-            "cases": [],
-            "default": {
-              "presentation": {
-                "text": {
-                  "base": "w",
-                  "transforms": [
-                    {
-                      "when": {
-                        "eq": [
-                          {
-                            "state": "latinCase"
-                          },
-                          {
-                            "literal": "upper"
-                          }
-                        ]
-                      },
-                      "tableRef": "latin.shift"
-                    }
-                  ]
-                }
-              },
-              "onRelease": [
-                {
-                  "actionID": "text.directInsert",
-                  "arguments": {
-                    "text": {
-                      "base": "w",
                       "transforms": [
                         {
                           "when": {
@@ -7805,6 +7333,186 @@
                   "arguments": {
                     "text": {
                       "base": "↔",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sym.arrow.ne.stage2",
+          "rect": {
+            "x": 1,
+            "y": -3,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "二段",
+                  "transforms": []
+                },
+                "accessibilityLabel": "二段階フリック"
+              },
+              "transition": {
+                "targetBoardRef": "board.symbols.sym.arrow.stage2",
+                "lifetime": "transient"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.arrow.stage2",
+      "entries": [
+        {
+          "id": "sym.arrow.stage2.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "②",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "noop",
+                  "arguments": {}
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sym.arrow.stage2.w",
+          "rect": {
+            "x": -3,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "↖",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.directInsert",
+                  "arguments": {
+                    "text": {
+                      "base": "↖",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sym.arrow.stage2.n",
+          "rect": {
+            "x": -1,
+            "y": -3,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "↗",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.directInsert",
+                  "arguments": {
+                    "text": {
+                      "base": "↗",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sym.arrow.stage2.e",
+          "rect": {
+            "x": 1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "↘",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.directInsert",
+                  "arguments": {
+                    "text": {
+                      "base": "↘",
+                      "transforms": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sym.arrow.stage2.s",
+          "rect": {
+            "x": -1,
+            "y": 1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "presentation": {
+                "text": {
+                  "base": "↙",
+                  "transforms": []
+                }
+              },
+              "onRelease": [
+                {
+                  "actionID": "text.directInsert",
+                  "arguments": {
+                    "text": {
+                      "base": "↙",
                       "transforms": []
                     }
                   }
