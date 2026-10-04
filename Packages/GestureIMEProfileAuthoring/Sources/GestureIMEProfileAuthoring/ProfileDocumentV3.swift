@@ -432,7 +432,10 @@ extension ProfileDocument {
                 candidate: newRect
             )
             source["id"] = .string(newEntryID)
-            source["rect"] = Self.v3RectNode(newRect)
+            source["rect"] = Self.v3RectNode(
+                newRect,
+                preserving: source["rect"]
+            )
             entries.append(.object(source))
             board["entries"] = .array(entries)
         }
@@ -456,7 +459,10 @@ extension ProfileDocument {
                 candidate: rect
             )
             var entry = entries[index].objectValue ?? [:]
-            entry["rect"] = Self.v3RectNode(rect)
+            entry["rect"] = Self.v3RectNode(
+                rect,
+                preserving: entry["rect"]
+            )
             entries[index] = .object(entry)
             board["entries"] = .array(entries)
         }
@@ -1092,13 +1098,16 @@ extension ProfileDocument {
         return ProfileV3Rect(x: x, y: y, width: width, height: height)
     }
 
-    private static func v3RectNode(_ rect: ProfileV3Rect) -> JSONNode {
-        .object([
-            "x": .integer(Int64(rect.x)),
-            "y": .integer(Int64(rect.y)),
-            "width": .integer(Int64(rect.width)),
-            "height": .integer(Int64(rect.height))
-        ])
+    private static func v3RectNode(
+        _ rect: ProfileV3Rect,
+        preserving existing: JSONNode? = nil
+    ) -> JSONNode {
+        var object = existing?.objectValue ?? [:]
+        object["x"] = .integer(Int64(rect.x))
+        object["y"] = .integer(Int64(rect.y))
+        object["width"] = .integer(Int64(rect.width))
+        object["height"] = .integer(Int64(rect.height))
+        return .object(object)
     }
 
     private static func v3ValidateResolverShape(_ node: JSONNode) throws {
