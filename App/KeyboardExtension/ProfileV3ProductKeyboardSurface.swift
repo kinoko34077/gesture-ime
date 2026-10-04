@@ -412,10 +412,10 @@ private struct ProfileV3DirectBoardMapping {
     func frame(for rect: FfiProfileV3Rect) -> CGRect {
         let mapped = shared.frame(for: rect)
         return CGRect(
-            x: mapped.x,
-            y: mapped.y,
-            width: mapped.width,
-            height: mapped.height
+            x: CGFloat(mapped.x),
+            y: CGFloat(mapped.y),
+            width: CGFloat(mapped.width),
+            height: CGFloat(mapped.height)
         )
     }
 
