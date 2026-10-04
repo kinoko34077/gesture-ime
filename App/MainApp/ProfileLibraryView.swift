@@ -11,7 +11,17 @@ struct ProfileLibraryView: View {
                 Section {
                     ForEach(library.profiles) { profile in
                         NavigationLink {
-                            ProfileEditorView(library: library, profileID: profile.id)
+                            if library.isProfileV3(profileID: profile.id) {
+                                ProfileV3OverviewEditorView(
+                                    library: library,
+                                    profileID: profile.id
+                                )
+                            } else {
+                                ProfileEditorView(
+                                    library: library,
+                                    profileID: profile.id
+                                )
+                            }
                         } label: {
                             HStack {
                                 VStack(alignment: .leading) {
@@ -57,8 +67,18 @@ struct ProfileLibraryView: View {
                         Image(systemName: "square.and.arrow.down")
                     }
 
-                    Button {
-                        library.createFromBuiltIn()
+                    Menu {
+                        Button {
+                            library.createEmptyV3()
+                        } label: {
+                            Label("New Profile v3", systemImage: "square.grid.3x3")
+                        }
+
+                        Button {
+                            library.createFromBuiltIn()
+                        } label: {
+                            Label("New legacy staging Profile", systemImage: "keyboard")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
