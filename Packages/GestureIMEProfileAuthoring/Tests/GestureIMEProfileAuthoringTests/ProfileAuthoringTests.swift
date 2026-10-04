@@ -289,7 +289,8 @@ func activeProfileSnapshotPublishAndReadRoundTrip() throws {
     #expect(manifest.generation == 1)
     #expect(manifest.digest.count == 64)
 
-    let snapshot = try #require(store.readActive())
+    let active = try store.readActive()
+    let snapshot = try #require(active)
     #expect(snapshot.manifest == manifest)
     #expect(snapshot.data == data)
     #expect(FileManager.default.fileExists(atPath: try store.snapshotURL(for: manifest).path))
@@ -377,4 +378,13 @@ func activeSnapshotGenerationRemainsMonotonicWhenManifestIsMissing() throws {
     )
     let second = try store.publish(Data(secondText.utf8))
     #expect(second.generation == 2)
+}
+
+
+@Test
+func activeSnapshotDigestUsesCanonicalSHA256() {
+    #expect(
+        ProfileSnapshotDigest.sha256Hex(Data("abc".utf8))
+            == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    )
 }
