@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import AzooKeyUtils
+import GestureIMEProductSettings
 import KeyboardViews
 
 @MainActor
@@ -14,19 +15,24 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     let composition: AzooKeyCompositionBridge
     let gestureCoordinator = ProductGestureCoordinator()
     let defaultPolicy: FfiProfileV3GesturePolicy
+    let productSettings: ProductSettingsValues
 
+    private let hapticFeedback: ProductHapticFeedback
     private let onNextKeyboard: () -> Void
     private let onDismissKeyboard: () -> Void
 
     init(
         runtime: IOSProfileV3RuntimeAdapter,
         composition: AzooKeyCompositionBridge,
+        productSettings: ProductSettingsValues,
         onNextKeyboard: @escaping () -> Void,
         onDismissKeyboard: @escaping () -> Void
     ) throws {
         self.runtime = runtime
         self.composition = composition
         self.defaultPolicy = runtime.defaultPolicy()
+        self.productSettings = productSettings
+        self.hapticFeedback = ProductHapticFeedback(settings: productSettings)
         self.onNextKeyboard = onNextKeyboard
         self.onDismissKeyboard = onDismissKeyboard
 
@@ -109,6 +115,10 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         composition.commitSelectionOrRaw()
         syncSemanticContext()
         onNextKeyboard()
+    }
+
+    func emitSelectionHaptic() {
+        hapticFeedback.emitCommittedSelection()
     }
 
     func insertUtilityText(_ text: String) {
@@ -534,6 +544,7 @@ private struct ProfileV3DirectEntryView: View {
                 pressed = true
 
                 let initial = try created.snapshot()
+                model.emitSelectionHaptic()
                 model.beginInteraction(initial)
                 model.dispatchNewRuntimeEffects(
                     from: initial,
@@ -549,11 +560,13 @@ private struct ProfileV3DirectEntryView: View {
         guard let session else { return }
 
         do {
+            let previous = model.interactionSnapshot
             let result = try session.move(
                 x: Double(value.location.x),
                 y: Double(value.location.y),
                 atMs: elapsedMs()
             )
+            emitSpatialCommitHapticIfNeeded(from: previous, to: result)
             model.updateInteraction(result)
             model.dispatchNewRuntimeEffects(
                 from: result,
@@ -577,11 +590,13 @@ private struct ProfileV3DirectEntryView: View {
         let atMs = elapsedMs()
 
         do {
+            let previous = model.interactionSnapshot
             let moved = try session.move(
                 x: Double(value.location.x),
                 y: Double(value.location.y),
                 atMs: atMs
             )
+            emitSpatialCommitHapticIfNeeded(from: previous, to: moved)
             model.updateInteraction(moved)
             model.dispatchNewRuntimeEffects(
                 from: moved,
@@ -600,6 +615,18 @@ private struct ProfileV3DirectEntryView: View {
 
         resetSemanticSession()
         model.endInteraction()
+    }
+
+    private func emitSpatialCommitHapticIfNeeded(
+        from previous: FfiProfileV3SessionSnapshot?,
+        to next: FfiProfileV3SessionSnapshot
+    ) {
+        guard let previous,
+              next.committedEntryIds.count > previous.committedEntryIds.count else {
+            return
+        }
+
+        model.emitSelectionHaptic()
     }
 
     private func elapsedMs() -> Int64 {

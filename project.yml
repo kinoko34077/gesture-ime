@@ -9,6 +9,8 @@ packages:
     path: Packages/GestureIMECore
   GestureIMEProfileAuthoring:
     path: Packages/GestureIMEProfileAuthoring
+  GestureIMEProductSettings:
+    path: Packages/GestureIMEProductSettings
   AzooKeyCore:
     path: Vendor/azooKey/AzooKeyCore
   AzooKeyKanaKanjiConverter:
@@ -50,6 +52,7 @@ targets:
       - target: GestureKeyboard
         embed: true
       - package: GestureIMEProfileAuthoring
+      - package: GestureIMEProductSettings
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime
@@ -97,6 +100,7 @@ targets:
         product: KeyboardExtensionUtils
       - package: AzooKeyKanaKanjiConverter
         product: KanaKanjiConverterModuleWithDefaultDictionary
+      - package: GestureIMEProductSettings
     postCompileScripts:
       - script: bash "$SRCROOT/scripts/embed-keyboard-runtime-frameworks.sh"
         name: Embed keyboard runtime frameworks
