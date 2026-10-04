@@ -34,7 +34,15 @@ impl ProfileV3Codec {
             ));
         }
 
-        let profile: ProfileBundleV3 = serde_json::from_slice(bytes).map_err(|error| {
+        let value: Value = serde_json::from_slice(bytes).map_err(|error| {
+            ProfileValidationError::new(
+                ProfileValidationCode::UnsupportedSchema,
+                Some(error.to_string()),
+            )
+        })?;
+        validate_v3_structural_contract(&value)?;
+
+        let profile: ProfileBundleV3 = serde_json::from_value(value).map_err(|error| {
             ProfileValidationError::new(
                 ProfileValidationCode::UnsupportedSchema,
                 Some(error.to_string()),
@@ -1269,4 +1277,111 @@ fn get_string<'a>(arguments: &'a Map<String, Value>, key: &str) -> Option<&'a st
 
 fn get_i64(arguments: &Map<String, Value>, key: &str) -> Option<i64> {
     arguments.get(key)?.as_i64()
+}
+
+
+fn reject_explicit_null(
+    object: &Map<String, Value>,
+    key: &str,
+    owner: &str,
+) -> Result<(), ProfileValidationError> {
+    if object.get(key).is_some_and(Value::is_null) {
+        return Err(ProfileValidationError::new(
+            ProfileValidationCode::UnsupportedSchema,
+            Some(format!("{owner}.{key} must not be null")),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_presentation_structural_contract(
+    value: Option<&Value>,
+    owner: &str,
+) -> Result<(), ProfileValidationError> {
+    let Some(object) = value.and_then(Value::as_object) else {
+        return Ok(());
+    };
+    reject_explicit_null(object, "text", owner)?;
+    reject_explicit_null(object, "accessibilityLabel", owner)
+}
+
+fn validate_behavior_structural_contract(
+    value: Option<&Value>,
+    owner: &str,
+) -> Result<(), ProfileValidationError> {
+    let Some(object) = value.and_then(Value::as_object) else {
+        return Ok(());
+    };
+
+    reject_explicit_null(object, "presentation", owner)?;
+    reject_explicit_null(object, "transition", owner)?;
+    reject_explicit_null(object, "hold", owner)?;
+    validate_presentation_structural_contract(
+        object.get("presentation"),
+        &format!("{owner}.presentation"),
+    )?;
+
+    if let Some(hold) = object.get("hold").and_then(Value::as_object) {
+        reject_explicit_null(hold, "transition", &format!("{owner}.hold"))?;
+        reject_explicit_null(hold, "repeat", &format!("{owner}.hold"))?;
+    }
+
+    Ok(())
+}
+
+fn validate_v3_structural_contract(value: &Value) -> Result<(), ProfileValidationError> {
+    let Some(root) = value.as_object() else {
+        return Err(ProfileValidationError::simple(
+            ProfileValidationCode::UnsupportedSchema,
+        ));
+    };
+
+    reject_explicit_null(root, "theme", "profile")?;
+
+    if let Some(layers) = root.get("layers").and_then(Value::as_array) {
+        for (index, layer) in layers.iter().enumerate() {
+            if let Some(object) = layer.as_object() {
+                reject_explicit_null(object, "name", &format!("layers[{index}]"))?;
+            }
+        }
+    }
+
+    if let Some(states) = root.get("states").and_then(Value::as_array) {
+        for (index, state) in states.iter().enumerate() {
+            if let Some(object) = state.as_object() {
+                reject_explicit_null(object, "values", &format!("states[{index}]"))?;
+            }
+        }
+    }
+
+    if let Some(boards) = root.get("boards").and_then(Value::as_array) {
+        for (board_index, board) in boards.iter().enumerate() {
+            let Some(entries) = board.get("entries").and_then(Value::as_array) else {
+                continue;
+            };
+
+            for (entry_index, entry) in entries.iter().enumerate() {
+                let Some(resolver) = entry.get("resolver").and_then(Value::as_object) else {
+                    continue;
+                };
+                let owner = format!("boards[{board_index}].entries[{entry_index}].resolver");
+
+                if let Some(cases) = resolver.get("cases").and_then(Value::as_array) {
+                    for (case_index, case_item) in cases.iter().enumerate() {
+                        validate_behavior_structural_contract(
+                            case_item.get("behavior"),
+                            &format!("{owner}.cases[{case_index}].behavior"),
+                        )?;
+                    }
+                }
+
+                validate_behavior_structural_contract(
+                    resolver.get("default"),
+                    &format!("{owner}.default"),
+                )?;
+            }
+        }
+    }
+
+    Ok(())
 }
