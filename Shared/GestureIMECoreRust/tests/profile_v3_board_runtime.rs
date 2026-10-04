@@ -3,7 +3,7 @@ use gesture_ime_core::{
     DefaultBoardSemanticsV3, EndpointBehaviorV3, GesturePoint, GestureSize, ProfileV3BoardRuntime,
     ProfileV3Codec,
 };
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 
 fn profile_json() -> Value {
@@ -1016,10 +1016,10 @@ fn v3_persistent_transition_reached_through_transient_chain_replaces_baseline_an
     assert_eq!(session.anchor, GesturePoint { x: 60.0, y: 0.0 });
     assert_eq!(session.persistent_board_id().as_deref(), Some("board.two"));
 
-    session.move_to(GesturePoint { x: 105.0, y: 0.0 }, Some(20));
+    session.move_to(GesturePoint { x: 104.0, y: 0.0 }, Some(20));
     assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("origin.two"));
 
-    session.move_to(GesturePoint { x: 110.0, y: 0.0 }, Some(30));
+    session.move_to(GesturePoint { x: 106.0, y: 0.0 }, Some(30));
     assert_eq!(session.current_endpoint_entry_id.as_deref(), Some("east.two"));
 
     session.touch_up(Some(40));
@@ -1258,14 +1258,14 @@ fn v3_transition_budget_bounds_cycles_and_failed_transition_becomes_release_endp
     let mut x = 0.0;
 
     for _ in 0..15 {
-        x += 45.0;
+        x += 60.0;
         session.move_to(GesturePoint { x, y: 0.0 }, None);
     }
 
     assert_eq!(session.transition_count, 16);
     assert!(!session.transition_limit_hit);
 
-    x += 45.0;
+    x += 60.0;
     session.move_to(GesturePoint { x, y: 0.0 }, None);
 
     assert_eq!(session.transition_count, 16);
