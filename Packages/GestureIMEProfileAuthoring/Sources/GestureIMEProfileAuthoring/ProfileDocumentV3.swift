@@ -565,6 +565,28 @@ extension ProfileDocument {
                 return
             }
 
+            guard (50...5000).contains(hold.delayMs) else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Hold delayMs must be within 50...5000"
+                )
+            }
+
+            let repeatActions = hold.repeatBehavior?.actions ?? []
+            let releaseCount = behavior["onRelease"]?.arrayValue?.count ?? 0
+            let totalActions = releaseCount + hold.onStart.count + repeatActions.count
+            guard totalActions <= 16 else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Endpoint exceeds 16 Actions across release/Hold/repeat"
+                )
+            }
+
+            if let repeating = hold.repeatBehavior,
+               !(16...5000).contains(repeating.intervalMs) {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Hold repeat intervalMs must be within 16...5000"
+                )
+            }
+
             var object = behavior["hold"]?.objectValue ?? [:]
             object["delayMs"] = .integer(Int64(hold.delayMs))
             object["onStart"] = .array(hold.onStart.map(Self.v3ActionNode))
@@ -605,6 +627,11 @@ extension ProfileDocument {
                 "default": .bool(defaultValue)
             ])
         )
+        try v3MutateObjectInArray(named: "states", id: id) { object in
+            // "values" is semantic enum data rather than an unknown extension
+            // member, so it must not survive an enum -> boolean type change.
+            object.removeValue(forKey: "values")
+        }
     }
 
     public mutating func v3UpsertEnumState(
