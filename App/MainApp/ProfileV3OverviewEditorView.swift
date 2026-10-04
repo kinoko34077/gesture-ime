@@ -808,23 +808,23 @@ private struct ProfileV3AtomicGrid: View {
         Canvas { context, _ in
             var path = Path()
 
-            for column in 0...20 {
+            for column in 0...geometry.viewport.span {
                 let x = geometry.originX + CGFloat(column) * geometry.atomicSize
                 path.move(to: CGPoint(x: x, y: geometry.originY))
                 path.addLine(
                     to: CGPoint(
                         x: x,
-                        y: geometry.originY + 20 * geometry.atomicSize
+                        y: geometry.originY + CGFloat(geometry.viewport.span) * geometry.atomicSize
                     )
                 )
             }
 
-            for row in 0...20 {
+            for row in 0...geometry.viewport.span {
                 let y = geometry.originY + CGFloat(row) * geometry.atomicSize
                 path.move(to: CGPoint(x: geometry.originX, y: y))
                 path.addLine(
                     to: CGPoint(
-                        x: geometry.originX + 20 * geometry.atomicSize,
+                        x: geometry.originX + CGFloat(geometry.viewport.span) * geometry.atomicSize,
                         y: y
                     )
                 )
@@ -842,13 +842,13 @@ private struct ProfileV3AtomicGrid: View {
                 + CGFloat(-geometry.viewport.minY) * geometry.atomicSize
 
             if originX >= geometry.originX,
-               originX <= geometry.originX + 20 * geometry.atomicSize {
+               originX <= geometry.originX + CGFloat(geometry.viewport.span) * geometry.atomicSize {
                 var origin = Path()
                 origin.move(to: CGPoint(x: originX, y: geometry.originY))
                 origin.addLine(
                     to: CGPoint(
                         x: originX,
-                        y: geometry.originY + 20 * geometry.atomicSize
+                        y: geometry.originY + CGFloat(geometry.viewport.span) * geometry.atomicSize
                     )
                 )
                 context.stroke(
@@ -859,12 +859,12 @@ private struct ProfileV3AtomicGrid: View {
             }
 
             if originY >= geometry.originY,
-               originY <= geometry.originY + 20 * geometry.atomicSize {
+               originY <= geometry.originY + CGFloat(geometry.viewport.span) * geometry.atomicSize {
                 var origin = Path()
                 origin.move(to: CGPoint(x: geometry.originX, y: originY))
                 origin.addLine(
                     to: CGPoint(
-                        x: geometry.originX + 20 * geometry.atomicSize,
+                        x: geometry.originX + CGFloat(geometry.viewport.span) * geometry.atomicSize,
                         y: originY
                     )
                 )
@@ -882,37 +882,57 @@ private struct ProfileV3AtomicGrid: View {
 private struct ProfileV3AtomicViewport {
     let minX: Int
     let minY: Int
+    let span: Int
 
     init(entries: [ProfileV3BoardEntrySummary]) {
         if entries.isEmpty {
-            minX = -10
-            minY = -10
+            span = 12
+            minX = -6
+            minY = -6
             return
         }
 
-        let xMin = entries.map(\.rect.x).min() ?? -10
-        let xMax = entries.map(\.rect.maxX).max() ?? 10
-        let yMin = entries.map(\.rect.y).min() ?? -10
-        let yMax = entries.map(\.rect.maxY).max() ?? 10
+        let xMin = entries.map(\.rect.x).min() ?? -6
+        let xMax = entries.map(\.rect.maxX).max() ?? 6
+        let yMin = entries.map(\.rect.y).min() ?? -6
+        let yMax = entries.map(\.rect.maxY).max() ?? 6
+        let contentSpan = max(xMax - xMin, yMax - yMin)
 
-        minX = Self.windowStart(minimum: xMin, maximum: xMax)
-        minY = Self.windowStart(minimum: yMin, maximum: yMax)
+        // Keep ordinary 2×2 keyboard cells comfortably touchable on phone
+        // instead of always shrinking every Board into a fixed 20×20 window.
+        // Large/far Boards still fit by expanding the viewport up to the full
+        // validated -20...20 atomic coordinate extent.
+        span = min(40, max(12, contentSpan + 2))
+        minX = Self.windowStart(
+            minimum: xMin,
+            maximum: xMax,
+            span: span
+        )
+        minY = Self.windowStart(
+            minimum: yMin,
+            maximum: yMax,
+            span: span
+        )
     }
 
     private static func windowStart(
         minimum: Int,
-        maximum: Int
+        maximum: Int,
+        span: Int
     ) -> Int {
         let center = Double(minimum + maximum) / 2
-        var start = Int(floor(center - 10))
-        start = min(max(start, -20), 0)
+        var start = Int(floor(center - Double(span) / 2))
+        let maximumStart = 20 - span
+        start = min(max(start, -20), maximumStart)
+
         if minimum < start {
             start = minimum
         }
-        if maximum > start + 20 {
-            start = maximum - 20
+        if maximum > start + span {
+            start = maximum - span
         }
-        return min(max(start, -20), 0)
+
+        return min(max(start, -20), maximumStart)
     }
 }
 
@@ -927,8 +947,11 @@ private struct ProfileV3CanvasGeometry {
         viewport: ProfileV3AtomicViewport
     ) {
         self.viewport = viewport
-        atomicSize = max(1, min(size.width, size.height) / 20)
-        let side = atomicSize * 20
+        atomicSize = max(
+            1,
+            min(size.width, size.height) / CGFloat(viewport.span)
+        )
+        let side = atomicSize * CGFloat(viewport.span)
         originX = (size.width - side) / 2
         originY = (size.height - side) / 2
     }
@@ -947,8 +970,8 @@ private struct ProfileV3CanvasGeometry {
         let localY = point.y - originY
         guard localX >= 0,
               localY >= 0,
-              localX < 20 * atomicSize,
-              localY < 20 * atomicSize else {
+              localX < CGFloat(viewport.span) * atomicSize,
+              localY < CGFloat(viewport.span) * atomicSize else {
             return nil
         }
 
