@@ -79,8 +79,9 @@ func simpleTextBehaviorRoundTrips() throws {
 
     var document = try ProfileDocument.emptyV3(id: "user.v3.rules", name: "Rules")
     try document.v3CreateLayer(fromPreset: .numeric, layerID: "layer.num", name: nil)
-    let board = try document.v3BoardSummaries().first!.id
-    let entry = try document.v3BoardEntries(boardID: board).first!.id
+    let layer = try document.v3LayerSummaries().first { $0.id == "layer.num" }
+    let board = try #require(layer?.rootBoardID)
+    let entry = try #require(try document.v3BoardEntries(boardID: board).first?.id)
     var rules = try document.v3EntryRules(boardID: board, entryID: entry)
     rules.branches.append(.editable(
         condition: ProfileV3RuleCondition(terms: [ProfileV3RuleTerm(.flag(.conversionActive), negated: true)]),
@@ -102,7 +103,7 @@ func closedCatalogLiteralsOutsideTheListAreAdvanced() throws {
 @Test
 func branchBehaviorEditsKeepUnknownMembers() throws {
     let original = ProfileV3Rules.textBehavior("か")
-    var object = original.objectValue!
+    var object = try #require(original.objectValue)
     object["hold"] = .object(["x": .integer(1)])
     let behavior = JSONNode.object(object)
 
