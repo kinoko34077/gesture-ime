@@ -619,7 +619,7 @@ private struct ProfileV3BoardCanvas: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
         }
         .buttonStyle(.bordered)
         .accessibilityLabel(Catalog.title(key))
@@ -999,11 +999,11 @@ private struct ProfileV3EntryInspector: View {
                 .font(.caption.monospacedDigit())
                 .frame(minWidth: 52, alignment: .leading)
             Button { change(-1) } label: {
-                Image(systemName: "minus").frame(width: 28, height: 28)
+                Image(systemName: "minus").frame(width: 44, height: 44)
             }
             .accessibilityLabel("\(title)を減らす")
             Button { change(1) } label: {
-                Image(systemName: "plus").frame(width: 28, height: 28)
+                Image(systemName: "plus").frame(width: 44, height: 44)
             }
             .accessibilityLabel("\(title)を増やす")
         }

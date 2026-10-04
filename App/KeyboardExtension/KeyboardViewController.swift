@@ -15,6 +15,7 @@ final class KeyboardViewController: UIInputViewController {
     private var productModel: AnyObject?
     private var composition: AzooKeyCompositionBridge?
     private var heightConstraint: NSLayoutConstraint?
+    private var installedSettings: ProductSettingsValues = .defaults
 
     override func loadView() {
         super.loadView()
@@ -169,11 +170,8 @@ final class KeyboardViewController: UIInputViewController {
         host.didMove(toParent: self)
         host.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
 
-        let scaledHeight = (
-            try? productSettings.scaledKeyboardHeight(
-                baseHeight: Self.baseKeyboardHeight
-            )
-        ) ?? Self.baseKeyboardHeight
+        installedSettings = productSettings
+        let scaledHeight = currentKeyboardHeight()
         let height = view.heightAnchor.constraint(
             equalToConstant: CGFloat(scaledHeight)
         )
@@ -188,6 +186,31 @@ final class KeyboardViewController: UIInputViewController {
 
         keyboardHost = host
         heightConstraint = height
+    }
+
+    /// #80: portrait/landscape height adapts the viewport only; Board
+    /// coordinates stay semantic and the renderer re-maps them.
+    private func currentKeyboardHeight() -> Double {
+        let base = IOSKeyboardLayoutPolicy.baseHeight(
+            compactVertical: traitCollection.verticalSizeClass == .compact
+        )
+        return (try? installedSettings.scaledKeyboardHeight(baseHeight: base)) ?? base
+    }
+
+    override func viewWillTransition(
+        to size: CGSize,
+        with coordinator: any UIViewControllerTransitionCoordinator
+    ) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { [weak self] _ in
+            guard let self else { return }
+            self.heightConstraint?.constant = CGFloat(self.currentKeyboardHeight())
+        })
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        heightConstraint?.constant = CGFloat(currentKeyboardHeight())
     }
 
     private static func profileSchema(_ profileJSON: String) -> String? {

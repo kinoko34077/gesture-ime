@@ -436,3 +436,14 @@ public struct IOSHostInputFacts: Equatable {
         }
     }
 }
+
+
+/// #80 adaptive viewport policy (presentation only).
+public enum IOSKeyboardLayoutPolicy {
+    public static let portraitBaseHeight: Double = 344
+    public static let compactVerticalBaseHeight: Double = 216
+
+    public static func baseHeight(compactVertical: Bool) -> Double {
+        compactVertical ? compactVerticalBaseHeight : portraitBaseHeight
+    }
+}

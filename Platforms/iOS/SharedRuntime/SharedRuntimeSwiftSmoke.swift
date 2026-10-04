@@ -12,6 +12,10 @@ struct SharedRuntimeSwiftSmoke {
             encoding: .utf8
         )
 
+        guard IOSKeyboardLayoutPolicy.baseHeight(compactVertical: false) == 344,
+              IOSKeyboardLayoutPolicy.baseHeight(compactVertical: true) == 216 else {
+            fatalError("adaptive height policy mismatch")
+        }
         verifyCandidatePanelState()
         verifyHostAutocapitalization()
 
