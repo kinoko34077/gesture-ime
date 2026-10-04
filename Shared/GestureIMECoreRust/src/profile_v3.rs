@@ -26,32 +26,34 @@ pub struct LayerV3 {
     pub extra: V3Extra,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BoardRectV3 {
     pub x: i64,
     pub y: i64,
     pub width: i64,
     pub height: i64,
+    #[serde(flatten)]
+    pub extra: V3Extra,
 }
 
 impl BoardRectV3 {
-    pub fn max_x(self) -> Option<i64> {
+    pub fn max_x(&self) -> Option<i64> {
         self.x.checked_add(self.width)
     }
 
-    pub fn max_y(self) -> Option<i64> {
+    pub fn max_y(&self) -> Option<i64> {
         self.y.checked_add(self.height)
     }
 
-    pub fn contains_origin(self) -> bool {
+    pub fn contains_origin(&self) -> bool {
         self.x <= 0
             && self.y <= 0
             && self.max_x().is_some_and(|max_x| 0 < max_x)
             && self.max_y().is_some_and(|max_y| 0 < max_y)
     }
 
-    pub fn overlaps_positive_area(self, other: Self) -> bool {
+    pub fn overlaps_positive_area(&self, other: &Self) -> bool {
         let (Some(self_max_x), Some(self_max_y), Some(other_max_x), Some(other_max_y)) =
             (self.max_x(), self.max_y(), other.max_x(), other.max_y())
         else {
