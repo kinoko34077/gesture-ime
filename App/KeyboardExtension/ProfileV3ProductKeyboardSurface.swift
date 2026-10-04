@@ -621,15 +621,12 @@ private struct ProfileV3DirectEntryView: View {
         from previous: FfiProfileV3SessionSnapshot?,
         to next: FfiProfileV3SessionSnapshot
     ) {
-        guard let previous else { return }
-
-        let committedIdentityChanged =
-            previous.currentBoardId != next.currentBoardId
-            || previous.currentEndpointEntryId != next.currentEndpointEntryId
-
-        if committedIdentityChanged {
-            model.emitSelectionHaptic()
+        guard let previous,
+              next.committedEntryIds.count > previous.committedEntryIds.count else {
+            return
         }
+
+        model.emitSelectionHaptic()
     }
 
     private func elapsedMs() -> Int64 {

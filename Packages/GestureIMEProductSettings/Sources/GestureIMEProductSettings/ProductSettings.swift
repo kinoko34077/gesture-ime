@@ -145,7 +145,7 @@ public enum ProductSettingsDeliveryCapability: Equatable, Sendable {
     }
 }
 
-public final class ProductSettingsStore: @unchecked Sendable {
+public final class ProductSettingsStore {
     public static let manifestFileName = "active-product-settings-manifest.json"
     public static let fallbackManifestFileName = "last-known-good-product-settings-manifest.json"
     public static let snapshotsDirectoryName = "product-settings-snapshots"
