@@ -672,7 +672,7 @@ fn board_bounds(board: &crate::profile_v3::BoardV3) -> Option<FfiProfileV3Bounds
     let mut max_y: Option<i64> = None;
 
     for entry in &board.entries {
-        let rect = &entry.rect;
+        let rect = entry.rect.clone();
         let rect_max_x = rect.max_x()?;
         let rect_max_y = rect.max_y()?;
         min_x = Some(min_x.map_or(rect.x, |value| value.min(rect.x)));
