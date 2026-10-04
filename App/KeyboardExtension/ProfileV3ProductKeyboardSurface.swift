@@ -8,10 +8,12 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     @Published private(set) var surface: FfiProfileV3BoardSurface
     @Published private(set) var interactionSnapshot: FfiProfileV3SessionSnapshot?
     @Published private(set) var candidates: [CompositionCandidateSnapshot] = []
+    @Published var panel: ProductUtilityPanel?
 
     let runtime: IOSProfileV3RuntimeAdapter
     let composition: AzooKeyCompositionBridge
     let gestureCoordinator = ProductGestureCoordinator()
+    let defaultPolicy: FfiProfileV3GesturePolicy
 
     private let onNextKeyboard: () -> Void
     private let onDismissKeyboard: () -> Void
@@ -24,6 +26,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
     ) throws {
         self.runtime = runtime
         self.composition = composition
+        self.defaultPolicy = runtime.defaultPolicy()
         self.onNextKeyboard = onNextKeyboard
         self.onDismissKeyboard = onDismissKeyboard
 
@@ -108,6 +111,16 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         onNextKeyboard()
     }
 
+    func insertUtilityText(_ text: String) {
+        composition.directInsert(text)
+        panel = nil
+        refreshDirectSurface()
+    }
+
+    func closePanel() {
+        panel = nil
+    }
+
     private func apply(_ dispatch: FfiProfileV3RuntimeDispatch) {
         if let actionID = dispatch.actionId,
            let argumentsJSON = dispatch.argumentsJson {
@@ -190,11 +203,14 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
             onDismissKeyboard()
 
         case "panel.open":
-            // Profile v3 product architecture moves phrase/emoji/emoticon content
-            // to ordinary Layers in A5. Do not recreate a second modal semantic
-            // surface here. The retained generic Action remains harmless when a
-            // Profile still contains it during staging.
-            break
+            guard let panelID = arguments["panel"] as? String,
+                  let panel = ProductUtilityPanel(rawValue: panelID) else {
+                return
+            }
+            // A5 moves phrase/emoji/emoticon product content to authored Layers.
+            // This compatibility surface exists only so the retained generic
+            // panel.open Action is not silently reinterpreted as NoOp in A3.
+            self.panel = panel
 
         default:
             // state.set is consumed in Rust A2 and profile.switch is rejected at
@@ -256,6 +272,17 @@ struct ProfileV3ProductKeyboardRoot: View {
         .padding(.vertical, 4)
         .foregroundStyle(theme.textColor.color)
         .background(theme.backgroundColor.color)
+        .overlay {
+            if let panel = model.panel {
+                ProfileV3PanelCompatibilityView(
+                    panel: panel,
+                    policy: model.defaultPolicy,
+                    theme: theme,
+                    onInsert: model.insertUtilityText,
+                    onClose: model.closePanel
+                )
+            }
+        }
     }
 
     private var productBar: some View {
@@ -641,5 +668,100 @@ private struct ProfileV3DirectEntryView: View {
         registeredTouch = false
         gestureToken = nil
         resetSemanticSession()
+
+        // A Layer control-plane Action can remove this direct key while a Hold
+        // session is still live. onDisappear must clear the shared overlay state
+        // as well as the local session so a stale relative surface cannot remain.
+        if model.interactionSnapshot != nil {
+            model.endInteraction()
+        }
+    }
+}
+
+@MainActor
+private struct ProfileV3PanelCompatibilityView: View {
+    let panel: ProductUtilityPanel
+    let policy: FfiProfileV3GesturePolicy
+    let theme: AzooKeyTheme
+    let onInsert: (String) -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(.headline)
+                Spacer()
+                Button("閉じる", action: onClose)
+            }
+
+            switch panel {
+            case .tuning:
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Profile gesture policy")
+                    Text(String(format: "Dead zone %.2f", policy.deadZone))
+                    Text(String(
+                        format: "Initial %.2f / Subsequent %.2f",
+                        policy.initialCellCommitDistance,
+                        policy.subsequentCellCommitDistance
+                    ))
+                    Text(String(
+                        format: "Hysteresis %.2f°",
+                        policy.angularHysteresisDegrees
+                    ))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            case .phrase:
+                utilityButtons(["ありがとう", "よろしくお願いします", "了解", "お疲れさま"])
+
+            case .emoji:
+                utilityButtons(["😀", "😂", "🥺", "👍", "🙏", "❤️", "✨", "🎉"])
+
+            case .emoticon:
+                utilityButtons(["(・ω・)", "(｀・ω・´)", "＼(^o^)／", "( ˘ω˘ )", "m(_ _)m"])
+            }
+        }
+        .padding(12)
+        .foregroundStyle(theme.textColor.color)
+        .background(theme.backgroundColor.color)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    theme.borderColor.color,
+                    lineWidth: CGFloat(max(0.5, theme.borderWidth))
+                )
+        )
+        .padding(8)
+    }
+
+    private var title: String {
+        switch panel {
+        case .tuning: "Gesture tuning"
+        case .phrase: "定型文"
+        case .emoji: "絵文字"
+        case .emoticon: "顔文字"
+        }
+    }
+
+    private func utilityButtons(_ values: [String]) -> some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 74))],
+            spacing: 8
+        ) {
+            ForEach(values, id: \.self) { value in
+                Button(value) {
+                    onInsert(value)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 9)
+                .frame(maxWidth: .infinity)
+                .background(
+                    theme.normalKeyFillColor.color,
+                    in: RoundedRectangle(cornerRadius: 7)
+                )
+            }
+        }
     }
 }
