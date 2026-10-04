@@ -176,18 +176,23 @@ impl ProfileV3Validator {
                     Some(macro_item.id.clone()),
                 ));
             }
-            let mut standalone_nodes = 0usize;
-            validate_actions(
-                &macro_item.actions,
-                true,
-                &layer_ids,
-                &board_ids,
-                &table_ids,
-                &macro_ids,
-                &macro_map,
-                &state_kinds,
-                &mut standalone_nodes,
-            )?;
+            for action in &macro_item.actions {
+                // The 64-node bound is defined per resolver. Macro Actions do not
+                // share a resolver, so each embedded conditional string gets an
+                // independent bounded validation counter.
+                let mut standalone_nodes = 0usize;
+                validate_actions(
+                    std::slice::from_ref(action),
+                    true,
+                    &layer_ids,
+                    &board_ids,
+                    &table_ids,
+                    &macro_ids,
+                    &macro_map,
+                    &state_kinds,
+                    &mut standalone_nodes,
+                )?;
+            }
         }
 
         for board in &profile.boards {
