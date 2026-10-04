@@ -3,6 +3,10 @@ import SwiftUI
 import AzooKeyUtils
 import GestureIMEProductSettings
 import KeyboardViews
+import os
+
+/// #80: Instruments-visible intervals for device latency measurement.
+let gestureSignposter = OSSignposter(subsystem: "net.kinotch.gestureime", category: "keyboard")
 
 @MainActor
 final class ProfileV3ProductKeyboardViewModel: ObservableObject {
@@ -656,6 +660,7 @@ private struct ProfileV3DirectEntryView: View {
             .onEnded(endGesture)
         )
         .accessibilityLabel(entry.accessibilityLabel ?? entry.text ?? entry.id)
+        .accessibilityAddTraits(.isKeyboardKey)
         .onDisappear {
             cancelSemanticSession()
             finishNativeTouch()
@@ -713,6 +718,8 @@ private struct ProfileV3DirectEntryView: View {
 
         guard let session else { return }
 
+        let moveSignpost = gestureSignposter.beginInterval("move")
+        defer { gestureSignposter.endInterval("move", moveSignpost) }
         do {
             let previous = model.interactionSnapshot
             let result = try session.move(
@@ -742,6 +749,8 @@ private struct ProfileV3DirectEntryView: View {
         }
 
         let atMs = elapsedMs()
+        let upSignpost = gestureSignposter.beginInterval("touchUp")
+        defer { gestureSignposter.endInterval("touchUp", upSignpost) }
 
         do {
             let previous = model.interactionSnapshot
