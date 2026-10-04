@@ -121,14 +121,14 @@ fn a5_builtin_return_resolves_newline_or_conversion_commit_from_runtime_fact() {
 }
 
 #[test]
-fn a5_builtin_kana_transform_board_exposes_adaptive_tap_small_dakuten_and_handakuten() {
+fn a5_builtin_kana_transform_board_uses_neutral_center_and_explicit_transforms() {
     let runtime = runtime();
 
     runtime
         .update_semantic_context("か".into(), false, false)
         .unwrap();
 
-    let adaptive = runtime
+    let neutral = runtime
         .begin_session(
             "kana.transform".into(),
             FfiSize {
@@ -140,15 +140,32 @@ fn a5_builtin_kana_transform_board_exposes_adaptive_tap_small_dakuten_and_handak
         )
         .unwrap();
 
-    let initial = adaptive.snapshot().unwrap();
+    let initial = neutral.snapshot().unwrap();
     assert_eq!(initial.current_board_id, "board.ja.transform");
     assert_eq!(initial.context, FfiProfileV3BoardContext::Relative);
     assert_eq!(
         entry_text(&initial.surface, "transform.center"),
-        Some("゛")
+        Some("小゛゜")
     );
 
-    let voiced = adaptive.touch_up(Some(10)).unwrap();
+    let neutral_result = neutral.touch_up(Some(10)).unwrap();
+    assert!(neutral_result.runtime_dispatches.is_empty());
+
+    let dakuten = runtime
+        .begin_session(
+            "kana.transform".into(),
+            FfiSize {
+                width: 80.0,
+                height: 80.0,
+            },
+            FfiPoint { x: 0.0, y: 0.0 },
+            20,
+        )
+        .unwrap();
+    dakuten
+        .move_to(FfiPoint { x: 0.0, y: -80.0 }, Some(30))
+        .unwrap();
+    let voiced = dakuten.touch_up(Some(40)).unwrap();
     assert_eq!(voiced.runtime_dispatches.len(), 1);
     let effect = &voiced.runtime_dispatches[0];
     assert_eq!(
@@ -170,13 +187,13 @@ fn a5_builtin_kana_transform_board_exposes_adaptive_tap_small_dakuten_and_handak
                 height: 80.0,
             },
             FfiPoint { x: 0.0, y: 0.0 },
-            20,
+            50,
         )
         .unwrap();
     small
-        .move_to(FfiPoint { x: -80.0, y: 0.0 }, Some(30))
+        .move_to(FfiPoint { x: -80.0, y: 0.0 }, Some(60))
         .unwrap();
-    let small_result = small.touch_up(Some(40)).unwrap();
+    let small_result = small.touch_up(Some(70)).unwrap();
     assert_eq!(
         small_result.runtime_dispatches[0].table_id.as_deref(),
         Some("kana.small")
@@ -197,13 +214,13 @@ fn a5_builtin_kana_transform_board_exposes_adaptive_tap_small_dakuten_and_handak
                 height: 80.0,
             },
             FfiPoint { x: 0.0, y: 0.0 },
-            50,
+            80,
         )
         .unwrap();
     handakuten
-        .move_to(FfiPoint { x: 80.0, y: 0.0 }, Some(60))
+        .move_to(FfiPoint { x: 80.0, y: 0.0 }, Some(90))
         .unwrap();
-    let semi_voiced = handakuten.touch_up(Some(70)).unwrap();
+    let semi_voiced = handakuten.touch_up(Some(100)).unwrap();
     assert_eq!(
         semi_voiced.runtime_dispatches[0].table_id.as_deref(),
         Some("kana.handakuten")
