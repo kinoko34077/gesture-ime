@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import GestureIMEProductSettings
 
 final class KeyboardHostingController<Content: View>: UIHostingController<Content> {
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
@@ -9,6 +10,7 @@ final class KeyboardHostingController<Content: View>: UIHostingController<Conten
 
 @MainActor
 final class KeyboardViewController: UIInputViewController {
+    private static let baseKeyboardHeight: Double = 344
     private var keyboardHost: KeyboardHostingController<AnyView>?
     private var productModel: AnyObject?
     private var composition: AzooKeyCompositionBridge?
@@ -25,6 +27,13 @@ final class KeyboardViewController: UIInputViewController {
         do {
             let profileJSON = try BuiltInProfileLoader.loadJSON()
             let composition = AzooKeyCompositionBridge(proxy: textDocumentProxy)
+
+            // The current signing route has not proven an App Group/shared
+            // container. Keep the capability explicit instead of inventing one.
+            let settingsSource = KeyboardProductSettingsSource(
+                sharedContainerRootURL: nil
+            )
+            let productSettings = settingsSource.loadLastKnownGood()
             let root: AnyView
             let retainedModel: AnyObject
 
@@ -35,6 +44,7 @@ final class KeyboardViewController: UIInputViewController {
                 let model = try ProfileV3ProductKeyboardViewModel(
                     runtime: runtime,
                     composition: composition,
+                    productSettings: productSettings,
                     onNextKeyboard: { [weak self] in
                         self?.advanceToNextInputMode()
                     },
@@ -72,7 +82,7 @@ final class KeyboardViewController: UIInputViewController {
                 retainedModel = model
             }
 
-            installKeyboardRoot(root)
+            installKeyboardRoot(root, productSettings: productSettings)
             self.composition = composition
             self.productModel = retainedModel
         } catch {
@@ -90,7 +100,10 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillDisappear(animated)
     }
 
-    private func installKeyboardRoot(_ root: AnyView) {
+    private func installKeyboardRoot(
+        _ root: AnyView,
+        productSettings: ProductSettingsValues
+    ) {
         let host = KeyboardHostingController(rootView: root)
         addChild(host)
         host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -99,7 +112,14 @@ final class KeyboardViewController: UIInputViewController {
         host.didMove(toParent: self)
         host.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
 
-        let height = view.heightAnchor.constraint(equalToConstant: 344)
+        let scaledHeight = (
+            try? productSettings.scaledKeyboardHeight(
+                baseHeight: Self.baseKeyboardHeight
+            )
+        ) ?? Self.baseKeyboardHeight
+        let height = view.heightAnchor.constraint(
+            equalToConstant: CGFloat(scaledHeight)
+        )
         height.priority = .defaultHigh
         NSLayoutConstraint.activate([
             host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
