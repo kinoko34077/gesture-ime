@@ -922,6 +922,7 @@ private struct ProfileV3EntryInspector: View {
             directionSection
             nextStageSection
             holdSection
+            ProfileV3RuleSection(editor: editor, entryID: entry.id)
             geometrySection
 
             DisclosureGroup("▶︎ " + Catalog.title(.advancedSection)) {
