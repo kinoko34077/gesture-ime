@@ -258,3 +258,43 @@ public struct ProfileV3MacroSummary: Identifiable, Equatable, Sendable {
         self.actions = actions
     }
 }
+
+
+public struct ProfileV3ResolverCaseDraft: Equatable, Sendable {
+    public var condition: JSONNode
+    public var behavior: ProfileV3EndpointDraft
+
+    public init(condition: JSONNode, behavior: ProfileV3EndpointDraft) {
+        self.condition = condition
+        self.behavior = behavior
+    }
+}
+
+public struct ProfileV3EndpointDraft: Equatable, Sendable {
+    public var presentationText: String?
+    public var accessibilityLabel: String?
+    public var actions: [ProfileActionDraft]
+    public var transition: ProfileV3TransitionDraft?
+    public var hold: ProfileV3HoldDraft?
+
+    public init(
+        presentationText: String? = nil,
+        accessibilityLabel: String? = nil,
+        actions: [ProfileActionDraft] = [],
+        transition: ProfileV3TransitionDraft? = nil,
+        hold: ProfileV3HoldDraft? = nil
+    ) {
+        self.presentationText = presentationText
+        self.accessibilityLabel = accessibilityLabel
+        self.actions = actions
+        self.transition = transition
+        self.hold = hold
+    }
+}
+
+public enum ProfileV3PlacementIssue: Equatable, Sendable {
+    case invalidRect
+    case outOfBounds
+    case extentExceeded
+    case overlap(entryID: String)
+}
