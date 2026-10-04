@@ -441,6 +441,43 @@ extension ProfileDocument {
         }
     }
 
+    public mutating func v3CopyEntry(
+        sourceBoardID: String,
+        sourceEntryID: String,
+        targetBoardID: String,
+        newEntryID: String,
+        newRect: ProfileV3Rect
+    ) throws {
+        try Self.v3ValidateSemanticID(newEntryID, field: "entry.id")
+        let source = try v3EntryObject(
+            boardID: sourceBoardID,
+            entryID: sourceEntryID
+        )
+
+        try v3MutateBoard(id: targetBoardID) { board in
+            var entries = board["entries"]?.arrayValue ?? []
+            guard !entries.contains(where: {
+                $0.objectValue?["id"]?.stringValue == newEntryID
+            }) else {
+                throw ProfileAuthoringError.duplicateProfile(newEntryID)
+            }
+            try Self.v3ValidateGeometry(
+                entries: entries,
+                replacingEntryID: nil,
+                candidate: newRect
+            )
+
+            var copy = source
+            copy["id"] = .string(newEntryID)
+            copy["rect"] = Self.v3RectNode(
+                newRect,
+                preserving: source["rect"]
+            )
+            entries.append(.object(copy))
+            board["entries"] = .array(entries)
+        }
+    }
+
     public mutating func v3SetEntryRect(
         boardID: String,
         entryID: String,
