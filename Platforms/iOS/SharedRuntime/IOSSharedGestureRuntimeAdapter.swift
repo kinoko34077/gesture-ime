@@ -240,3 +240,89 @@ public final class IOSProfileV3SessionAdapter {
         try core.invalidate(atMs: atMs)
     }
 }
+
+
+/// Numeric projection shared by the committed Swift smoke and the actual v3
+/// product renderer. It maps authored atomic Board coordinates into one concrete
+/// rendered surface without introducing a second semantic layout.
+public struct IOSProfileV3MappedFrame: Equatable {
+    public let x: Double
+    public let y: Double
+    public let width: Double
+    public let height: Double
+
+    public init(x: Double, y: Double, width: Double, height: Double) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    }
+
+    public var midX: Double { x + width / 2 }
+    public var midY: Double { y + height / 2 }
+
+    public func contains(x pointX: Double, y pointY: Double) -> Bool {
+        pointX >= x
+            && pointX < x + width
+            && pointY >= y
+            && pointY < y + height
+    }
+}
+
+public struct IOSProfileV3BoardGeometryMapping {
+    public let minX: Int64
+    public let minY: Int64
+    public let maxX: Int64
+    public let maxY: Int64
+    public let atomicWidth: Double
+    public let atomicHeight: Double
+
+    public init?(
+        surface: FfiProfileV3BoardSurface,
+        width: Double,
+        height: Double
+    ) {
+        guard let bounds = surface.bounds else { return nil }
+
+        let atomicColumns = bounds.maxX - bounds.minX
+        let atomicRows = bounds.maxY - bounds.minY
+        guard atomicColumns > 0,
+              atomicRows > 0,
+              width > 0,
+              height > 0 else {
+            return nil
+        }
+
+        minX = bounds.minX
+        minY = bounds.minY
+        maxX = bounds.maxX
+        maxY = bounds.maxY
+        atomicWidth = width / Double(atomicColumns)
+        atomicHeight = height / Double(atomicRows)
+    }
+
+    public var logicalCellWidth: Double { atomicWidth * 2 }
+    public var logicalCellHeight: Double { atomicHeight * 2 }
+
+    public func frame(for rect: FfiProfileV3Rect) -> IOSProfileV3MappedFrame {
+        IOSProfileV3MappedFrame(
+            x: Double(rect.x - minX) * atomicWidth,
+            y: Double(rect.y - minY) * atomicHeight,
+            width: Double(rect.width) * atomicWidth,
+            height: Double(rect.height) * atomicHeight
+        )
+    }
+
+    public func relativeFrame(
+        for rect: FfiProfileV3Rect,
+        anchorX: Double,
+        anchorY: Double
+    ) -> IOSProfileV3MappedFrame {
+        IOSProfileV3MappedFrame(
+            x: anchorX + Double(rect.x) * atomicWidth,
+            y: anchorY + Double(rect.y) * atomicHeight,
+            width: Double(rect.width) * atomicWidth,
+            height: Double(rect.height) * atomicHeight
+        )
+    }
+}
