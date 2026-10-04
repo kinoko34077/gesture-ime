@@ -80,7 +80,7 @@ final class BuiltInKeyboardProfileTests: XCTestCase {
             states.first(where: { $0["id"] as? String == "latinCase" })
         )
         XCTAssertEqual(latinCase["type"] as? String, "enum")
-        XCTAssertEqual(latinCase["values"] as? [String], ["lower", "upper"])
+        XCTAssertEqual(latinCase["values"] as? [String], ["lower", "upper", "caps"])
         XCTAssertEqual(latinCase["default"] as? String, "lower")
 
         let boards = try XCTUnwrap(object["boards"] as? [[String: Any]])
