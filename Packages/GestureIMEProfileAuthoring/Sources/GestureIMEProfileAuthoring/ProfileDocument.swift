@@ -61,6 +61,10 @@ public struct ProfileDocument: Equatable, Sendable {
         schemaID == "gesture-ime.profile.v2"
     }
 
+    public var isUnifiedBoardV3: Bool {
+        schemaID == "gesture-ime.profile.v3"
+    }
+
     public var isProfileV3: Bool {
         schemaID == "gesture-ime.profile.v3"
     }
