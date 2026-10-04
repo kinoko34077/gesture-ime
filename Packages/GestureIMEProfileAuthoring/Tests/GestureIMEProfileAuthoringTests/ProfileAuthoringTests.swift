@@ -293,7 +293,8 @@ func activeProfileSnapshotPublishAndReadRoundTrip() throws {
     let snapshot = try #require(active)
     #expect(snapshot.manifest == manifest)
     #expect(snapshot.data == data)
-    #expect(FileManager.default.fileExists(atPath: try store.snapshotURL(for: manifest).path))
+    let committedURL = try store.snapshotURL(for: manifest)
+    #expect(FileManager.default.fileExists(atPath: committedURL.path))
 }
 
 @Test
@@ -322,7 +323,8 @@ func invalidSnapshotPublishDoesNotReplaceActiveManifest() throws {
         try store.publish(Data(rejectedText.utf8))
     }
 
-    #expect(try store.activeManifest() == accepted)
+    let activeAfterReject = try store.activeManifest()
+    #expect(activeAfterReject == accepted)
     let snapshotsURL = root.appendingPathComponent(
         ActiveProfileSnapshotStore.snapshotsDirectoryName,
         isDirectory: true
@@ -352,7 +354,8 @@ func activeSnapshotDigestMismatchFailsClosed() throws {
     #expect(throws: ActiveProfileSnapshotStoreError.self) {
         try store.readActive()
     }
-    #expect(try store.activeManifest() == manifest)
+    let activeAfterTamper = try store.activeManifest()
+    #expect(activeAfterTamper == manifest)
 }
 
 @Test
@@ -405,10 +408,9 @@ func activeSnapshotManifestMetadataMustMatchCommittedFilename() throws {
     let manifestURL = root.appendingPathComponent(
         ActiveProfileSnapshotStore.manifestFileName
     )
-    var object = try #require(
-        JSONSerialization.jsonObject(with: Data(contentsOf: manifestURL))
-            as? [String: Any]
-    )
+    let manifestData = try Data(contentsOf: manifestURL)
+    let manifestObject = try JSONSerialization.jsonObject(with: manifestData)
+    var object = try #require(manifestObject as? [String: Any])
     object["generation"] = manifest.generation + 1
     let tampered = try JSONSerialization.data(withJSONObject: object)
     try tampered.write(to: manifestURL, options: .atomic)
