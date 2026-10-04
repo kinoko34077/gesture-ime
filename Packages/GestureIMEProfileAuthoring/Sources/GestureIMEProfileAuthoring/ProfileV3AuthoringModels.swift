@@ -139,19 +139,22 @@ public struct ProfileV3BoardReference: Identifiable, Equatable, Sendable {
     public let layerID: String?
     public let sourceBoardID: String?
     public let sourceEntryID: String?
+    public let path: String
 
     public init(
         kind: ProfileV3BoardReferenceKind,
         targetBoardID: String,
         layerID: String? = nil,
         sourceBoardID: String? = nil,
-        sourceEntryID: String? = nil
+        sourceEntryID: String? = nil,
+        path: String
     ) {
         self.kind = kind
         self.targetBoardID = targetBoardID
         self.layerID = layerID
         self.sourceBoardID = sourceBoardID
         self.sourceEntryID = sourceEntryID
+        self.path = path
     }
 
     public var id: String {
@@ -160,7 +163,8 @@ public struct ProfileV3BoardReference: Identifiable, Equatable, Sendable {
             targetBoardID,
             layerID ?? "",
             sourceBoardID ?? "",
-            sourceEntryID ?? ""
+            sourceEntryID ?? "",
+            path
         ].joined(separator: ":")
     }
 }
