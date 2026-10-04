@@ -29,6 +29,7 @@ final class ProfileV3EditorModel: ObservableObject {
         didSet { refreshSelectionDerived() }
     }
     @Published private(set) var hasCopiedEntry = false
+    @Published private(set) var copiedEntryRect: ProfileV3Rect?
     @Published var errorMessage: String?
 
     let profileID: String
@@ -529,6 +530,7 @@ final class ProfileV3EditorModel: ObservableObject {
             entryID: selectedEntryID
         )
         hasCopiedEntry = true
+        copiedEntryRect = entries.first { $0.id == selectedEntryID }?.rect
     }
 
     func pasteCopiedEntry(rect: ProfileV3Rect) {
