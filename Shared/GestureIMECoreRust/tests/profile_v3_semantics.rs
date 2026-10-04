@@ -960,3 +960,189 @@ fn a2_default_board_semantics_keeps_runtime_dispatch_compatibility() {
         )]
     );
 }
+
+
+#[test]
+fn a2_direct_insert_and_visible_dispatch_order_are_concrete_and_stable() {
+    let profile = profile();
+    let runtime = ProfileSemanticsRuntimeV3::compile(&profile).unwrap();
+    let context = ProfileSemanticsRuntimeV3::context_handle(
+        RuntimeSemanticContextV3::new("layer.base"),
+    );
+    let mut semantics = runtime.board_semantics(context);
+
+    let dispatch = semantics.resolve_dispatch_batch(&[
+        action("cursor.move", json!({"offset":1})),
+        action(
+            "state.set",
+            json!({"state":"latinCase","value":"upper"}),
+        ),
+        action(
+            "text.directInsert",
+            json!({
+                "text":{
+                    "base":"a",
+                    "transforms":[
+                        {
+                            "when":{
+                                "eq":[
+                                    {"state":"latinCase"},
+                                    {"literal":"upper"}
+                                ]
+                            },
+                            "tableRef":"latin.shift"
+                        }
+                    ]
+                }
+            }),
+        ),
+        action("cursor.move", json!({"offset":2})),
+    ]);
+
+    assert_eq!(dispatch.len(), 3);
+    assert!(matches!(
+        &dispatch[0],
+        RuntimeDispatchV3::Action(action)
+            if action.action_id == "cursor.move"
+                && action.arguments.get("offset") == Some(&json!(1))
+    ));
+    assert!(matches!(
+        &dispatch[1],
+        RuntimeDispatchV3::Action(action)
+            if action.action_id == "text.directInsert"
+                && action.arguments.get("text") == Some(&json!("a"))
+    ));
+    assert!(matches!(
+        &dispatch[2],
+        RuntimeDispatchV3::Action(action)
+            if action.action_id == "cursor.move"
+                && action.arguments.get("offset") == Some(&json!(2))
+    ));
+    assert_eq!(
+        runtime.state_value("latinCase"),
+        Some(Value::String("upper".into()))
+    );
+}
+
+#[test]
+fn a2_hold_and_repeat_resolved_strings_are_pinned_at_endpoint_activation() {
+    let mut value = profile_json();
+    let resolved_text = json!({
+        "base":"a",
+        "transforms":[
+            {
+                "when":{
+                    "eq":[
+                        {"state":"latinCase"},
+                        {"literal":"upper"}
+                    ]
+                },
+                "tableRef":"latin.shift"
+            }
+        ]
+    });
+    value["boards"][0]["entries"][0]["resolver"]["default"]["hold"] = json!({
+        "delayMs":100,
+        "onStart":[
+            {
+                "actionID":"text.insert",
+                "arguments":{"text":resolved_text.clone()}
+            }
+        ],
+        "repeat":{
+            "intervalMs":50,
+            "actions":[
+                {
+                    "actionID":"text.directInsert",
+                    "arguments":{"text":resolved_text}
+                }
+            ]
+        },
+        "suppressOnReleaseAfterStart":true
+    });
+
+    let bytes = serde_json::to_vec(&value).unwrap();
+    let profile = ProfileV3Codec::decode_and_validate(&bytes).unwrap();
+    let runtime = ProfileSemanticsRuntimeV3::compile(&profile).unwrap();
+    let context = ProfileSemanticsRuntimeV3::context_handle(
+        RuntimeSemanticContextV3::new("layer.base"),
+    );
+    let mut semantics = runtime.board_semantics(context);
+
+    let pinned = semantics.resolve_endpoint(&main_entry(&profile));
+    semantics.resolve_dispatch_batch(&[action(
+        "state.set",
+        json!({"state":"latinCase","value":"upper"}),
+    )]);
+
+    let hold = pinned.hold.unwrap();
+    let on_start = semantics.resolve_dispatch_batch(&hold.on_start);
+    assert_eq!(dispatched_text(&on_start[0]), Some("a"));
+
+    let repeat = hold.repeat_behavior.unwrap();
+    let repeated = semantics.resolve_dispatch_batch(&repeat.actions);
+    assert_eq!(dispatched_text(&repeated[0]), Some("a"));
+}
+
+#[test]
+fn a2_shift_style_state_uses_one_table_for_presentation_and_insert() {
+    let mut value = profile_json();
+    let shifted = json!({
+        "base":"a",
+        "transforms":[
+            {
+                "when":{
+                    "eq":[
+                        {"state":"latinCase"},
+                        {"literal":"upper"}
+                    ]
+                },
+                "tableRef":"latin.shift"
+            }
+        ]
+    });
+    value["boards"][0]["entries"][0]["resolver"]["default"] = json!({
+        "presentation":{"text":shifted.clone()},
+        "onRelease":[
+            {
+                "actionID":"text.insert",
+                "arguments":{"text":shifted}
+            }
+        ]
+    });
+
+    let bytes = serde_json::to_vec(&value).unwrap();
+    let profile = ProfileV3Codec::decode_and_validate(&bytes).unwrap();
+    let runtime = ProfileSemanticsRuntimeV3::compile(&profile).unwrap();
+    let context = ProfileSemanticsRuntimeV3::context_handle(
+        RuntimeSemanticContextV3::new("layer.base"),
+    );
+    let mut semantics = runtime.board_semantics(context);
+
+    let lower = semantics.resolve_endpoint(&main_entry(&profile));
+    assert_eq!(
+        lower
+            .presentation
+            .as_ref()
+            .and_then(|presentation| presentation.text.as_ref())
+            .map(|text| text.base.as_str()),
+        Some("a")
+    );
+
+    semantics.resolve_dispatch_batch(&[action(
+        "state.set",
+        json!({"state":"latinCase","value":"upper"}),
+    )]);
+
+    let upper = semantics.resolve_endpoint(&main_entry(&profile));
+    assert_eq!(
+        upper
+            .presentation
+            .as_ref()
+            .and_then(|presentation| presentation.text.as_ref())
+            .map(|text| text.base.as_str()),
+        Some("A")
+    );
+    let dispatch = semantics.resolve_dispatch_batch(&upper.on_release);
+    assert_eq!(dispatched_text(&dispatch[0]), Some("A"));
+}
