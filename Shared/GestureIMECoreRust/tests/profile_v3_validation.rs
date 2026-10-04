@@ -445,3 +445,35 @@ fn v3_hold_transition_control_flow_is_validated() {
     });
     validate(&state_then_transition).unwrap();
 }
+
+
+#[test]
+fn v3_required_serialized_members_and_explicit_nulls_fail_closed() {
+    let mut missing_cases = base_profile();
+    if let Some(resolver) = missing_cases["boards"][0]["entries"][0]["resolver"].as_object_mut() {
+        resolver.remove("cases");
+    }
+    expect_code(&missing_cases, ProfileValidationCode::UnsupportedSchema);
+
+    let mut missing_transforms = base_profile();
+    if let Some(text) = missing_transforms["boards"][0]["entries"][0]["resolver"]["default"]["presentation"]["text"].as_object_mut() {
+        text.remove("transforms");
+    }
+    expect_code(&missing_transforms, ProfileValidationCode::UnsupportedSchema);
+
+    let mut null_layer_name = base_profile();
+    null_layer_name["layers"][0]["name"] = Value::Null;
+    expect_code(&null_layer_name, ProfileValidationCode::UnsupportedSchema);
+
+    let mut null_state_values = base_profile();
+    null_state_values["states"][0]["values"] = Value::Null;
+    expect_code(&null_state_values, ProfileValidationCode::UnsupportedSchema);
+
+    let mut null_endpoint_transition = base_profile();
+    null_endpoint_transition["boards"][0]["entries"][0]["resolver"]["default"]["transition"] =
+        Value::Null;
+    expect_code(
+        &null_endpoint_transition,
+        ProfileValidationCode::UnsupportedSchema,
+    );
+}
