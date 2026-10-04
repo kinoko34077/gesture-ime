@@ -151,6 +151,14 @@ impl ProfileV3BoardRuntime {
         })
     }
 
+    pub fn board(&self, board_id: &str) -> Option<&BoardV3> {
+        self.boards.get(board_id)
+    }
+
+    pub fn layer(&self, layer_id: &str) -> Option<&LayerV3> {
+        self.layers.get(layer_id)
+    }
+
     pub fn new_frame(
         &self,
         layer_id: &str,
@@ -337,6 +345,12 @@ impl BoardSessionV3 {
 
     pub fn current_board(&self) -> Option<&BoardV3> {
         self.boards.get(&self.current_board_id)
+    }
+
+    pub fn current_endpoint_behavior(&self) -> Option<EndpointBehaviorV3> {
+        self.current_endpoint
+            .as_ref()
+            .map(|snapshot| snapshot.behavior.clone())
     }
 
     pub fn origin_entry(&self) -> Option<&BoardEntryV3> {
