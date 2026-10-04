@@ -132,7 +132,16 @@ impl ProfileSemanticsRuntimeV3 {
             .transform_tables
             .iter()
             .cloned()
-            .map(|table| (table.id.clone(), table))
+            .map(|mut table| {
+                // Validated profiles always compile; reverse rows expand into
+                // the flat runtime map (#95 §F6.3).
+                if table.has_reverse() {
+                    if let Ok(effective) = table.effective_entries() {
+                        table.entries = effective;
+                    }
+                }
+                (table.id.clone(), table)
+            })
             .collect::<HashMap<_, _>>();
 
         Ok(Self {

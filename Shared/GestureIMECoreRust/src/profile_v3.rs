@@ -285,6 +285,9 @@ pub struct StateDeclarationV3 {
 pub struct TransformEntryV3 {
     pub from: String,
     pub to: String,
+    /// #95 §F6.3: also generate `to → from` when compiled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reverse: Option<bool>,
     #[serde(flatten)]
     pub extra: V3Extra,
 }
@@ -294,6 +297,9 @@ pub struct TransformEntryV3 {
 pub struct TransformTableV3 {
     pub id: String,
     pub entries: Vec<TransformEntryV3>,
+    /// #95 §F6.3: every row is reversible when true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reverse_all: Option<bool>,
     #[serde(flatten)]
     pub extra: V3Extra,
 }
@@ -338,5 +344,56 @@ impl ProfileBundleV3 {
 
     pub fn encode_pretty(&self) -> Result<Vec<u8>, serde_json::Error> {
         serde_json::to_vec_pretty(self)
+    }
+}
+
+/// #95 §F6.3 effective-map compile failure.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransformCompileErrorV3 {
+    /// Two effective entries share `from` with different `to`.
+    ConflictingSource(String),
+    /// A reversible row has an empty `to`.
+    EmptyReverseSource,
+}
+
+impl TransformTableV3 {
+    /// Flat effective mapping: authored rows first, then generated reverse
+    /// rows. Identical (from, to) pairs merge; conflicting sources fail.
+    pub fn effective_entries(&self) -> Result<Vec<TransformEntryV3>, TransformCompileErrorV3> {
+        let reverse_all = self.reverse_all.unwrap_or(false);
+        let mut out: Vec<TransformEntryV3> = Vec::with_capacity(self.entries.len() * 2);
+        let mut index: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut push = |from: &str, to: &str, out: &mut Vec<TransformEntryV3>| {
+            match index.get(from) {
+                Some(existing) if existing == to => Ok(()),
+                Some(_) => Err(TransformCompileErrorV3::ConflictingSource(from.to_owned())),
+                None => {
+                    index.insert(from.to_owned(), to.to_owned());
+                    out.push(TransformEntryV3 {
+                        from: from.to_owned(),
+                        to: to.to_owned(),
+                        reverse: None,
+                        extra: V3Extra::new(),
+                    });
+                    Ok(())
+                }
+            }
+        };
+        for entry in &self.entries {
+            push(&entry.from, &entry.to, &mut out)?;
+        }
+        for entry in &self.entries {
+            if reverse_all || entry.reverse.unwrap_or(false) {
+                if entry.to.is_empty() {
+                    return Err(TransformCompileErrorV3::EmptyReverseSource);
+                }
+                push(&entry.to, &entry.from, &mut out)?;
+            }
+        }
+        Ok(out)
+    }
+
+    pub fn has_reverse(&self) -> bool {
+        self.reverse_all.unwrap_or(false) || self.entries.iter().any(|e| e.reverse.unwrap_or(false))
     }
 }

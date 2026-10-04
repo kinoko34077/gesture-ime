@@ -407,6 +407,36 @@ fn validate_transform_tables(
                 ));
             }
         }
+
+        if table.has_reverse() {
+            let effective = table.effective_entries().map_err(|error| match error {
+                crate::profile_v3::TransformCompileErrorV3::ConflictingSource(from) => {
+                    ProfileValidationError::new(
+                        ProfileValidationCode::DuplicateTransformSource,
+                        Some(format!("{}:{}", table.id, from)),
+                    )
+                }
+                crate::profile_v3::TransformCompileErrorV3::EmptyReverseSource => {
+                    ProfileValidationError::new(
+                        ProfileValidationCode::InvalidTransformReference,
+                        Some(table.id.clone()),
+                    )
+                }
+            })?;
+            total = total
+                .checked_add(effective.len() - table.entries.len())
+                .ok_or_else(|| {
+                    ProfileValidationError::simple(ProfileValidationCode::LimitTransformEntries)
+                })?;
+            if effective.len() > ProfileV3Limits::TRANSFORM_ENTRIES_PER_TABLE
+                || total > ProfileV3Limits::TRANSFORM_ENTRIES_TOTAL
+            {
+                return Err(ProfileValidationError::new(
+                    ProfileValidationCode::LimitTransformEntries,
+                    Some(table.id.clone()),
+                ));
+            }
+        }
     }
 
     Ok(())
