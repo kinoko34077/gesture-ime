@@ -149,7 +149,15 @@ fn a5_builtin_kana_transform_board_uses_neutral_center_and_explicit_transforms()
     );
 
     let neutral_result = neutral.touch_up(Some(10)).unwrap();
-    assert!(neutral_result.runtime_dispatches.is_empty());
+    assert_eq!(neutral_result.runtime_dispatches.len(), 1);
+    assert_eq!(
+        neutral_result.runtime_dispatches[0].kind,
+        FfiProfileV3DispatchKind::Action
+    );
+    assert_eq!(
+        neutral_result.runtime_dispatches[0].action_id.as_deref(),
+        Some("noop")
+    );
 
     let dakuten = runtime
         .begin_session(
