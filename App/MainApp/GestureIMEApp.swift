@@ -247,6 +247,14 @@ private struct SetupView: View {
                             }
                         }
 
+                        Toggle("キーを押したときの音", isOn: Binding(
+                            get: { productSettings.values.keySoundEnabled },
+                            set: { productSettings.setKeySound($0) }
+                        ))
+                        Text("音の有無・大きさは iOS の「設定 → サウンドと触覚 → キーボードのフィードバック → サウンド」にも従います。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
                         Button("キーボード設定を初期値に戻す") {
                             productSettings.reset()
                         }

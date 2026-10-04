@@ -15,10 +15,13 @@ public struct ProductSettingsValues: Equatable, Sendable {
 
     public let hapticStrength: Double
     public let keyboardHeightScale: Double
+    /// #93 / #95 §F8: system input click on accepted key events.
+    public let keySoundEnabled: Bool
 
     public init(
         hapticStrength: Double,
-        keyboardHeightScale: Double
+        keyboardHeightScale: Double,
+        keySoundEnabled: Bool = true
     ) throws {
         guard hapticStrength.isFinite,
               (0.0...1.0).contains(hapticStrength) else {
@@ -30,6 +33,7 @@ public struct ProductSettingsValues: Equatable, Sendable {
         }
         self.hapticStrength = hapticStrength
         self.keyboardHeightScale = keyboardHeightScale
+        self.keySoundEnabled = keySoundEnabled
     }
 
     public var hapticsEnabled: Bool {
@@ -53,6 +57,7 @@ public struct ProductSettingsValues: Equatable, Sendable {
     ) {
         self.hapticStrength = hapticStrength
         self.keyboardHeightScale = keyboardHeightScale
+        self.keySoundEnabled = true
     }
 }
 
@@ -63,12 +68,15 @@ public struct ProductSettingsRecord: Codable, Equatable, Sendable {
     public let generation: UInt64
     public let hapticStrength: Double
     public let keyboardHeightScale: Double
+    /// Optional so records written before #93 still decode (absent = true).
+    public let keySoundEnabled: Bool?
 
     fileprivate init(generation: UInt64, values: ProductSettingsValues) {
         self.schema = Self.schemaIdentifier
         self.generation = generation
         self.hapticStrength = values.hapticStrength
         self.keyboardHeightScale = values.keyboardHeightScale
+        self.keySoundEnabled = values.keySoundEnabled
     }
 
     public func validatedValues() throws -> ProductSettingsValues {
@@ -78,7 +86,8 @@ public struct ProductSettingsRecord: Codable, Equatable, Sendable {
         do {
             return try ProductSettingsValues(
                 hapticStrength: hapticStrength,
-                keyboardHeightScale: keyboardHeightScale
+                keyboardHeightScale: keyboardHeightScale,
+                keySoundEnabled: keySoundEnabled ?? true
             )
         } catch {
             throw ProductSettingsStoreError.invalidRecord

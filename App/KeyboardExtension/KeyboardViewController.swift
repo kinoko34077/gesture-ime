@@ -8,6 +8,12 @@ final class KeyboardHostingController<Content: View>: UIHostingController<Conten
     }
 }
 
+/// #93: `playInputClick()` sounds only when the keyboard's input view adopts
+/// `UIInputViewAudioFeedback` and enables clicks.
+final class KeyboardClickInputView: UIInputView, UIInputViewAudioFeedback {
+    var enableInputClicksWhenVisible: Bool { true }
+}
+
 @MainActor
 final class KeyboardViewController: UIInputViewController {
     private static let baseKeyboardHeight: Double = 344
@@ -19,6 +25,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func loadView() {
         super.loadView()
+        inputView = KeyboardClickInputView(frame: .zero, inputViewStyle: .keyboard)
         view.backgroundColor = .clear
     }
 
