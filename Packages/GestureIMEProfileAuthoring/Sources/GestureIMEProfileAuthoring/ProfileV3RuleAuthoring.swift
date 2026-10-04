@@ -210,3 +210,19 @@ extension ProfileDocument {
         try v3SetEntryResolver(boardID: boardID, entryID: entryID, resolver: ProfileV3Rules.encode(rules))
     }
 }
+
+extension ProfileV3Rules {
+    /// The inserted text when `behavior` is exactly "show and insert one text".
+    public static func simpleText(of behavior: JSONNode) -> String? {
+        guard let actions = behavior.objectValue?["onRelease"]?.arrayValue, actions.count == 1,
+              let text = actions[0].objectValue?["arguments"]?.objectValue?["text"]?
+                .objectValue?["base"]?.stringValue,
+              textBehavior(text) == behavior else { return nil }
+        return text
+    }
+
+    /// A behavior that shows and inserts `text` (same shape as presets).
+    public static func textBehavior(_ text: String) -> JSONNode {
+        ProfileDocument.v3TextResolver(text).objectValue?["default"] ?? .null
+    }
+}

@@ -70,3 +70,23 @@ func elseIsRequiredAndEmptyConditionsAreRejected() throws {
     )
     #expect(throws: ProfileAuthoringError.self) { try ProfileV3Rules.encode(rules) }
 }
+
+@Test
+func simpleTextBehaviorRoundTrips() throws {
+    let behavior = ProfileV3Rules.textBehavior("ゃ")
+    #expect(ProfileV3Rules.simpleText(of: behavior) == "ゃ")
+    #expect(ProfileV3Rules.simpleText(of: try json(#"{"onRelease":[]}"#)) == nil)
+
+    var document = try ProfileDocument.emptyV3(id: "user.v3.rules", name: "Rules")
+    try document.v3CreateLayer(fromPreset: .numeric, layerID: "layer.num", name: nil)
+    let board = try document.v3BoardSummaries().first!.id
+    let entry = try document.v3BoardEntries(boardID: board).first!.id
+    var rules = try document.v3EntryRules(boardID: board, entryID: entry)
+    rules.branches.append(.editable(
+        condition: ProfileV3RuleCondition(terms: [ProfileV3RuleTerm(.flag(.conversionActive), negated: true)]),
+        behavior: ProfileV3Rules.textBehavior("x"),
+        extra: [:]
+    ))
+    try document.v3SetEntryRules(boardID: board, entryID: entry, rules: rules)
+    #expect(try document.v3EntryRules(boardID: board, entryID: entry) == rules)
+}

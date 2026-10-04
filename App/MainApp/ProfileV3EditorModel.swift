@@ -288,6 +288,18 @@ final class ProfileV3EditorModel: ObservableObject {
         selectedEntry?.transition?.targetBoardID
     }
 
+    // MARK: - #102 IF/ELSE rules (#95 §F4)
+
+    var selectedRules: ProfileV3RuleSet? {
+        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return nil }
+        return try? history?.document.v3EntryRules(boardID: boardID, entryID: entryID)
+    }
+
+    func setSelectedRules(_ rules: ProfileV3RuleSet) {
+        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return }
+        mutate { try $0.v3SetEntryRules(boardID: boardID, entryID: entryID, rules: rules) }
+    }
+
     func updatePolicyValues(_ values: ProfileV3GesturePolicyValues) {
         mutate { try $0.v3SetGesturePolicyValues(values) }
     }
