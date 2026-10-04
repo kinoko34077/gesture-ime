@@ -1,0 +1,686 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kinotch:gesture-ime:profile:v3",
+  "title": "Gesture IME ProfileBundle v3",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "name",
+    "version",
+    "gesturePolicy",
+    "initialLayerRef",
+    "layers",
+    "boards",
+    "states",
+    "transformTables",
+    "macros"
+  ],
+  "properties": {
+    "schema": {
+      "const": "gesture-ime.profile.v3"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gesturePolicy": {
+      "$ref": "#/$defs/gesturePolicy"
+    },
+    "initialLayerRef": {
+      "$ref": "#/$defs/id"
+    },
+    "layers": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/layer"
+      }
+    },
+    "boards": {
+      "type": "array",
+      "maxItems": 16384,
+      "items": {
+        "$ref": "#/$defs/board"
+      }
+    },
+    "states": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/stateDeclaration"
+      }
+    },
+    "transformTables": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/transformTable"
+      }
+    },
+    "macros": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/macro"
+      }
+    },
+    "theme": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "gesturePolicy": {
+      "type": "object",
+      "required": [
+        "deadZone",
+        "initialCellCommitDistance",
+        "subsequentCellCommitDistance",
+        "angularHysteresisDegrees"
+      ],
+      "properties": {
+        "deadZone": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "initialCellCommitDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "subsequentCellCommitDistance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "angularHysteresisDegrees": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 45
+        }
+      },
+      "additionalProperties": true
+    },
+    "layer": {
+      "type": "object",
+      "required": [
+        "id",
+        "rootBoardRef"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "rootBoardRef": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "additionalProperties": true
+    },
+    "rect": {
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": -20,
+          "maximum": 20
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -20,
+          "maximum": 20
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        }
+      },
+      "additionalProperties": true
+    },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/resolvedString"
+        },
+        "accessibilityLabel": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "actionInvocation": {
+      "type": "object",
+      "required": [
+        "actionID",
+        "arguments"
+      ],
+      "properties": {
+        "actionID": {
+          "$ref": "#/$defs/id"
+        },
+        "arguments": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "transition": {
+      "type": "object",
+      "required": [
+        "targetBoardRef",
+        "lifetime"
+      ],
+      "properties": {
+        "targetBoardRef": {
+          "$ref": "#/$defs/id"
+        },
+        "lifetime": {
+          "enum": [
+            "persistent",
+            "transient"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "repeatBehavior": {
+      "type": "object",
+      "required": [
+        "intervalMs",
+        "actions"
+      ],
+      "properties": {
+        "intervalMs": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 5000
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "holdBehavior": {
+      "type": "object",
+      "required": [
+        "delayMs",
+        "onStart",
+        "suppressOnReleaseAfterStart"
+      ],
+      "properties": {
+        "delayMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "onStart": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        },
+        "transition": {
+          "$ref": "#/$defs/transition"
+        },
+        "repeat": {
+          "$ref": "#/$defs/repeatBehavior"
+        },
+        "suppressOnReleaseAfterStart": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "endpointBehavior": {
+      "type": "object",
+      "properties": {
+        "presentation": {
+          "$ref": "#/$defs/presentation"
+        },
+        "onRelease": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        },
+        "transition": {
+          "$ref": "#/$defs/transition"
+        },
+        "hold": {
+          "$ref": "#/$defs/holdBehavior"
+        }
+      },
+      "additionalProperties": true
+    },
+    "resolverCase": {
+      "type": "object",
+      "required": [
+        "when",
+        "behavior"
+      ],
+      "properties": {
+        "when": {
+          "$ref": "#/$defs/condition"
+        },
+        "behavior": {
+          "$ref": "#/$defs/endpointBehavior"
+        }
+      },
+      "additionalProperties": true
+    },
+    "resolver": {
+      "type": "object",
+      "required": [
+        "cases",
+        "default"
+      ],
+      "properties": {
+        "cases": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/resolverCase"
+          }
+        },
+        "default": {
+          "$ref": "#/$defs/endpointBehavior"
+        }
+      },
+      "additionalProperties": true
+    },
+    "boardEntry": {
+      "type": "object",
+      "required": [
+        "id",
+        "rect",
+        "resolver"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "rect": {
+          "$ref": "#/$defs/rect"
+        },
+        "resolver": {
+          "$ref": "#/$defs/resolver"
+        }
+      },
+      "additionalProperties": true
+    },
+    "board": {
+      "type": "object",
+      "required": [
+        "id",
+        "entries"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 400,
+          "items": {
+            "$ref": "#/$defs/boardEntry"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "stateDeclaration": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "type",
+            "default"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "type": {
+              "const": "boolean"
+            },
+            "default": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "type",
+            "values",
+            "default"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "type": {
+              "const": "enum"
+            },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "default": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "transformEntry": {
+      "type": "object",
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "transformTable": {
+      "type": "object",
+      "required": [
+        "id",
+        "entries"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 2048,
+          "items": {
+            "$ref": "#/$defs/transformEntry"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "valueExpression": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "$ref": "#/$defs/id"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "fact"
+          ],
+          "properties": {
+            "fact": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "literal"
+          ],
+          "properties": {
+            "literal": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/valueExpression"
+        },
+        {
+          "type": "object",
+          "required": [
+            "eq"
+          ],
+          "properties": {
+            "eq": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/valueExpression"
+                },
+                {
+                  "$ref": "#/$defs/valueExpression"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "in"
+          ],
+          "properties": {
+            "in": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/valueExpression"
+                },
+                {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "all"
+          ],
+          "properties": {
+            "all": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "any"
+          ],
+          "properties": {
+            "any": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "not"
+          ],
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/condition"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "transformMatch"
+          ],
+          "properties": {
+            "transformMatch": {
+              "type": "object",
+              "required": [
+                "tableRef",
+                "target"
+              ],
+              "properties": {
+                "tableRef": {
+                  "$ref": "#/$defs/id"
+                },
+                "target": {
+                  "const": "compositionTail"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "conditionalTransform": {
+      "type": "object",
+      "required": [
+        "when",
+        "tableRef"
+      ],
+      "properties": {
+        "when": {
+          "$ref": "#/$defs/condition"
+        },
+        "tableRef": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "additionalProperties": true
+    },
+    "resolvedString": {
+      "type": "object",
+      "required": [
+        "base",
+        "transforms"
+      ],
+      "properties": {
+        "base": {
+          "type": "string"
+        },
+        "transforms": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/conditionalTransform"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "macro": {
+      "type": "object",
+      "required": [
+        "id",
+        "actions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/actionInvocation"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
