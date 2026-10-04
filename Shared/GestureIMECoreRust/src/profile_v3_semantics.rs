@@ -5,7 +5,7 @@ use crate::profile_v3::{
 };
 use crate::profile_v3_board_runtime::BoardSemanticsV3;
 use crate::profile_v3_validation::ProfileV3Validator;
-use crate::validation::{ProfileValidationCode, ProfileValidationError};
+use crate::validation::ProfileValidationError;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -574,13 +574,3 @@ fn state_value_matches(
     }
 }
 
-pub fn compile_profile_semantics_v3(
-    profile: &ProfileBundleV3,
-) -> Result<ProfileSemanticsRuntimeV3, ProfileValidationError> {
-    ProfileSemanticsRuntimeV3::compile(profile).map_err(|error| {
-        ProfileValidationError::new(
-            error.code,
-            error.detail.or_else(|| Some(ProfileValidationCode::InvalidCondition.as_str().into())),
-        )
-    })
-}
