@@ -414,6 +414,8 @@ final class ProfileV3EditorModel: ObservableObject {
 
     var keyboardTheme: IOSKeyboardTheme {
         IOSKeyboardTheme(themeObject: themeTokens.mapValues(\.foundationValue))
+    }
+
     // MARK: - #79 Transform authoring
 
     func setTransformTable(_ table: ProfileV3TransformTableRows) {
