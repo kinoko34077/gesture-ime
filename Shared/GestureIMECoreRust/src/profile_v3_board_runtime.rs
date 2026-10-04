@@ -502,7 +502,12 @@ impl BoardSessionV3 {
                                 due_ms,
                                 true,
                             ) {
-                                self.current_time_ms = target_ms;
+                                // The target endpoint becomes active at the transition
+                                // deadline, not at the caller's later target time. Catch
+                                // up again so target Hold/repeat deadlines inside the
+                                // same advance_time window are processed in causal order.
+                                self.current_time_ms = due_ms;
+                                self.advance_time(target_ms);
                                 return;
                             }
 
