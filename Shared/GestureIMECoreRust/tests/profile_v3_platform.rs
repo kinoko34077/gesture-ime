@@ -469,10 +469,12 @@ fn a3_platform_profile_switch_remains_unavailable_at_activation() {
             }
         ]);
 
-    let error = ProfileV3PlatformRuntime::new(
+    let error = match ProfileV3PlatformRuntime::new(
         serde_json::to_string(&value).unwrap(),
-    )
-    .unwrap_err();
+    ) {
+        Ok(_) => panic!("profile.switch profile unexpectedly activated"),
+        Err(error) => error,
+    };
 
     match error {
         ProfileV3PlatformError::InvalidProfile { code, .. } => {
