@@ -58,21 +58,29 @@ func groupPathPersistsAsMetadataAndFlatMappingIsUnchanged() throws {
 
 @Test
 func treeNestsGroupsAndSearchRevealsAncestors() throws {
+    let aID = UUID()
+    let tsuID = UUID()
+    let waID = UUID()
     let tables = [
         ProfileV3TransformTableRows(id: "kana.small", rows: [
-            .init(from: "あ", to: "ぁ", groupPath: ["小書き", "あ行"]),
-            .init(from: "つ", to: "っ", groupPath: ["小書き", "た行"]),
-            .init(from: "わ", to: "ゎ")
+            .init(from: "あ", to: "ぁ", groupPath: ["小書き", "あ行"], editorID: aID),
+            .init(from: "つ", to: "っ", groupPath: ["小書き", "た行"], editorID: tsuID),
+            .init(from: "わ", to: "ゎ", editorID: waID)
         ])
     ]
     let tree = ProfileV3TransformGrouping.tree(tables)
     #expect(tree.count == 1)
     let root = tree[0]
-    #expect(root.children.map(\.id) == ["kana.small/小書き", "kana.small/#わ"])
+    #expect(root.children.map(\.id) == [
+        "kana.small/小書き",
+        "kana.small/#row-" + waID.uuidString
+    ])
     #expect(root.children[0].children.map(\.id) == ["kana.small/小書き/あ行", "kana.small/小書き/た行"])
 
     let result = ProfileV3TransformGrouping.search("っ", in: tree)
-    #expect(result.matches == ["kana.small/小書き/た行/#つ"])
+    #expect(result.matches == [
+        "kana.small/小書き/た行/#row-" + tsuID.uuidString
+    ])
     #expect(result.expanded == ["kana.small", "kana.small/小書き", "kana.small/小書き/た行"])
     #expect(ProfileV3TransformGrouping.search("  ", in: tree).matches.isEmpty)
 }
