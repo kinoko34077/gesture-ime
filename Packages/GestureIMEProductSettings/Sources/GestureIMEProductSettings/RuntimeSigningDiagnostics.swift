@@ -180,8 +180,17 @@ public struct AppGroupRuntimeDiagnostics: Equatable, Sendable {
 }
 
 public enum AppGroupRuntimeDiagnosticsProbe {
+    private static let cachedMainBundleDiagnostics: AppGroupRuntimeDiagnostics = {
+        capture(bundle: .main)
+    }()
+
     public static func captureMainBundle() -> AppGroupRuntimeDiagnostics {
-        let bundle = Bundle.main
+        cachedMainBundleDiagnostics
+    }
+
+    private static func capture(
+        bundle: Bundle
+    ) -> AppGroupRuntimeDiagnostics {
         let configured = bundle.object(
             forInfoDictionaryKey: GestureIMEAppGroupResolver.appGroupInfoKey
         ) as? String
