@@ -13,3 +13,21 @@ func fourTabsCoverEveryCategoryOnceWithinOneTap() {
         #expect(taps != nil && taps! <= 1)
     }
 }
+
+
+private final class ProfileV3SessionProbe {}
+
+@Test
+func editorSessionCacheReusesOneMutableSessionPerProfile() {
+    let cache = ProfileV3EditorSessionCache<ProfileV3SessionProbe>()
+    let first = cache.session(for: "profile.a") { ProfileV3SessionProbe() }
+    let second = cache.session(for: "profile.a") { ProfileV3SessionProbe() }
+    let other = cache.session(for: "profile.b") { ProfileV3SessionProbe() }
+
+    #expect(first === second)
+    #expect(first !== other)
+
+    cache.remove(profileID: "profile.a")
+    let replacement = cache.session(for: "profile.a") { ProfileV3SessionProbe() }
+    #expect(replacement !== first)
+}
