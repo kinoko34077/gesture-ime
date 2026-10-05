@@ -19,9 +19,9 @@ struct ProfileV3ResizableWorkspace<Primary: View, Secondary: View>: View {
     @State private var keyboardOverlap: CGFloat = 0
 
     var body: some View {
-        // #95 §F5.1: axis selection and split resolution both consume the
-        // actual usable geometry after software-keyboard occlusion. This may
-        // change the axis when the remaining height crosses the frozen rule.
+        // The reader ignores the software keyboard so showing it never flips
+        // the axis (§F5.1 rule 3); the measured keyboard overlap reduces only
+        // the available extent so the primary pane shrinks first (rule 6).
         GeometryReader { layout in
             let available = CGSize(
                 width: layout.size.width,
@@ -149,26 +149,36 @@ struct ProfileV3CompactAdjuster: View {
     let value: Int
     let onChange: (Int) -> Void
 
+    private let touchExtent: CGFloat = 44
+
     var body: some View {
         HStack(spacing: 4) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Text("\(value)").font(.callout.monospacedDigit()).frame(minWidth: 22, alignment: .trailing)
-            VStack(spacing: 0) {
-                Button { onChange(1) } label: {
-                    Image(systemName: "chevron.up").font(.system(size: 10, weight: .bold))
-                        .frame(width: 30, height: 22)
-                }
-                Button { onChange(-1) } label: {
-                    Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
-                        .frame(width: 30, height: 22)
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(.tertiarySystemFill))
+                    .frame(width: 30, height: touchExtent)
+                VStack(spacing: 0) {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 10, weight: .bold))
+                        .frame(width: 30, height: touchExtent / 2)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .frame(width: 30, height: touchExtent / 2)
                 }
             }
-            .buttonStyle(.plain)
-            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 6))
-            .frame(minHeight: 44)
+            .frame(width: touchExtent, height: touchExtent)
+            .contentShape(Rectangle())
+            .gesture(
+                SpatialTapGesture()
+                    .onEnded { value in
+                        onChange(value.location.y < touchExtent / 2 ? 1 : -1)
+                    }
+            )
             .accessibilityHidden(true)
         }
-        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: touchExtent, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue("\(value)")
