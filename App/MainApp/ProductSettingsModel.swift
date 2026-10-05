@@ -12,8 +12,7 @@ final class ProductSettingsModel: ObservableObject {
 
     private var reader: ProductSettingsReader?
     private var writer: ProductSettingsWriter?
-    private let keySoundCapability =
-        ProductKeySoundCapability(hasFullAccess: false)
+    private let keySoundCapability = ProductKeySoundCapability()
 
     init() {
         let probe = ProductSettingsCapabilityProbe.probeMainBundle()

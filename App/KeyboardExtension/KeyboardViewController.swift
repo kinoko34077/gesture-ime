@@ -140,9 +140,6 @@ final class KeyboardViewController: UIInputViewController {
                 runtime: runtime,
                 composition: composition,
                 productSettings: configuration.productSettings,
-                keySoundCapability: ProductKeySoundCapability(
-                    hasFullAccess: hasFullAccess
-                ),
                 keyboardTheme: IOSKeyboardTheme(
                     profileJSON: configuration.profileJSON
                 ),

@@ -155,28 +155,28 @@ public enum ProductSettingsDeliveryCapability: Equatable, Sendable {
 }
 
 public enum ProductKeySoundCapability: Equatable, Sendable {
+    /// #95 F8: third-party keyboard clicks use UIInputViewAudioFeedback and
+    /// UIDevice.playInputClick(). Full Access is not part of this capability.
     case available
-    case unavailableRequiresFullAccess
 
+    public init() {
+        self = .available
+    }
+
+    /// Source-compatible with older call sites while deliberately ignoring
+    /// Full Access: it is not an audio-click requirement.
     public init(hasFullAccess: Bool) {
-        self = hasFullAccess ? .available : .unavailableRequiresFullAccess
+        self = .available
     }
 
-    public var isAvailable: Bool {
-        self == .available
-    }
+    public var isAvailable: Bool { true }
 
     public func effectiveEnabled(storedEnabled: Bool) -> Bool {
-        isAvailable && storedEnabled
+        storedEnabled
     }
 
     public var japaneseReason: String {
-        switch self {
-        case .available:
-            "キー音を利用できます。"
-        case .unavailableRequiresFullAccess:
-            "フルアクセスを要求しない設定のため、キー音は利用できません。触覚フィードバックは利用できます。"
-        }
+        "キー音を利用できます。音量・消音はiOSの「キーボードのクリック」設定に従います。"
     }
 }
 
