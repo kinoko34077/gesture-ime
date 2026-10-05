@@ -446,8 +446,18 @@ final class ProfileV3EditorModel: ObservableObject {
         return try document.v3NewTransformTableID()
     }
 
-    func setTransformTable(_ table: ProfileV3TransformTableRows) {
-        mutate { try $0.v3SetTransformTableRows(table) }
+    @discardableResult
+    func setTransformTable(_ table: ProfileV3TransformTableRows) -> Bool {
+        do {
+            try mutateThrowing { try $0.v3SetTransformTableRows(table) }
+            if let index = transformRows.firstIndex(where: { $0.id == table.id }) {
+                transformRows[index] = transformRows[index].preservingEditorIDs(from: table)
+            }
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     func applyTransformCSV(_ text: String) {
@@ -788,7 +798,13 @@ final class ProfileV3EditorModel: ObservableObject {
         boards = try document.v3BoardSummaries()
         states = try document.v3StateSummaries()
         transformTables = try document.v3TransformTableSummaries()
-        transformRows = try document.v3TransformTableRows()
+        let previousTransformRows = transformRows
+        transformRows = try document.v3TransformTableRows().map { loaded in
+            guard let previous = previousTransformRows.first(where: { $0.id == loaded.id }) else {
+                return loaded
+            }
+            return loaded.preservingEditorIDs(from: previous)
+        }
         macros = try document.v3MacroSummaries()
         validation = try library.validate(document)
 
