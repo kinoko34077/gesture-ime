@@ -49,3 +49,27 @@ public enum ProfileV3AppTab: String, CaseIterable, Sendable {
         return tab.categories.count == 1 ? 0 : 1
     }
 }
+
+
+/// #95 §F7: one mutable authoring session per Profile identity.
+///
+/// The App owns the concrete editor type; this cache is deliberately generic so
+/// session identity can be verified without importing SwiftUI/App storage.
+public final class ProfileV3EditorSessionCache<Session: AnyObject> {
+    private var sessions: [String: Session] = [:]
+
+    public init() {}
+
+    public func session(for profileID: String, create: () -> Session) -> Session {
+        if let existing = sessions[profileID] {
+            return existing
+        }
+        let created = create()
+        sessions[profileID] = created
+        return created
+    }
+
+    public func remove(profileID: String) {
+        sessions.removeValue(forKey: profileID)
+    }
+}
