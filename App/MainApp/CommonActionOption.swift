@@ -19,6 +19,33 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var displayTitle: String {
+        switch self {
+        case .noop: "何もしない"
+        case .textInsert: "文字を入力"
+        case .textDirectInsert: "文字を直接入力"
+        case .editDelete: "文字を削除"
+        case .cursorMove: "カーソルを移動"
+        case .layerSet: "キーボード面を切り替え"
+        case .layerPush: "キーボード面を一時切り替え"
+        case .layerPop: "前のキーボード面へ戻る"
+        case .profileSwitch: "プロファイルを切り替え"
+        case .conversionCommit: "変換を確定"
+        case .conversionSelectCandidate: "変換候補を選ぶ"
+        case .panelOpen: "パネルを開く"
+        case .macroRun: "マクロを実行"
+        case .systemNextKeyboard: "次のキーボードへ"
+        case .systemDismissKeyboard: "キーボードを閉じる"
+        }
+    }
+
+    /// Options that can be fully configured from the current phone editor.
+    /// profile.switch needs a profile-library picker owned outside one Profile
+    /// editing session, so it remains an advanced action here.
+    static var ruleEditorOptions: [CommonActionOption] {
+        allCases.filter { $0 != .noop && $0 != .profileSwitch }
+    }
+
     var argumentKey: String? {
         switch self {
         case .textInsert, .textDirectInsert: "text"
