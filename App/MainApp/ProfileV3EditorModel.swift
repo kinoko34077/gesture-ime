@@ -463,6 +463,32 @@ final class ProfileV3EditorModel: ObservableObject {
         mutate { try $0.v3SetThemeToken(key, value: value) }
     }
 
+    func exportThemeURL() -> URL? {
+        do {
+            let data = try ProfileV3ThemeTransfer.export(theme: themeTokens)
+            let safeProfileID = profileID.replacingOccurrences(of: "/", with: "-")
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(safeProfileID)-theme.json")
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func applyThemeTransfer(_ data: Data) {
+        do {
+            let theme = try ProfileV3ThemeTransfer.parse(data)
+            try mutateThrowing {
+                try $0.v3ReplaceThemeTokens(theme)
+            }
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     var keyboardTheme: IOSKeyboardTheme {
         IOSKeyboardTheme(themeObject: themeTokens.mapValues(\.foundationValue))
     }
