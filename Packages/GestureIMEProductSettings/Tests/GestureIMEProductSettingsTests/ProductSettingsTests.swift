@@ -282,9 +282,31 @@ final class ProductSettingsCapabilityProbeTests: XCTestCase {
         XCTAssertFalse(missing.capability.crossProcessAvailable)
 
         let base = URL(fileURLWithPath: "/tmp/group")
-        let ok = ProductSettingsCapabilityProbe.probe(appGroupIdentifier: "group.example") { _ in base }
+        let resolved = GestureIMEAppGroupResolver.resolve(
+            appGroupIdentifier: "group.example"
+        ) { _ in base }
+        guard case .available(let paths) = resolved else {
+            return XCTFail("expected shared App Group paths")
+        }
+        XCTAssertEqual(paths.groupIdentifier, "group.example")
+        XCTAssertEqual(
+            paths.rootURL,
+            base.appendingPathComponent("GestureIME", isDirectory: true)
+        )
+        XCTAssertEqual(
+            paths.profileDeliveryRootURL,
+            paths.rootURL.appendingPathComponent("ProfileDelivery", isDirectory: true)
+        )
+        XCTAssertEqual(
+            paths.productSettingsRootURL,
+            paths.rootURL.appendingPathComponent("ProductSettings", isDirectory: true)
+        )
+
+        let ok = ProductSettingsCapabilityProbe.probe(
+            appGroupIdentifier: "group.example"
+        ) { _ in base }
         XCTAssertEqual(ok.capability, .sharedContainer)
-        XCTAssertEqual(ok.rootURL, base.appendingPathComponent("ProductSettings", isDirectory: true))
+        XCTAssertEqual(ok.rootURL, paths.productSettingsRootURL)
         XCTAssertTrue(ProductSettingsCapabilityProbe.Unavailable.appGroupNotConfigured.japaneseReason.contains("App Group"))
     }
 }

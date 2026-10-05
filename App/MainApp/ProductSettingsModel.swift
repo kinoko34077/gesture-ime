@@ -10,7 +10,8 @@ final class ProductSettingsModel: ObservableObject {
     @Published private(set) var probe: ProductSettingsCapabilityProbe.Result =
         .unavailable(.appGroupNotConfigured)
 
-    private var store: ProductSettingsStore?
+    private var reader: ProductSettingsReader?
+    private var writer: ProductSettingsWriter?
 
     init() {
         let probe = ProductSettingsCapabilityProbe.probeMainBundle()
@@ -18,13 +19,15 @@ final class ProductSettingsModel: ObservableObject {
         deliveryCapability = probe.capability
         do {
             let root = try probe.rootURL ?? Self.appLocalRootURL()
-            let store = try ProductSettingsStore(rootURL: root)
-            self.store = store
+            let reader = try ProductSettingsReader(rootURL: root)
+            let writer = try ProductSettingsWriter(rootURL: root)
+            self.reader = reader
+            self.writer = writer
 
-            if let snapshot = try store.readLastKnownGood() {
+            if let snapshot = try reader.readLastKnownGood() {
                 values = snapshot.values
             } else {
-                _ = try store.publish(values)
+                _ = try writer.publish(values)
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -101,11 +104,11 @@ final class ProductSettingsModel: ObservableObject {
                 keyboardHeightScale: keyboardHeightScale,
                 keySoundEnabled: keySoundEnabled ?? values.keySoundEnabled
             )
-            guard let store else {
+            guard let writer else {
                 values = next
                 return
             }
-            _ = try store.publish(next)
+            _ = try writer.publish(next)
             values = next
             errorMessage = nil
         } catch {
