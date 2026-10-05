@@ -14,8 +14,8 @@ struct KeyboardProductSettingsSource {
         }
 
         do {
-            let store = try ProductSettingsStore(rootURL: sharedContainerRootURL)
-            return try store.readLastKnownGood()?.values ?? .defaults
+            let reader = try ProductSettingsReader(rootURL: sharedContainerRootURL)
+            return try reader.readLastKnownGood()?.values ?? .defaults
         } catch {
             return .defaults
         }

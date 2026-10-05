@@ -103,6 +103,7 @@ targets:
       - package: AzooKeyKanaKanjiConverter
         product: KanaKanjiConverterModuleWithDefaultDictionary
       - package: GestureIMEProductSettings
+      - package: GestureIMEProfileAuthoring
     postCompileScripts:
       - script: bash "$SRCROOT/scripts/embed-keyboard-runtime-frameworks.sh"
         name: Embed keyboard runtime frameworks

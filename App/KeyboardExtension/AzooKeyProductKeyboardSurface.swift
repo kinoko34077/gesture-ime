@@ -33,6 +33,12 @@ final class ProductGestureCoordinator {
     private var generation: UInt64 = 0
     private var blockedByMultitouch = false
 
+    var onBecameIdle: (() -> Void)?
+
+    var hasActiveTouches: Bool {
+        !activeTouches.isEmpty
+    }
+
     func begin(touchID: UUID) -> Token? {
         guard !activeTouches.contains(touchID) else { return nil }
 
@@ -59,6 +65,7 @@ final class ProductGestureCoordinator {
         activeTouches.remove(touchID)
         if activeTouches.isEmpty {
             blockedByMultitouch = false
+            onBecameIdle?()
         }
     }
 }

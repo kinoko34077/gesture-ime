@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import GestureIMEProfileAuthoring
 import GestureIMEProductSettings
 
 final class KeyboardHostingController<Content: View>: UIHostingController<Content> {
@@ -17,11 +18,16 @@ final class KeyboardClickInputView: UIInputView, UIInputViewAudioFeedback {
 @MainActor
 final class KeyboardViewController: UIInputViewController {
     private static let baseKeyboardHeight: Double = 344
+
     private var keyboardHost: KeyboardHostingController<AnyView>?
     private var productModel: AnyObject?
     private var composition: AzooKeyCompositionBridge?
     private var heightConstraint: NSLayoutConstraint?
     private var installedSettings: ProductSettingsValues = .defaults
+    private var configurationSource = KeyboardSharedConfigurationSource()
+    private var installedConfiguration: KeyboardResolvedConfiguration?
+    private var pendingConfiguration: KeyboardResolvedConfiguration?
+    private var errorLabel: UILabel?
 
     override func loadView() {
         super.loadView()
@@ -32,69 +38,11 @@ final class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        let composition = AzooKeyCompositionBridge(proxy: textDocumentProxy)
+        self.composition = composition
+
         do {
-            let profileJSON = try BuiltInProfileLoader.loadJSON()
-            let composition = AzooKeyCompositionBridge(proxy: textDocumentProxy)
-
-            // #75: use a shared container only when an already provisioned
-            // App Group resolves; otherwise defaults (capability-gated).
-            let settingsSource = KeyboardProductSettingsSource(
-                sharedContainerRootURL: ProductSettingsCapabilityProbe.probeMainBundle().rootURL
-            )
-            let productSettings = settingsSource.loadLastKnownGood()
-            let root: AnyView
-            let retainedModel: AnyObject
-
-            if Self.profileSchema(profileJSON) == "gesture-ime.profile.v3" {
-                let runtime = try IOSProfileV3RuntimeAdapter(
-                    profileJSON: profileJSON
-                )
-                let model = try ProfileV3ProductKeyboardViewModel(
-                    runtime: runtime,
-                    composition: composition,
-                    productSettings: productSettings,
-                    keyboardTheme: IOSKeyboardTheme(profileJSON: profileJSON),
-                    onNextKeyboard: { [weak self] in
-                        self?.advanceToNextInputMode()
-                    },
-                    onDismissKeyboard: { [weak self] in
-                        self?.dismissKeyboard()
-                    }
-                )
-                root = AnyView(
-                    ProfileV3ProductKeyboardRoot(model: model)
-                )
-                retainedModel = model
-            } else {
-                // Compatibility fallback for imported/historical v1/v2 Profiles.
-                // The current bundled product Profile is already v3.
-                let layout = try KeyboardLayoutRuntime.compile(
-                    profileJSON: profileJSON
-                )
-                let store = GesturePolicyStore(
-                    defaultPolicy: layout.defaultPolicy
-                )
-                let model = ProductKeyboardViewModel(
-                    initialLayout: layout,
-                    policyStore: store,
-                    composition: composition,
-                    onNextKeyboard: { [weak self] in
-                        self?.advanceToNextInputMode()
-                    },
-                    onDismissKeyboard: { [weak self] in
-                        self?.dismissKeyboard()
-                    }
-                )
-                root = AnyView(
-                    AzooKeyProductKeyboardRoot(model: model)
-                )
-                retainedModel = model
-            }
-
-            installKeyboardRoot(root, productSettings: productSettings)
-            self.composition = composition
-            self.productModel = retainedModel
-            pushHostFacts()
+            try installConfiguration(configurationSource.load())
         } catch {
             installError(String(describing: error))
         }
@@ -103,6 +51,7 @@ final class KeyboardViewController: UIInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         composition?.setTextDocumentProxy(textDocumentProxy)
+        refreshSharedConfigurationIfNeeded()
         pushHostFacts()
     }
 
@@ -116,10 +65,144 @@ final class KeyboardViewController: UIInputViewController {
         pushHostFacts()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        composition?.close()
+        super.viewWillDisappear(animated)
+    }
+
+    private var hasActiveTouches: Bool {
+        if let model = productModel as? ProfileV3ProductKeyboardViewModel {
+            return model.gestureCoordinator.hasActiveTouches
+        }
+        if let model = productModel as? ProductKeyboardViewModel {
+            return model.gestureCoordinator.hasActiveTouches
+        }
+        return false
+    }
+
+    /// #128/#95 §F9: shared generations are checked when the keyboard becomes
+    /// visible. A generation observed during an active touch is retained as
+    /// pending and installed only after the coordinator reaches an idle boundary.
+    private func refreshSharedConfigurationIfNeeded() {
+        do {
+            let next = try configurationSource.load()
+            guard next != installedConfiguration else { return }
+
+            if hasActiveTouches {
+                pendingConfiguration = next
+                return
+            }
+
+            try installConfiguration(next)
+        } catch {
+            if installedConfiguration == nil {
+                installError(String(describing: error))
+            }
+        }
+    }
+
+    private func installPendingConfigurationIfNeeded() {
+        guard !hasActiveTouches,
+              let next = pendingConfiguration,
+              next != installedConfiguration else {
+            return
+        }
+
+        pendingConfiguration = nil
+        do {
+            try installConfiguration(next)
+        } catch {
+            if installedConfiguration == nil {
+                installError(String(describing: error))
+            }
+        }
+    }
+
+    private func installConfiguration(
+        _ configuration: KeyboardResolvedConfiguration
+    ) throws {
+        guard let composition else {
+            throw KeyboardConfigurationError.compositionUnavailable
+        }
+        guard !hasActiveTouches else {
+            pendingConfiguration = configuration
+            return
+        }
+
+        let root: AnyView
+        let retainedModel: AnyObject
+
+        if Self.profileSchema(configuration.profileJSON) == "gesture-ime.profile.v3" {
+            let runtime = try IOSProfileV3RuntimeAdapter(
+                profileJSON: configuration.profileJSON
+            )
+            let model = try ProfileV3ProductKeyboardViewModel(
+                runtime: runtime,
+                composition: composition,
+                productSettings: configuration.productSettings,
+                keyboardTheme: IOSKeyboardTheme(
+                    profileJSON: configuration.profileJSON
+                ),
+                onNextKeyboard: { [weak self] in
+                    self?.advanceToNextInputMode()
+                },
+                onDismissKeyboard: { [weak self] in
+                    self?.dismissKeyboard()
+                }
+            )
+            root = AnyView(ProfileV3ProductKeyboardRoot(model: model))
+            retainedModel = model
+        } else {
+            let layout = try KeyboardLayoutRuntime.compile(
+                profileJSON: configuration.profileJSON
+            )
+            let store = GesturePolicyStore(defaultPolicy: layout.defaultPolicy)
+            let model = ProductKeyboardViewModel(
+                initialLayout: layout,
+                policyStore: store,
+                composition: composition,
+                onNextKeyboard: { [weak self] in
+                    self?.advanceToNextInputMode()
+                },
+                onDismissKeyboard: { [weak self] in
+                    self?.dismissKeyboard()
+                }
+            )
+            root = AnyView(AzooKeyProductKeyboardRoot(model: model))
+            retainedModel = model
+        }
+
+        configureIdleCallback(for: retainedModel)
+        replaceKeyboardRoot(
+            root,
+            productSettings: configuration.productSettings
+        )
+        productModel = retainedModel
+        installedConfiguration = configuration
+        pendingConfiguration = nil
+        pushHostFacts()
+    }
+
+    private func configureIdleCallback(for model: AnyObject) {
+        let callback: () -> Void = { [weak self] in
+            Task { @MainActor in
+                self?.installPendingConfigurationIfNeeded()
+            }
+        }
+
+        if let model = model as? ProfileV3ProductKeyboardViewModel {
+            model.gestureCoordinator.onBecameIdle = callback
+        } else if let model = model as? ProductKeyboardViewModel {
+            model.gestureCoordinator.onBecameIdle = callback
+        }
+    }
+
     /// Normalizes UIKit host traits into the shared runtime's closed fact
     /// vocabulary; no layout decisions are made here.
     private func pushHostFacts() {
-        guard let model = productModel as? ProfileV3ProductKeyboardViewModel else { return }
+        guard let model = productModel as? ProfileV3ProductKeyboardViewModel else {
+            return
+        }
         let proxy = textDocumentProxy
         let returnKey: String = switch proxy.returnKeyType ?? .default {
         case .go: "go"
@@ -161,15 +244,23 @@ final class KeyboardViewController: UIInputViewController {
         ))
     }
 
-    override func viewWillDisappear(_ animated: Bool) {
-        composition?.close()
-        super.viewWillDisappear(animated)
-    }
-
-    private func installKeyboardRoot(
+    private func replaceKeyboardRoot(
         _ root: AnyView,
         productSettings: ProductSettingsValues
     ) {
+        heightConstraint?.isActive = false
+        heightConstraint = nil
+
+        if let oldHost = keyboardHost {
+            oldHost.willMove(toParent: nil)
+            oldHost.view.removeFromSuperview()
+            oldHost.removeFromParent()
+            keyboardHost = nil
+        }
+
+        errorLabel?.removeFromSuperview()
+        errorLabel = nil
+
         let host = KeyboardHostingController(rootView: root)
         addChild(host)
         host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -231,6 +322,8 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func installError(_ message: String) {
+        errorLabel?.removeFromSuperview()
+
         let label = UILabel()
         label.numberOfLines = 0
         label.textAlignment = .center
@@ -250,5 +343,10 @@ final class KeyboardViewController: UIInputViewController {
                 constant: -12
             )
         ])
+        errorLabel = label
     }
+}
+
+private enum KeyboardConfigurationError: Error {
+    case compositionUnavailable
 }
