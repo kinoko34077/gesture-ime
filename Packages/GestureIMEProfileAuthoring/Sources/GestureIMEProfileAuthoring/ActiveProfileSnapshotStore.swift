@@ -59,7 +59,8 @@ public final class ActiveProfileSnapshotStore {
     public init(
         rootURL: URL,
         validator: @escaping ProfileValidator,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        createDirectories: Bool = true
     ) throws {
         self.rootURL = rootURL
         self.validator = validator
@@ -71,10 +72,12 @@ public final class ActiveProfileSnapshotStore {
             isDirectory: true
         )
 
-        try fileManager.createDirectory(
-            at: snapshotsURL,
-            withIntermediateDirectories: true
-        )
+        if createDirectories {
+            try fileManager.createDirectory(
+                at: snapshotsURL,
+                withIntermediateDirectories: true
+            )
+        }
     }
 
     @discardableResult
@@ -299,6 +302,61 @@ public final class ActiveProfileSnapshotStore {
         return value.utf8.allSatisfy { byte in
             (48...57).contains(byte) || (97...102).contains(byte)
         }
+    }
+
+}
+
+/// Read-only active Profile transport for the Keyboard Extension.
+/// Construction performs no filesystem mutation.
+public final class ActiveProfileSnapshotReader {
+    private let store: ActiveProfileSnapshotStore
+
+    public init(
+        rootURL: URL,
+        validator: @escaping ProfileValidator,
+        fileManager: FileManager = .default
+    ) throws {
+        store = try ActiveProfileSnapshotStore(
+            rootURL: rootURL,
+            validator: validator,
+            fileManager: fileManager,
+            createDirectories: false
+        )
+    }
+
+    public func activeManifest() throws -> ActiveProfileManifest? {
+        try store.activeManifest()
+    }
+
+    public func readActive() throws -> ActiveProfileSnapshot? {
+        try store.readActive()
+    }
+
+    public func readLastKnownGood() throws -> ActiveProfileSnapshot? {
+        try store.readLastKnownGood()
+    }
+}
+
+/// Main-App-only publisher surface. The product Extension never receives this type.
+public final class ActiveProfileSnapshotWriter {
+    private let store: ActiveProfileSnapshotStore
+
+    public init(
+        rootURL: URL,
+        validator: @escaping ProfileValidator,
+        fileManager: FileManager = .default
+    ) throws {
+        store = try ActiveProfileSnapshotStore(
+            rootURL: rootURL,
+            validator: validator,
+            fileManager: fileManager,
+            createDirectories: true
+        )
+    }
+
+    @discardableResult
+    public func publish(_ data: Data) throws -> ActiveProfileManifest {
+        try store.publish(data)
     }
 }
 

@@ -288,3 +288,36 @@ final class ProductSettingsCapabilityProbeTests: XCTestCase {
         XCTAssertTrue(ProductSettingsCapabilityProbe.Unavailable.appGroupNotConfigured.japaneseReason.contains("App Group"))
     }
 }
+
+
+final class ProductSettingsReaderWriterTests: XCTestCase {
+    func testReadOnlyReaderConstructionDoesNotCreateSharedRoot() throws {
+        let parent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gesture-ime-settings-reader-tests-\(UUID().uuidString)")
+        let root = parent.appendingPathComponent("ProductSettings", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.path))
+        _ = try ProductSettingsReader(rootURL: root)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.path))
+    }
+
+    func testReadOnlyReaderConsumesWriterPublication() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gesture-ime-settings-reader-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let values = try ProductSettingsValues(
+            hapticStrength: 0.7,
+            keyboardHeightScale: 1.15,
+            keySoundEnabled: false
+        )
+        let writer = try ProductSettingsWriter(rootURL: root)
+        let manifest = try writer.publish(values)
+
+        let reader = try ProductSettingsReader(rootURL: root)
+        let snapshot = try XCTUnwrap(try reader.readLastKnownGood())
+        XCTAssertEqual(snapshot.manifest, manifest)
+        XCTAssertEqual(snapshot.values, values)
+    }
+}

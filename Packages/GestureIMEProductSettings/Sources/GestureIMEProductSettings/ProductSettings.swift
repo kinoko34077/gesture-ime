@@ -236,7 +236,8 @@ public final class ProductSettingsStore {
 
     public init(
         rootURL: URL,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        createDirectories: Bool = true
     ) throws {
         self.rootURL = rootURL
         self.fileManager = fileManager
@@ -247,10 +248,12 @@ public final class ProductSettingsStore {
             isDirectory: true
         )
 
-        try fileManager.createDirectory(
-            at: snapshotsURL,
-            withIntermediateDirectories: true
-        )
+        if createDirectories {
+            try fileManager.createDirectory(
+                at: snapshotsURL,
+                withIntermediateDirectories: true
+            )
+        }
     }
 
     @discardableResult
@@ -459,6 +462,57 @@ public final class ProductSettingsStore {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return try encoder.encode(value)
+    }
+
+}
+
+/// Read-only settings transport for the Keyboard Extension.
+/// Construction performs no filesystem mutation.
+public final class ProductSettingsReader {
+    private let store: ProductSettingsStore
+
+    public init(
+        rootURL: URL,
+        fileManager: FileManager = .default
+    ) throws {
+        store = try ProductSettingsStore(
+            rootURL: rootURL,
+            fileManager: fileManager,
+            createDirectories: false
+        )
+    }
+
+    public func activeManifest() throws -> ProductSettingsManifest? {
+        try store.activeManifest()
+    }
+
+    public func readActive() throws -> ProductSettingsSnapshot? {
+        try store.readActive()
+    }
+
+    public func readLastKnownGood() throws -> ProductSettingsSnapshot? {
+        try store.readLastKnownGood()
+    }
+}
+
+/// Main-App-only publisher surface.
+public final class ProductSettingsWriter {
+    private let store: ProductSettingsStore
+
+    public init(
+        rootURL: URL,
+        fileManager: FileManager = .default
+    ) throws {
+        store = try ProductSettingsStore(
+            rootURL: rootURL,
+            fileManager: fileManager,
+            createDirectories: true
+        )
+    }
+
+    @discardableResult
+    public func publish(_ values: ProductSettingsValues) throws -> ProductSettingsManifest {
+        try store.publish(values)
     }
 }
 
