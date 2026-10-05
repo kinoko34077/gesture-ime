@@ -259,6 +259,26 @@ public struct ProfileV3TransformTableRows: Identifiable, Equatable, Sendable {
     public var persistableRows: [ProfileV3TransformRow] { rows.filter { !$0.isDraft } }
 }
 
+/// Persistence policy shared by the ordinary Transform editor.
+/// Returning nil means the edit remains transient: incomplete existing rows
+/// never remove their persisted mapping, and blank new rows never serialize.
+public enum ProfileV3TransformEditPolicy {
+    public static func persistenceCandidate(
+        for row: ProfileV3TransformRow,
+        in persisted: ProfileV3TransformTableRows
+    ) -> ProfileV3TransformTableRows? {
+        var updated = persisted
+        if let index = updated.rows.firstIndex(where: { $0.editorID == row.editorID }) {
+            guard !row.isDraft else { return nil }
+            updated.rows[index] = row
+            return updated
+        }
+        guard !row.isDraft else { return nil }
+        updated.rows.append(row)
+        return updated
+    }
+}
+
 /// Disclosure tree node: a table, a group, or a leaf mapping.
 public struct ProfileV3TransformNode: Identifiable, Equatable, Sendable {
     public enum Kind: Equatable, Sendable {
