@@ -28,8 +28,6 @@ final class KeyboardViewController: UIInputViewController {
     private var installedConfiguration: KeyboardResolvedConfiguration?
     private var pendingConfiguration: KeyboardResolvedConfiguration?
     private var errorLabel: UILabel?
-    private var signingDiagnosticsButton: UIButton?
-    private var signingDiagnosticsPanel: UIView?
 
     override func loadView() {
         super.loadView()
@@ -48,14 +46,12 @@ final class KeyboardViewController: UIInputViewController {
         } catch {
             installError(String(describing: error))
         }
-        refreshSigningDiagnosticsAffordance()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         composition?.setTextDocumentProxy(textDocumentProxy)
         refreshSharedConfigurationIfNeeded()
-        refreshSigningDiagnosticsAffordance()
         pushHostFacts()
     }
 
@@ -292,7 +288,6 @@ final class KeyboardViewController: UIInputViewController {
 
         keyboardHost = host
         heightConstraint = height
-        refreshSigningDiagnosticsAffordance()
     }
 
     /// #80: portrait/landscape height adapts the viewport only; Board
@@ -318,126 +313,6 @@ final class KeyboardViewController: UIInputViewController {
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         heightConstraint?.constant = CGFloat(currentKeyboardHeight())
-    }
-
-    private func refreshSigningDiagnosticsAffordance() {
-        let diagnostics = AppGroupRuntimeDiagnosticsProbe.captureMainBundle()
-        guard diagnostics.classification != .configuredGroupResolved else {
-            signingDiagnosticsPanel?.removeFromSuperview()
-            signingDiagnosticsPanel = nil
-            signingDiagnosticsButton?.removeFromSuperview()
-            signingDiagnosticsButton = nil
-            return
-        }
-
-        let button: UIButton
-        if let existing = signingDiagnosticsButton {
-            button = existing
-        } else {
-            button = UIButton(type: .system)
-            button.translatesAutoresizingMaskIntoConstraints = false
-            button.setTitle("署名診断", for: .normal)
-            button.titleLabel?.font = .systemFont(ofSize: 10, weight: .semibold)
-            button.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.86)
-            button.layer.cornerRadius = 6
-            button.contentEdgeInsets = UIEdgeInsets(
-                top: 4,
-                left: 6,
-                bottom: 4,
-                right: 6
-            )
-            button.addTarget(
-                self,
-                action: #selector(showSigningDiagnostics),
-                for: .touchUpInside
-            )
-            view.addSubview(button)
-            NSLayoutConstraint.activate([
-                button.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
-                button.trailingAnchor.constraint(
-                    equalTo: view.trailingAnchor,
-                    constant: -6
-                )
-            ])
-            signingDiagnosticsButton = button
-        }
-
-        view.bringSubviewToFront(button)
-        if let panel = signingDiagnosticsPanel {
-            view.bringSubviewToFront(panel)
-        }
-    }
-
-    @objc private func showSigningDiagnostics() {
-        signingDiagnosticsPanel?.removeFromSuperview()
-
-        let diagnostics = AppGroupRuntimeDiagnosticsProbe.captureMainBundle()
-        let panel = UIView()
-        panel.translatesAutoresizingMaskIntoConstraints = false
-        panel.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.98)
-        panel.layer.cornerRadius = 10
-
-        let title = UILabel()
-        title.translatesAutoresizingMaskIntoConstraints = false
-        title.text = "Keyboard Extension 署名診断"
-        title.font = .systemFont(ofSize: 13, weight: .semibold)
-
-        let closeButton = UIButton(type: .system)
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.setTitle("閉じる", for: .normal)
-        closeButton.titleLabel?.font = .systemFont(ofSize: 12)
-        closeButton.addTarget(
-            self,
-            action: #selector(hideSigningDiagnostics),
-            for: .touchUpInside
-        )
-
-        let textView = UITextView()
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.backgroundColor = .clear
-        textView.font = .monospacedSystemFont(ofSize: 9, weight: .regular)
-        textView.text = diagnostics.report
-        textView.accessibilityLabel = "Keyboard Extension 署名診断"
-        textView.accessibilityValue = diagnostics.report
-
-        panel.addSubview(title)
-        panel.addSubview(closeButton)
-        panel.addSubview(textView)
-        view.addSubview(panel)
-
-        NSLayoutConstraint.activate([
-            panel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
-            panel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
-            panel.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
-            panel.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -4),
-
-            title.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 10),
-            title.topAnchor.constraint(equalTo: panel.topAnchor, constant: 8),
-
-            closeButton.trailingAnchor.constraint(
-                equalTo: panel.trailingAnchor,
-                constant: -8
-            ),
-            closeButton.centerYAnchor.constraint(equalTo: title.centerYAnchor),
-
-            textView.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 6),
-            textView.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -6),
-            textView.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 4),
-            textView.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -6)
-        ])
-
-        signingDiagnosticsPanel = panel
-        view.bringSubviewToFront(panel)
-    }
-
-    @objc private func hideSigningDiagnostics() {
-        signingDiagnosticsPanel?.removeFromSuperview()
-        signingDiagnosticsPanel = nil
-        if let button = signingDiagnosticsButton {
-            view.bringSubviewToFront(button)
-        }
     }
 
     private static func profileSchema(_ profileJSON: String) -> String? {
