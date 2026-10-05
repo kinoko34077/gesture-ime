@@ -98,14 +98,17 @@ final class ProfileV3EditorModel: ObservableObject {
             switch outcome {
             case .savedLocally:
                 lastPersistedState = .savedLocally
+                errorMessage = nil
             case .savedLocallyAndDelivered:
                 lastPersistedState = .savedLocallyAndDelivered
+                errorMessage = nil
             case .savedLocallyDeliveryFailed(let detail):
                 lastPersistedState = .savedLocallyDeliveryFailed(detail)
+                errorMessage =
+                    "プロファイルはアプリ内に保存されましたが、キーボード本体への反映に失敗しました。\(detail)"
             }
             persistenceState = lastPersistedState
             validation = result
-            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
