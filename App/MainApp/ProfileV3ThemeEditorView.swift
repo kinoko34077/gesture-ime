@@ -122,7 +122,7 @@ struct ProfileV3ProductPreview: View {
                     IOSKeyboardCandidateChip(text: "候補", selected: false, expanded: false, presentation: presentation) {}
                     Spacer()
                 }
-                .frame(height: 34)
+                .frame(height: 44)
                 .background(presentation.swiftUIColor(.candidateBackground))
             }
 
