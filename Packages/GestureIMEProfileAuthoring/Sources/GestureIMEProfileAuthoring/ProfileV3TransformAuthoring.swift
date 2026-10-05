@@ -38,6 +38,16 @@ public struct ProfileV3TransformRow: Identifiable, Equatable, Sendable {
     /// §F6.5: a row becomes semantic only when both sides are non-empty.
     public var isDraft: Bool { from.isEmpty || to.isEmpty }
 
+    public func withEditorID(_ id: UUID) -> Self {
+        ProfileV3TransformRow(
+            from: from,
+            to: to,
+            groupPath: groupPath,
+            reverse: reverse,
+            editorID: id
+        )
+    }
+
     /// Equality is semantic + metadata; transient identity is ignored.
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.from == rhs.from && lhs.to == rhs.to
@@ -137,6 +147,106 @@ public struct ProfileV3TransformTableRows: Identifiable, Equatable, Sendable {
         repairGroups()
     }
 
+    public func canReorderGroup(_ path: [String], by offset: Int) -> Bool {
+        guard offset == -1 || offset == 1, groups.contains(path), !path.isEmpty else { return false }
+        let parent = Array(path.dropLast())
+        let siblings = groups.filter {
+            $0.count == path.count && Array($0.dropLast()) == parent
+        }
+        guard let index = siblings.firstIndex(of: path) else { return false }
+        return siblings.indices.contains(index + offset)
+    }
+
+    /// Reorders one group among siblings while keeping its declared subtree
+    /// together. Runtime mappings are untouched.
+    @discardableResult
+    public mutating func reorderGroup(_ path: [String], by offset: Int) -> Bool {
+        guard canReorderGroup(path, by: offset) else { return false }
+        let parent = Array(path.dropLast())
+        let siblings = groups.filter {
+            $0.count == path.count && Array($0.dropLast()) == parent
+        }
+        guard let siblingIndex = siblings.firstIndex(of: path) else { return false }
+        let target = siblings[siblingIndex + offset]
+
+        let moving = groups.filter { $0.starts(with: path) }
+        groups.removeAll { $0.starts(with: path) }
+
+        if offset < 0 {
+            guard let insertion = groups.firstIndex(where: { $0.starts(with: target) }) else { return false }
+            groups.insert(contentsOf: moving, at: insertion)
+        } else {
+            let targetIndices = groups.indices.filter { groups[$0].starts(with: target) }
+            let insertion = (targetIndices.last.map { $0 + 1 }) ?? groups.endIndex
+            groups.insert(contentsOf: moving, at: insertion)
+        }
+        return true
+    }
+
+    /// Moves a whole group subtree under another declared parent. Passing []
+    /// moves it to the table root. The group name itself is retained.
+    public mutating func moveGroup(_ path: [String], to parent: [String]) throws {
+        guard let name = path.last, groups.contains(path) else {
+            throw ProfileAuthoringError.invalidJSON("移動するグループが見つかりません")
+        }
+        guard parent.isEmpty || groups.contains(parent) else {
+            throw ProfileAuthoringError.invalidJSON("移動先のグループが見つかりません")
+        }
+        guard !parent.starts(with: path) else {
+            throw ProfileAuthoringError.invalidJSON("グループを自分自身の中へ移動できません")
+        }
+        let oldParent = Array(path.dropLast())
+        if parent == oldParent { return }
+
+        let destination = parent + [name]
+        guard !groups.contains(destination) else {
+            throw ProfileAuthoringError.invalidJSON("移動先に同じ名前のグループがあります")
+        }
+        try ProfileV3TransformGrouping.validate(groupPath: destination)
+
+        func rewrite(_ value: [String]) -> [String] {
+            value.starts(with: path)
+                ? destination + value.dropFirst(path.count)
+                : value
+        }
+
+        let moving = groups.filter { $0.starts(with: path) }.map(rewrite)
+        groups.removeAll { $0.starts(with: path) }
+        for index in rows.indices {
+            rows[index].groupPath = rewrite(rows[index].groupPath)
+        }
+
+        let insertion: Int
+        if parent.isEmpty {
+            insertion = groups.endIndex
+        } else {
+            let parentSubtree = groups.indices.filter { groups[$0].starts(with: parent) }
+            insertion = parentSubtree.last.map { $0 + 1 } ?? groups.endIndex
+        }
+        groups.insert(contentsOf: moving, at: insertion)
+        repairGroups()
+    }
+
+    /// Reconciles transient editor UUIDs after the document is reloaded.
+    /// Exact semantic/metadata matches win; positional fallback handles an
+    /// intentional edit of `from` without coupling identity to that field.
+    public func preservingEditorIDs(from previous: Self) -> Self {
+        guard id == previous.id else { return self }
+        var result = self
+        var unused = Set(previous.rows.indices)
+
+        for index in result.rows.indices {
+            if let match = unused.first(where: { previous.rows[$0] == result.rows[index] }) {
+                result.rows[index] = result.rows[index].withEditorID(previous.rows[match].editorID)
+                unused.remove(match)
+            } else if previous.rows.indices.contains(index), unused.contains(index) {
+                result.rows[index] = result.rows[index].withEditorID(previous.rows[index].editorID)
+                unused.remove(index)
+            }
+        }
+        return result
+    }
+
     /// Appends a transient blank draft row in `path` and returns its identity.
     @discardableResult
     public mutating func addDraftRow(in path: [String] = []) -> UUID {
@@ -205,7 +315,7 @@ public enum ProfileV3TransformGrouping {
     }
 
     public static func leafID(_ row: ProfileV3TransformRow, prefix: String) -> String {
-        prefix + "/#" + (row.isDraft ? "draft-" + row.editorID.uuidString : row.from)
+        prefix + "/#row-" + row.editorID.uuidString
     }
 
     private static func ensureGroup(
