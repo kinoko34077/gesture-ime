@@ -654,5 +654,5 @@ func profileStorePersistsAndReloadsThemeTokens() throws {
     let theme = try reloaded.v3ThemeTokens()
 
     #expect(theme["keyboardBackground"] == .string("#11223344"))
-    #expect(theme["cornerRadius"] == .decimal(11))
+    #expect(theme["cornerRadius"] == .integer(11))
 }
