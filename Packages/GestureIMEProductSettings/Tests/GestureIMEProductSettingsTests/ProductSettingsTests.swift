@@ -398,6 +398,146 @@ final class ProductSettingsCapabilityProbeTests: XCTestCase {
         XCTAssertEqual(ok.rootURL, paths.productSettingsRootURL)
         XCTAssertTrue(ProductSettingsCapabilityProbe.Unavailable.appGroupNotConfigured.japaneseReason.contains("App Group"))
     }
+    func testConfiguredGroupWinsBeforeSignerProvidedCandidates() {
+        let configured = "group.net.kinotch.gestureime"
+        let rewritten = configured + ".TEAM123"
+        var queried: [String] = []
+
+        let result = GestureIMEAppGroupResolver.resolve(
+            appGroupIdentifier: configured,
+            signerProvidedAppGroups: [rewritten]
+        ) { group in
+            queried.append(group)
+            if group == configured {
+                return URL(fileURLWithPath: "/tmp/configured")
+            }
+            return URL(fileURLWithPath: "/tmp/rewritten")
+        }
+
+        guard case .available(let paths) = result else {
+            return XCTFail("expected configured App Group to resolve")
+        }
+        XCTAssertEqual(paths.groupIdentifier, configured)
+        XCTAssertEqual(queried, [configured])
+    }
+
+    func testSignerProvidedRewrittenGroupResolvesAfterConfiguredGroupFails() {
+        let configured = "group.net.kinotch.gestureime"
+        let rewritten = configured + ".TEAM123"
+        var queried: [String] = []
+
+        let result = GestureIMEAppGroupResolver.resolve(
+            appGroupIdentifier: configured,
+            signerProvidedAppGroups: [rewritten]
+        ) { group in
+            queried.append(group)
+            return group == rewritten
+                ? URL(fileURLWithPath: "/tmp/rewritten")
+                : nil
+        }
+
+        guard case .available(let paths) = result else {
+            return XCTFail("expected rewritten App Group to resolve")
+        }
+        XCTAssertEqual(paths.groupIdentifier, rewritten)
+        XCTAssertEqual(
+            paths.containerURL,
+            URL(fileURLWithPath: "/tmp/rewritten")
+        )
+        XCTAssertEqual(queried, [configured, rewritten])
+    }
+
+    func testSignerProvidedUnrelatedGroupsAreIgnoredFailClosed() {
+        let configured = "group.net.kinotch.gestureime"
+        let rewritten = configured + ".TEAM123"
+        let unrelated = "group.example.unrelated"
+        var queried: [String] = []
+
+        let result = GestureIMEAppGroupResolver.resolve(
+            appGroupIdentifier: configured,
+            signerProvidedAppGroups: [
+                unrelated,
+                rewritten,
+                configured + ".TEAM999"
+            ]
+        ) { group in
+            queried.append(group)
+            return group == unrelated
+                ? URL(fileURLWithPath: "/tmp/unrelated")
+                : nil
+        }
+
+        XCTAssertEqual(
+            result,
+            .unavailable(.containerUnavailable(configured))
+        )
+        XCTAssertFalse(queried.contains(unrelated))
+        XCTAssertEqual(
+            queried,
+            [configured, rewritten, configured + ".TEAM999"]
+        )
+    }
+
+    func testSignerProvidedMatchingCandidateMustActuallyResolve() {
+        let configured = "group.net.kinotch.gestureime"
+        let rewritten = configured + ".TEAM123"
+
+        let result = GestureIMEAppGroupResolver.resolve(
+            appGroupIdentifier: configured,
+            signerProvidedAppGroups: [rewritten]
+        ) { _ in nil }
+
+        XCTAssertEqual(
+            result,
+            .unavailable(.containerUnavailable(configured))
+        )
+    }
+
+    func testMissingOrEmptySignerProvidedGroupsPreserveExistingFailure() {
+        let configured = "group.net.kinotch.gestureime"
+
+        XCTAssertEqual(
+            GestureIMEAppGroupResolver.resolve(
+                appGroupIdentifier: configured,
+                signerProvidedAppGroups: nil,
+                containerURL: { _ in nil }
+            ),
+            .unavailable(.containerUnavailable(configured))
+        )
+        XCTAssertEqual(
+            GestureIMEAppGroupResolver.resolve(
+                appGroupIdentifier: configured,
+                signerProvidedAppGroups: [],
+                containerURL: { _ in nil }
+            ),
+            .unavailable(.containerUnavailable(configured))
+        )
+    }
+
+    func testInfoDictionaryBoundaryReadsConfiguredAndAltAppGroupsKeys() {
+        let configured = "group.net.kinotch.gestureime"
+        let rewritten = configured + ".TEAM123"
+
+        let result = GestureIMEAppGroupResolver.resolve(
+            infoDictionary: [
+                GestureIMEAppGroupResolver.appGroupInfoKey: configured,
+                GestureIMEAppGroupResolver.altAppGroupsInfoKey: [
+                    "group.example.unrelated",
+                    rewritten
+                ]
+            ]
+        ) { group in
+            group == rewritten
+                ? URL(fileURLWithPath: "/tmp/rewritten")
+                : nil
+        }
+
+        guard case .available(let paths) = result else {
+            return XCTFail("expected injected ALTAppGroups candidate")
+        }
+        XCTAssertEqual(paths.groupIdentifier, rewritten)
+    }
+
 }
 
 
