@@ -14,17 +14,18 @@ struct ProfileV3RuleSection: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("条件で変える（もし〜なら）").font(.subheadline.bold())
                 ForEach(Array(rules.branches.enumerated()), id: \.offset) { index, branch in
-                    branchRow(rules: rules, index: index, branch: branch)
-                        .draggable(String(index))
-                        .dropDestination(for: String.self) { items, _ in
-                            guard let from = items.first.flatMap(Int.init), from != index,
-                                  rules.branches.indices.contains(from) else { return false }
-                            var updated = rules
-                            let moved = updated.branches.remove(at: from)
-                            updated.branches.insert(moved, at: index)
-                            editor.setSelectedRules(updated)
-                            return true
-                        }
+                    if branch.isAdvanced {
+                        branchRow(rules: rules, index: index, branch: branch)
+                    } else {
+                        branchRow(rules: rules, index: index, branch: branch)
+                            .draggable(String(index))
+                            .dropDestination(for: String.self) { items, _ in
+                                guard let from = items.first.flatMap(Int.init) else { return false }
+                                var updated = rules
+                                guard updated.moveOrdinaryBranch(from: from, to: index) else { return false }
+                                return editor.setSelectedRules(updated)
+                            }
+                    }
                 }
                 HStack {
                     Text("それ以外").font(.caption.bold())
@@ -73,7 +74,7 @@ struct ProfileV3RuleSection: View {
                                 behavior: newBehavior.applied(to: behavior),
                                 extra: extra
                             )
-                            editor.setSelectedRules(updated)
+                            return editor.setSelectedRules(updated)
                         }
                     )
                 } label: {
@@ -86,23 +87,27 @@ struct ProfileV3RuleSection: View {
                 }
             }
             Spacer()
-            Menu {
-                Button("上へ") { move(rules, index, by: -1) }.disabled(index == 0)
-                Button("下へ") { move(rules, index, by: 1) }.disabled(index == rules.branches.count - 1)
-                Button("削除", role: .destructive) {
-                    var updated = rules
-                    updated.branches.remove(at: index)
-                    editor.setSelectedRules(updated)
+            if !branch.isAdvanced {
+                Menu {
+                    Button("上へ") { move(rules, index, by: -1) }
+                        .disabled(!rules.canMoveOrdinaryBranch(from: index, to: index - 1))
+                    Button("下へ") { move(rules, index, by: 1) }
+                        .disabled(!rules.canMoveOrdinaryBranch(from: index, to: index + 1))
+                    Button("削除", role: .destructive) {
+                        var updated = rules
+                        guard updated.deleteOrdinaryBranch(at: index) else { return }
+                        editor.setSelectedRules(updated)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle").accessibilityLabel("条件の操作")
                 }
-            } label: {
-                Image(systemName: "ellipsis.circle").accessibilityLabel("条件の操作")
             }
         }
     }
 
     private func move(_ rules: ProfileV3RuleSet, _ index: Int, by offset: Int) {
         var updated = rules
-        updated.branches.swapAt(index, index + offset)
+        guard updated.moveOrdinaryBranch(from: index, to: index + offset) else { return }
         editor.setSelectedRules(updated)
     }
 
@@ -202,35 +207,33 @@ enum ProfileV3RuleKind: Hashable, Identifiable {
 
 private struct ProfileV3RuleBranchEditor: View {
     @ObservedObject var editor: ProfileV3EditorModel
-    let onSave: (ProfileV3RuleCondition, ProfileV3BranchBehavior) -> Void
+    let onSave: (ProfileV3RuleCondition, ProfileV3BranchBehavior) -> Bool
 
     @Environment(\.dismiss) private var dismiss
+    private let actionIsOrdinaryEditable: Bool
     @State private var condition: ProfileV3RuleCondition
     @State private var behavior: ProfileV3BranchBehavior
-    @State private var actionOption: CommonActionOption
+    @State private var actionOption: CommonActionOption?
     @State private var actionArgument: String
+    @State private var saveError: String?
 
     init(
         editor: ProfileV3EditorModel,
         condition: ProfileV3RuleCondition,
         behavior: ProfileV3BranchBehavior,
-        onSave: @escaping (ProfileV3RuleCondition, ProfileV3BranchBehavior) -> Void
+        onSave: @escaping (ProfileV3RuleCondition, ProfileV3BranchBehavior) -> Bool
     ) {
         self.editor = editor
         self.onSave = onSave
         _condition = State(initialValue: condition)
         _behavior = State(initialValue: behavior)
-        let option = behavior.action.map { CommonActionOption.from($0.actionID) } ?? .noop
+        let option = behavior.action.flatMap { CommonActionOption.from($0.actionID) }
+        actionIsOrdinaryEditable = behavior.action == nil || option != nil
         _actionOption = State(initialValue: option)
         _actionArgument = State(initialValue: behavior.action.flatMap { action in
-            option.argumentKey.flatMap { key in
-                switch action.arguments[key] {
-                case .string(let text): text
-                case .integer(let number): String(number)
-                default: nil
-                }
-            }
+            option?.argumentText(from: action)
         } ?? "")
+        _saveError = State(initialValue: nil)
     }
 
     var body: some View {
@@ -266,14 +269,23 @@ private struct ProfileV3RuleBranchEditor: View {
                 ))
             }
             Section("動作") {
-                if behavior.actionsEditable {
+                if behavior.actionsEditable, actionIsOrdinaryEditable {
                     Picker("動作", selection: $actionOption) {
-                        ForEach(CommonActionOption.allCases) { Text($0.rawValue).tag($0) }
+                        Text("なし").tag(nil as CommonActionOption?)
+                        ForEach(CommonActionOption.allCases) { option in
+                            Text(option.rawValue).tag(Optional(option))
+                        }
                     }
-                    if actionOption.argumentKey != nil {
+                    if let actionOption, actionOption.argumentKey != nil {
                         TextField("値", text: $actionArgument)
                             .keyboardType(actionOption.integerArgument ? .numbersAndPunctuation : .default)
                     }
+                } else if behavior.actionsEditable {
+                    Label("詳細設定で編集された動作", systemImage: "lock")
+                        .foregroundStyle(.secondary)
+                    Text("この動作は通常画面では変更せず、そのまま保持します。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 } else {
                     Text("複数の動作です（詳細設定で編集）").foregroundStyle(.secondary)
                 }
@@ -294,24 +306,37 @@ private struct ProfileV3RuleBranchEditor: View {
             }
         }
         .navigationTitle("もし〜なら")
+        .safeAreaInset(edge: .bottom) {
+            if let saveError {
+                Text(saveError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存") {
                     var result = behavior
-                    if result.actionsEditable {
-                        let draft = actionOption.makeDraft(argumentText: actionArgument)
-                        if actionOption == .noop {
-                            result.action = nil
-                        } else if let previous = result.action, previous.actionID == draft.actionID {
-                            result.action = ProfileActionDraft(
-                                actionID: draft.actionID, arguments: draft.arguments, extra: previous.extra
+                    if result.actionsEditable, actionIsOrdinaryEditable {
+                        if let actionOption {
+                            result.action = actionOption.makeDraft(
+                                argumentText: actionArgument,
+                                preserving: result.action
                             )
                         } else {
-                            result.action = draft
+                            result.action = nil
                         }
                     }
-                    onSave(condition, result)
-                    dismiss()
+                    if onSave(condition, result) {
+                        dismiss()
+                    } else {
+                        saveError = editor.errorMessage ?? "条件を保存できません"
+                        editor.errorMessage = nil
+                    }
                 }
             }
         }
