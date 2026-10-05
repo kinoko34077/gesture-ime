@@ -2,6 +2,13 @@ import Foundation
 import Combine
 import GestureIMEProfileAuthoring
 
+enum ProfileV3PersistenceState: Equatable {
+    case dirty
+    case savedLocally
+    case savedLocallyAndDelivered
+    case savedLocallyDeliveryFailed(String)
+}
+
 @MainActor
 final class ProfileV3EditorModel: ObservableObject {
     @Published private(set) var name = ""
@@ -30,6 +37,7 @@ final class ProfileV3EditorModel: ObservableObject {
     }
     @Published private(set) var hasCopiedEntry = false
     @Published private(set) var copiedEntryRect: ProfileV3Rect?
+    @Published private(set) var persistenceState: ProfileV3PersistenceState = .savedLocally
     @Published var errorMessage: String?
 
     let profileID: String
@@ -41,6 +49,8 @@ final class ProfileV3EditorModel: ObservableObject {
 
     private let library: ProfileLibraryModel
     private var history: ProfileDocumentHistory?
+    private var persistedDocumentData: Data?
+    private var lastPersistedState: ProfileV3PersistenceState = .savedLocally
     private var entryClipboard: EntryClipboard?
 
     init(library: ProfileLibraryModel, profileID: String) {
@@ -62,6 +72,10 @@ final class ProfileV3EditorModel: ObservableObject {
                 )
             }
             history = ProfileDocumentHistory(document: document)
+            persistedDocumentData = try document.encoded(pretty: false)
+            lastPersistedState = .savedLocally
+            persistenceState = .savedLocally
+            errorMessage = nil
             try refreshDerived(resetNavigation: true)
         } catch {
             errorMessage = error.localizedDescription
@@ -78,7 +92,22 @@ final class ProfileV3EditorModel: ObservableObject {
                     detail: result.detail
                 )
             }
-            try library.save(document)
+
+            let outcome = try library.save(document)
+            persistedDocumentData = try document.encoded(pretty: false)
+            switch outcome {
+            case .savedLocally:
+                lastPersistedState = .savedLocally
+                errorMessage = nil
+            case .savedLocallyAndDelivered:
+                lastPersistedState = .savedLocallyAndDelivered
+                errorMessage = nil
+            case .savedLocallyDeliveryFailed(let detail):
+                lastPersistedState = .savedLocallyDeliveryFailed(detail)
+                errorMessage =
+                    "プロファイルはアプリ内に保存されましたが、キーボード本体への反映に失敗しました。\(detail)"
+            }
+            persistenceState = lastPersistedState
             validation = result
         } catch {
             errorMessage = error.localizedDescription
@@ -834,7 +863,20 @@ final class ProfileV3EditorModel: ObservableObject {
         }
 
         try refreshBoardDerived()
+        refreshPersistenceState()
         objectWillChange.send()
+    }
+
+    private func refreshPersistenceState() {
+        guard let document = history?.document,
+              let current = try? document.encoded(pretty: false),
+              let persistedDocumentData else {
+            persistenceState = .dirty
+            return
+        }
+        persistenceState = current == persistedDocumentData
+            ? lastPersistedState
+            : .dirty
     }
 
     private func refreshBoardDerived() throws {

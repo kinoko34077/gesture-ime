@@ -3,6 +3,12 @@ import Combine
 import GestureIMEProfileAuthoring
 import GestureIMEProductSettings
 
+enum ProfileLibrarySaveOutcome: Equatable {
+    case savedLocally
+    case savedLocallyAndDelivered
+    case savedLocallyDeliveryFailed(String)
+}
+
 @MainActor
 final class ProfileLibraryModel: ObservableObject {
     @Published private(set) var profiles: [ProfileSummary] = []
@@ -163,18 +169,21 @@ final class ProfileLibraryModel: ObservableObject {
         return try store.load(id: id)
     }
 
-    func save(_ document: ProfileDocument) throws {
-        guard let store else { return }
+    func save(_ document: ProfileDocument) throws -> ProfileLibrarySaveOutcome {
+        guard let store else {
+            throw ProfileAuthoringError.profileNotFound(document.summary.id)
+        }
         let summary = try store.save(document)
         try reload()
 
-        guard activeProfileID == summary.id else { return }
+        guard activeProfileID == summary.id else {
+            return .savedLocally
+        }
         do {
             try publishSharedProfile(document, requireAvailable: true)
+            return .savedLocallyAndDelivered
         } catch {
-            throw ProfileLibraryDeliveryError.localSaveSucceededButDeliveryFailed(
-                error.localizedDescription
-            )
+            return .savedLocallyDeliveryFailed(error.localizedDescription)
         }
     }
 
@@ -271,14 +280,11 @@ final class ProfileLibraryModel: ObservableObject {
 
 private enum ProfileLibraryDeliveryError: LocalizedError {
     case sharedContainerUnavailable(String)
-    case localSaveSucceededButDeliveryFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .sharedContainerUnavailable(let reason):
             return "キーボード本体へ反映できません。\(reason)"
-        case .localSaveSucceededButDeliveryFailed(let detail):
-            return "プロファイルはアプリ内に保存されましたが、キーボード本体への反映に失敗しました。\(detail)"
         }
     }
 }

@@ -622,3 +622,37 @@ func profileDocumentHistoryCapacityDropsOnlyOldestUndoSnapshot() throws {
     let capacityUndoThree = history.undo()
     #expect(!capacityUndoThree)
 }
+
+
+@Test
+func profileStorePersistsAndReloadsThemeTokens() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("GestureIMEProfileStoreTests")
+        .appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ProfileStore(
+        rootURL: root,
+        validator: { _ in .validResult }
+    )
+
+    var document = try ProfileDocument.emptyV3(
+        id: "user.v3.theme.persistence",
+        name: "Theme Persistence"
+    )
+    try document.v3SetThemeToken(
+        "keyboardBackground",
+        value: .string("#11223344")
+    )
+    try document.v3SetThemeToken(
+        "cornerRadius",
+        value: .decimal(11)
+    )
+
+    _ = try store.save(document)
+    let reloaded = try store.load(id: "user.v3.theme.persistence")
+    let theme = try reloaded.v3ThemeTokens()
+
+    #expect(theme["keyboardBackground"] == .string("#11223344"))
+    #expect(theme["cornerRadius"] == .integer(11))
+}
