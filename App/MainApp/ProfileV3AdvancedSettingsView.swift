@@ -26,12 +26,10 @@ struct ProfileV3AdvancedSettingsView: View {
                             .textSelection(.enabled)
                     }
                 }
-                if let layerID = editor.selectedLayerID {
-                    LabeledContent("Layer ID") {
-                        Text(layerID)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
-                    }
+                LabeledContent("Layer ID") {
+                    Text(editor.selectedLayerID)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
                 }
             }
 
