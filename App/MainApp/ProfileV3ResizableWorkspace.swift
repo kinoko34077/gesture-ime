@@ -19,9 +19,9 @@ struct ProfileV3ResizableWorkspace<Primary: View, Secondary: View>: View {
     @State private var keyboardOverlap: CGFloat = 0
 
     var body: some View {
-        // The reader ignores the software keyboard so showing it never flips
-        // the axis (§F5.1 rule 3); the measured keyboard overlap reduces only
-        // the available extent so the primary pane shrinks first (rule 6).
+        // #95 §F5.1: axis selection and split resolution both consume the
+        // actual usable geometry after software-keyboard occlusion. This may
+        // change the axis when the remaining height crosses the frozen rule.
         GeometryReader { layout in
             let available = CGSize(
                 width: layout.size.width,
