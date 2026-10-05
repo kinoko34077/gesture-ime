@@ -41,7 +41,7 @@ Ordinary kana keys remain cardinal-only. The dedicated `◇` key carries experim
 
 ## Gesture tuning — historical Phase 3 behavior
 
-At the Phase 3 milestone, the `⚙︎` key dispatched the common `panel.open` action and opens an extension-local panel for:
+At the Phase 3 milestone, the `⚙︎` key dispatched the common `panel.open` action and opened an extension-local panel for:
 - dead zone;
 - stage-1 commit distance;
 - stage-2 commit distance;
