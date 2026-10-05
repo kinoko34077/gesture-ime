@@ -1528,44 +1528,11 @@ private struct ProfileV3RuntimePreviewSheet: View {
                             systemImage: "square.grid.3x3"
                         )
                     } else {
-                        GeometryReader { proxy in
-                            if let mapping = IOSProfileV3BoardGeometryMapping(
-                                surface: surface,
-                                width: Double(proxy.size.width),
-                                height: Double(proxy.size.height)
-                            ) {
-                                ZStack {
-                                    ForEach(surface.entries, id: \.id) { entry in
-                                        let frame = mapping.frame(for: entry.rect)
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.primary.opacity(0.08))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(.secondary)
-                                            )
-                                            .overlay {
-                                                Text(entry.text ?? entry.id)
-                                                    .minimumScaleFactor(0.4)
-                                                    .lineLimit(2)
-                                                    .padding(3)
-                                            }
-                                            .frame(
-                                                width: CGFloat(frame.width),
-                                                height: CGFloat(frame.height)
-                                            )
-                                            .position(
-                                                x: CGFloat(frame.midX),
-                                                y: CGFloat(frame.midY)
-                                            )
-                                    }
-                                }
-                            } else {
-                                ContentUnavailableView(
-                                    "表示できるキーがありません",
-                                    systemImage: "rectangle.slash"
-                                )
-                            }
-                        }
+                        ProfileV3ProductPreview(
+                            presentation: IOSKeyboardPresentation(theme: editor.keyboardTheme),
+                            surface: surface,
+                            composition: .product
+                        )
                         .padding()
                     }
                 } else if let error {
