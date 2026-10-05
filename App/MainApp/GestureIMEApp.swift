@@ -292,6 +292,20 @@ private struct SetupView: View {
                     Text("このアプリでキーボード配置を編集・検証します。")
                     Text(library.profileDeliveryStatus)
                 }
+
+                Section("署名・共有領域の診断") {
+                    let diagnostics =
+                        AppGroupRuntimeDiagnosticsProbe.captureMainBundle()
+
+                    Text(diagnostics.japaneseDiagnosis)
+                    Text(diagnostics.report)
+                        .font(.system(.caption2, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    ShareLink(item: diagnostics.report) {
+                        Label("診断結果を共有", systemImage: "square.and.arrow.up")
+                    }
+                }
             }
             .navigationTitle("キーボード設定")
     }
