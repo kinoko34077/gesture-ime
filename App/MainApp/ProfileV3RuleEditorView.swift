@@ -380,7 +380,10 @@ private struct ProfileV3RuleBranchEditor: View {
             }
             if let table = editor.transformRows.first(where: { $0.id == tableID }) {
                 NavigationLink {
-                    ProfileV3TransformEditorView(editor: editor)
+                    ProfileV3TransformEditorView(
+                        editor: editor,
+                        focusedTableID: tableID
+                    )
                 } label: {
                     Label(
                         "「\(table.displayTitle)」を変換表で見る",
