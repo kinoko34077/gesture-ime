@@ -250,6 +250,82 @@ final class ProductSettingsTests: XCTestCase {
         )
     }
 
+    func testSnapshotRetentionKeepsOnlyActiveAndFallback() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let store = try ProductSettingsStore(rootURL: root)
+        _ = try store.publish(.defaults)
+        let secondValues = try ProductSettingsValues(
+            hapticStrength: 0.4,
+            keyboardHeightScale: 1.05,
+            keySoundEnabled: false
+        )
+        let second = try store.publish(secondValues)
+        let thirdValues = try ProductSettingsValues(
+            hapticStrength: 0.8,
+            keyboardHeightScale: 1.15,
+            keySoundEnabled: true
+        )
+        let third = try store.publish(thirdValues)
+
+        let snapshotsURL = root.appendingPathComponent(
+            ProductSettingsStore.snapshotsDirectoryName,
+            isDirectory: true
+        )
+        let files = try FileManager.default.contentsOfDirectory(
+            at: snapshotsURL,
+            includingPropertiesForKeys: nil
+        )
+        XCTAssertEqual(files.count, 2)
+        XCTAssertTrue(files.contains { $0.lastPathComponent == second.snapshotFile })
+        XCTAssertTrue(files.contains { $0.lastPathComponent == third.snapshotFile })
+
+        try Data("corrupt".utf8).write(
+            to: try store.snapshotURL(for: third),
+            options: .atomic
+        )
+        let recovered = try XCTUnwrap(store.readLastKnownGood())
+        XCTAssertEqual(recovered.manifest, second)
+        XCTAssertEqual(recovered.values, secondValues)
+    }
+
+    func testPruningDoesNotReuseGenerationAdvancedByOrphan() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let store = try ProductSettingsStore(rootURL: root)
+        let first = try store.publish(.defaults)
+        XCTAssertEqual(first.generation, 1)
+
+        let snapshotsURL = root.appendingPathComponent(
+            ProductSettingsStore.snapshotsDirectoryName,
+            isDirectory: true
+        )
+        let orphanName = "settings-999-" + String(repeating: "a", count: 16) + ".json"
+        let orphanURL = snapshotsURL.appendingPathComponent(orphanName)
+        try Data("orphan".utf8).write(to: orphanURL, options: .atomic)
+
+        let second = try store.publish(
+            ProductSettingsValues(
+                hapticStrength: 0.4,
+                keyboardHeightScale: 1.05,
+                keySoundEnabled: false
+            )
+        )
+        XCTAssertEqual(second.generation, 1000)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: orphanURL.path))
+
+        let third = try store.publish(
+            ProductSettingsValues(
+                hapticStrength: 0.8,
+                keyboardHeightScale: 1.15,
+                keySoundEnabled: true
+            )
+        )
+        XCTAssertEqual(third.generation, 1001)
+    }
+
     private func temporaryRoot() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent(

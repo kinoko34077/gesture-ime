@@ -380,6 +380,10 @@ public final class ProductSettingsStore {
         }
 
         try writeManifest(manifest, to: manifestURL)
+
+        // Retention is post-commit and best-effort. A pruning failure must never
+        // turn an already committed publication into a false failure.
+        pruneOrphanSnapshotsBestEffort()
         return manifest
     }
 
@@ -484,6 +488,43 @@ public final class ProductSettingsStore {
     ) throws {
         try Self.validateManifestShape(manifest)
         try Self.encode(manifest).write(to: url, options: .atomic)
+    }
+
+    private func pruneOrphanSnapshotsBestEffort() {
+        let active: ProductSettingsManifest
+        let fallback: ProductSettingsManifest?
+        do {
+            guard let committedActive = try readManifest(at: manifestURL) else {
+                return
+            }
+            active = committedActive
+            fallback = try readManifest(at: fallbackManifestURL)
+        } catch {
+            // If committed manifest state cannot be read safely, retain every
+            // snapshot rather than risk deleting recovery evidence.
+            return
+        }
+
+        var retained = Set([active.snapshotFile])
+        if let fallback {
+            retained.insert(fallback.snapshotFile)
+        }
+
+        guard let files = try? fileManager.contentsOfDirectory(
+            at: snapshotsURL,
+            includingPropertiesForKeys: nil
+        ) else {
+            return
+        }
+
+        for file in files {
+            let name = file.lastPathComponent
+            guard Self.generation(fromSnapshotFileName: name) != nil,
+                  !retained.contains(name) else {
+                continue
+            }
+            try? fileManager.removeItem(at: file)
+        }
     }
 
     private func nextGeneration() throws -> UInt64 {

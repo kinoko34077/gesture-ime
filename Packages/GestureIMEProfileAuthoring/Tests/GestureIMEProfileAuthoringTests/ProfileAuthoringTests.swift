@@ -525,3 +525,93 @@ func activeProfileReadOnlyReaderConsumesWriterPublication() throws {
     #expect(snapshot.manifest == manifest)
     #expect(snapshot.data == Data(validProfile.utf8))
 }
+
+
+@Test
+func activeProfileSnapshotRetentionKeepsOnlyActiveAndFallback() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-retention-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    _ = try store.publish(Data(validProfile.utf8))
+    let secondData = Data(
+        validProfile.replacingOccurrences(
+            of: "\"name\":\"Test\"",
+            with: "\"name\":\"Second\""
+        ).utf8
+    )
+    let second = try store.publish(secondData)
+    let thirdData = Data(
+        validProfile.replacingOccurrences(
+            of: "\"name\":\"Test\"",
+            with: "\"name\":\"Third\""
+        ).utf8
+    )
+    let third = try store.publish(thirdData)
+
+    let snapshotsURL = root.appendingPathComponent(
+        ActiveProfileSnapshotStore.snapshotsDirectoryName,
+        isDirectory: true
+    )
+    let files = try FileManager.default.contentsOfDirectory(
+        at: snapshotsURL,
+        includingPropertiesForKeys: nil
+    )
+    #expect(files.count == 2)
+    #expect(files.contains { $0.lastPathComponent == second.snapshotFile })
+    #expect(files.contains { $0.lastPathComponent == third.snapshotFile })
+
+    try Data("corrupt".utf8).write(
+        to: try store.snapshotURL(for: third),
+        options: .atomic
+    )
+    let recovered = try #require(try store.readLastKnownGood())
+    #expect(recovered.manifest == second)
+    #expect(recovered.data == secondData)
+}
+
+
+@Test
+func activeProfilePruningDoesNotReuseGenerationAdvancedByOrphan() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-retention-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let store = try ActiveProfileSnapshotStore(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let first = try store.publish(Data(validProfile.utf8))
+    #expect(first.generation == 1)
+
+    let snapshotsURL = root.appendingPathComponent(
+        ActiveProfileSnapshotStore.snapshotsDirectoryName,
+        isDirectory: true
+    )
+    let orphanName = "profile-999-" + String(repeating: "a", count: 64) + ".json"
+    let orphanURL = snapshotsURL.appendingPathComponent(orphanName)
+    try Data(validProfile.utf8).write(to: orphanURL, options: .atomic)
+
+    let secondData = Data(
+        validProfile.replacingOccurrences(
+            of: "\"name\":\"Test\"",
+            with: "\"name\":\"Second\""
+        ).utf8
+    )
+    let second = try store.publish(secondData)
+    #expect(second.generation == 1000)
+    #expect(!FileManager.default.fileExists(atPath: orphanURL.path))
+
+    let thirdData = Data(
+        validProfile.replacingOccurrences(
+            of: "\"name\":\"Test\"",
+            with: "\"name\":\"Third\""
+        ).utf8
+    )
+    let third = try store.publish(thirdData)
+    #expect(third.generation == 1001)
+}
