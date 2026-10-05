@@ -154,13 +154,35 @@ public enum ProductSettingsDeliveryCapability: Equatable, Sendable {
     }
 }
 
-/// #75 / #69 §13: capability detection only. It never creates, guesses or
-/// requests an App Group; it reports whether an *already provisioned* shared
-/// container is resolvable and, if not, a truthful reason for the UI.
-public enum ProductSettingsCapabilityProbe {
-    /// Info.plist key that would name the App Group once a human provisions it.
+public struct GestureIMEAppGroupPaths: Equatable, Sendable {
+    public let groupIdentifier: String
+    public let containerURL: URL
+    public let rootURL: URL
+    public let profileDeliveryRootURL: URL
+    public let productSettingsRootURL: URL
+
+    public init(
+        groupIdentifier: String,
+        containerURL: URL,
+        rootURL: URL,
+        profileDeliveryRootURL: URL,
+        productSettingsRootURL: URL
+    ) {
+        self.groupIdentifier = groupIdentifier
+        self.containerURL = containerURL
+        self.rootURL = rootURL
+        self.profileDeliveryRootURL = profileDeliveryRootURL
+        self.productSettingsRootURL = productSettingsRootURL
+    }
+}
+
+/// #128: one App Group resolver shared by Profile delivery and ProductSettings.
+/// Resolving paths never creates directories; writers own filesystem mutation.
+public enum GestureIMEAppGroupResolver {
     public static let appGroupInfoKey = "GestureIMEAppGroupIdentifier"
-    public static let settingsSubdirectory = "ProductSettings"
+    public static let rootDirectoryName = "GestureIME"
+    public static let profileDeliverySubdirectory = "ProfileDelivery"
+    public static let productSettingsSubdirectory = "ProductSettings"
 
     public enum Unavailable: Equatable, Sendable {
         case appGroupNotConfigured
@@ -169,12 +191,78 @@ public enum ProductSettingsCapabilityProbe {
         public var japaneseReason: String {
             switch self {
             case .appGroupNotConfigured:
-                "アプリとキーボードの共有領域（App Group）が設定されていないため、この設定はキーボード本体に反映できません。"
+                "アプリとキーボードの共有領域（App Group）が設定されていないため、キーボード本体へ反映できません。"
             case .containerUnavailable(let group):
-                "共有領域（\(group)）を利用できないため、この設定はキーボード本体に反映できません。署名・権限の設定が必要です。"
+                "共有領域（\(group)）を利用できません。App Group の登録・署名・プロビジョニングを確認してください。"
             }
         }
     }
+
+    public enum Result: Equatable, Sendable {
+        case available(GestureIMEAppGroupPaths)
+        case unavailable(Unavailable)
+
+        public var paths: GestureIMEAppGroupPaths? {
+            if case .available(let paths) = self { return paths }
+            return nil
+        }
+    }
+
+    public static func resolve(
+        appGroupIdentifier: String?,
+        containerURL: (String) -> URL?
+    ) -> Result {
+        guard let group = appGroupIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !group.isEmpty else {
+            return .unavailable(.appGroupNotConfigured)
+        }
+        guard let container = containerURL(group) else {
+            return .unavailable(.containerUnavailable(group))
+        }
+
+        let root = container.appendingPathComponent(rootDirectoryName, isDirectory: true)
+        return .available(
+            GestureIMEAppGroupPaths(
+                groupIdentifier: group,
+                containerURL: container,
+                rootURL: root,
+                profileDeliveryRootURL: root.appendingPathComponent(
+                    profileDeliverySubdirectory,
+                    isDirectory: true
+                ),
+                productSettingsRootURL: root.appendingPathComponent(
+                    productSettingsSubdirectory,
+                    isDirectory: true
+                )
+            )
+        )
+    }
+
+    public static func resolveMainBundle() -> Result {
+        resolve(
+            appGroupIdentifier: Bundle.main.object(
+                forInfoDictionaryKey: appGroupInfoKey
+            ) as? String,
+            containerURL: { group in
+                #if os(iOS) || os(macOS)
+                FileManager.default.containerURL(
+                    forSecurityApplicationGroupIdentifier: group
+                )
+                #else
+                nil
+                #endif
+            }
+        )
+    }
+}
+
+/// #75 compatibility adapter. New code should use GestureIMEAppGroupResolver
+/// when it needs both ProfileDelivery and ProductSettings roots.
+public enum ProductSettingsCapabilityProbe {
+    public static let appGroupInfoKey = GestureIMEAppGroupResolver.appGroupInfoKey
+    public static let settingsSubdirectory = GestureIMEAppGroupResolver.productSettingsSubdirectory
+
+    public typealias Unavailable = GestureIMEAppGroupResolver.Unavailable
 
     public enum Result: Equatable, Sendable {
         case available(rootURL: URL)
@@ -195,30 +283,24 @@ public enum ProductSettingsCapabilityProbe {
         appGroupIdentifier: String?,
         containerURL: (String) -> URL?
     ) -> Result {
-        guard let group = appGroupIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !group.isEmpty else {
-            return .unavailable(.appGroupNotConfigured)
+        switch GestureIMEAppGroupResolver.resolve(
+            appGroupIdentifier: appGroupIdentifier,
+            containerURL: containerURL
+        ) {
+        case .available(let paths):
+            return .available(rootURL: paths.productSettingsRootURL)
+        case .unavailable(let reason):
+            return .unavailable(reason)
         }
-        guard let container = containerURL(group) else {
-            return .unavailable(.containerUnavailable(group))
-        }
-        return .available(
-            rootURL: container.appendingPathComponent(settingsSubdirectory, isDirectory: true)
-        )
     }
 
-    /// Production probe: Info.plist key + FileManager group container lookup.
     public static func probeMainBundle() -> Result {
-        probe(
-            appGroupIdentifier: Bundle.main.object(forInfoDictionaryKey: appGroupInfoKey) as? String,
-            containerURL: { group in
-                #if os(iOS) || os(macOS)
-                FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
-                #else
-                nil
-                #endif
-            }
-        )
+        switch GestureIMEAppGroupResolver.resolveMainBundle() {
+        case .available(let paths):
+            return .available(rootURL: paths.productSettingsRootURL)
+        case .unavailable(let reason):
+            return .unavailable(reason)
+        }
     }
 }
 
