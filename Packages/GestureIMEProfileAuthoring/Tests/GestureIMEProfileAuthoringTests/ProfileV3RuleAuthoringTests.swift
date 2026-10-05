@@ -119,11 +119,22 @@ func branchBehaviorEditsKeepUnknownMembers() throws {
     #expect(updated.objectValue?["hold"] == .object(["x": .integer(1)]))
     #expect(ProfileV3BranchBehavior(updated) == edit)
 
-    let multi = try json(#"{"onRelease":[{"actionID":"a","arguments":{}},{"actionID":"b","arguments":{}}]}"#)
-    var locked = ProfileV3BranchBehavior(multi)
+    let multi = try json(#"{"onRelease":[{"actionID":"a","arguments":{},"future":1},{"actionID":"b","arguments":{"x":"y"}}]}"#)
+    var stacked = ProfileV3BranchBehavior(multi)
+    #expect(stacked.actionsEditable)
+    #expect(stacked.actions.count == 2)
+    #expect(stacked.actions[0].extra["future"] == .integer(1))
+    #expect(stacked.applied(to: multi) == multi)
+
+    stacked.actions.swapAt(0, 1)
+    let reordered = stacked.applied(to: multi)
+    #expect(ProfileV3BranchBehavior(reordered).actions.map(\.actionID) == ["b", "a"])
+
+    let malformed = try json(#"{"onRelease":[{"arguments":{}}]}"#)
+    var locked = ProfileV3BranchBehavior(malformed)
     #expect(!locked.actionsEditable)
     locked.displayText = "x"
-    #expect(locked.applied(to: multi).objectValue?["onRelease"] == multi.objectValue?["onRelease"])
+    #expect(locked.applied(to: malformed).objectValue?["onRelease"] == malformed.objectValue?["onRelease"])
 }
 
 
