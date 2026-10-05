@@ -171,7 +171,7 @@ struct ProfileV3CompactAdjuster: View {
             .frame(width: touchExtent, height: touchExtent)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture(minimumDistance: 0)
+                SpatialTapGesture()
                     .onEnded { value in
                         onChange(value.location.y < touchExtent / 2 ? 1 : -1)
                     }
