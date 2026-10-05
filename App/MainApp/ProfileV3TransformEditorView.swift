@@ -8,6 +8,15 @@ import GestureIMEProfileAuthoring
 /// drafts are view-local; only valid rows reach the Profile.
 struct ProfileV3TransformEditorView: View {
     @ObservedObject var editor: ProfileV3EditorModel
+    let focusedTableID: String?
+
+    init(
+        editor: ProfileV3EditorModel,
+        focusedTableID: String? = nil
+    ) {
+        _editor = ObservedObject(wrappedValue: editor)
+        self.focusedTableID = focusedTableID
+    }
 
     @State private var query = ""
     @State private var expanded: Set<String> = []
@@ -35,7 +44,7 @@ struct ProfileV3TransformEditorView: View {
 
     /// Persisted tables merged with this view's transient draft rows.
     private var tables: [ProfileV3TransformTableRows] {
-        editor.transformRows.map { table in
+        let mapped = editor.transformRows.map { table in
             var copy = table
             if let edits = pendingEdits[table.id] {
                 copy.rows = copy.rows.map { edits[$0.editorID] ?? $0 }
@@ -43,6 +52,11 @@ struct ProfileV3TransformEditorView: View {
             copy.rows += drafts[table.id] ?? []
             return copy
         }
+        guard let focusedTableID,
+              let focused = mapped.first(where: { $0.id == focusedTableID }) else {
+            return mapped
+        }
+        return [focused] + mapped.filter { $0.id != focusedTableID }
     }
 
     var body: some View {
