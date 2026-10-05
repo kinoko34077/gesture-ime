@@ -206,6 +206,7 @@ public struct GestureIMEAppGroupPaths: Equatable, Sendable {
 /// Resolving paths never creates directories; writers own filesystem mutation.
 public enum GestureIMEAppGroupResolver {
     public static let appGroupInfoKey = "GestureIMEAppGroupIdentifier"
+    public static let altAppGroupsInfoKey = "ALTAppGroups"
     public static let rootDirectoryName = "GestureIME"
     public static let profileDeliverySubdirectory = "ProfileDelivery"
     public static let productSettingsSubdirectory = "ProductSettings"
@@ -238,19 +239,97 @@ public enum GestureIMEAppGroupResolver {
         appGroupIdentifier: String?,
         containerURL: (String) -> URL?
     ) -> Result {
+        resolve(
+            appGroupIdentifier: appGroupIdentifier,
+            signerProvidedAppGroups: nil,
+            containerURL: containerURL
+        )
+    }
+
+    public static func resolve(
+        appGroupIdentifier: String?,
+        signerProvidedAppGroups: [String]?,
+        containerURL: (String) -> URL?
+    ) -> Result {
         guard let group = appGroupIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines),
               !group.isEmpty else {
             return .unavailable(.appGroupNotConfigured)
         }
-        guard let container = containerURL(group) else {
-            return .unavailable(.containerUnavailable(group))
+
+        if let container = containerURL(group) {
+            return availablePaths(
+                groupIdentifier: group,
+                containerURL: container
+            )
         }
 
-        let root = container.appendingPathComponent(rootDirectoryName, isDirectory: true)
+        var seen = Set<String>()
+        for rawCandidate in signerProvidedAppGroups ?? [] {
+            let candidate = rawCandidate.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !candidate.isEmpty,
+                  seen.insert(candidate).inserted,
+                  isSignerCandidate(candidate, forConfiguredGroup: group),
+                  let container = containerURL(candidate) else {
+                continue
+            }
+            return availablePaths(
+                groupIdentifier: candidate,
+                containerURL: container
+            )
+        }
+
+        return .unavailable(.containerUnavailable(group))
+    }
+
+    public static func resolve(
+        infoDictionary: [String: Any],
+        containerURL: (String) -> URL?
+    ) -> Result {
+        resolve(
+            appGroupIdentifier: infoDictionary[appGroupInfoKey] as? String,
+            signerProvidedAppGroups: infoDictionary[altAppGroupsInfoKey] as? [String],
+            containerURL: containerURL
+        )
+    }
+
+    public static func resolveMainBundle() -> Result {
+        resolve(
+            infoDictionary: Bundle.main.infoDictionary ?? [:],
+            containerURL: { group in
+                #if os(iOS) || os(macOS)
+                FileManager.default.containerURL(
+                    forSecurityApplicationGroupIdentifier: group
+                )
+                #else
+                nil
+                #endif
+            }
+        )
+    }
+
+    private static func isSignerCandidate(
+        _ candidate: String,
+        forConfiguredGroup configuredGroup: String
+    ) -> Bool {
+        if candidate == configuredGroup {
+            return true
+        }
+        let prefix = configuredGroup + "."
+        return candidate.hasPrefix(prefix) && candidate.count > prefix.count
+    }
+
+    private static func availablePaths(
+        groupIdentifier: String,
+        containerURL: URL
+    ) -> Result {
+        let root = containerURL.appendingPathComponent(
+            rootDirectoryName,
+            isDirectory: true
+        )
         return .available(
             GestureIMEAppGroupPaths(
-                groupIdentifier: group,
-                containerURL: container,
+                groupIdentifier: groupIdentifier,
+                containerURL: containerURL,
                 rootURL: root,
                 profileDeliveryRootURL: root.appendingPathComponent(
                     profileDeliverySubdirectory,
@@ -261,23 +340,6 @@ public enum GestureIMEAppGroupResolver {
                     isDirectory: true
                 )
             )
-        )
-    }
-
-    public static func resolveMainBundle() -> Result {
-        resolve(
-            appGroupIdentifier: Bundle.main.object(
-                forInfoDictionaryKey: appGroupInfoKey
-            ) as? String,
-            containerURL: { group in
-                #if os(iOS) || os(macOS)
-                FileManager.default.containerURL(
-                    forSecurityApplicationGroupIdentifier: group
-                )
-                #else
-                nil
-                #endif
-            }
         )
     }
 }
