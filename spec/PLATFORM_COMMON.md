@@ -1,8 +1,10 @@
 # Gesture IME Platform-Common Specification v1
 
-Status: Canonical platform-common contract for v0/Phase 0
+Status: **Historical/compatibility canon for Profile v1**, retained as a shared-semantic foundation. It is not the current product/Profile authority.
 
-Authority: repository Issues #1-#6 define the requirements, design history, hardening findings, and implementation roadmap. This document is the implementation-facing platform-common semantic authority produced by #6. When platform code disagrees with this document, platform code is wrong until this document is intentionally revised.
+Current authority chain: Profile v3 baseline #43 → post-A7 revision #69 → frozen R95 #95 where each later Issue explicitly supersedes the earlier one. The current implementation-facing schema is `profile/gesture-ime.profile.v3.schema.json`; shared Rust Profile v3 validation/runtime remains executable semantic authority.
+
+Authority for this document: repository Issues #1-#6 define the original v0/Phase 0 requirements, design history, hardening findings, and implementation roadmap. The sections below remain canonical for v1 documents and compatibility normalization only where they are not superseded by accepted v2/v3 authority.
 
 ## 1. Scope and responsibility boundary
 
@@ -379,9 +381,9 @@ A Swift and Kotlin implementation are conformant when, for every applicable comm
 
 Semantic parity does not require identical internal types or line-for-line ports.
 
-## Profile v2 board-graph supersession
+## Profile v2 board-graph supersession — historical lineage
 
-`gesture-ime.profile.v1` remains a supported compatibility input. New durable authoring/runtime semantics are defined by `gesture-ime.profile.v2` and `spec/BOARD_GRAPH_V2.md`.
+`gesture-ime.profile.v2` and `spec/BOARD_GRAPH_V2.md` superseded v1 for the accepted v2 Board-graph line. They remain implementation history and lineage for unchanged Board concepts, but **Profile v3 is now the current product/runtime revision**.
 
 For v2:
 
@@ -392,4 +394,10 @@ For v2:
 - shared Rust owns v1-to-Board normalization and all v2 transition semantics;
 - Swift/Kotlin adapters may not redefine the Board graph independently.
 
-The v1 Direction8/GesturePath/BindingTrie sections below remain canonical only for v1 documents and compatibility normalization. Where they conflict with v2 semantics, `BOARD_GRAPH_V2.md` controls v2.
+The v1 Direction8/GesturePath/BindingTrie sections above remain canonical only for v1 documents and historical compatibility normalization. The v2 material remains historical authority for v2 documents.
+
+## Profile v3 current supersession
+
+The current product/Profile schema is `gesture-ime.profile.v3`. Repository Issue #43 defines the v3 baseline; #69 supersedes it for the mapped post-A7 product revision; #95 supersedes #69 for frozen R95 items. Where these current authorities conflict with v1/v2 text in this file, the v3 authority chain controls.
+
+Profile v3 keeps the shared-runtime ownership principle while replacing obsolete v1/v2 product assumptions with the unified Board/Action/state/TransformTable architecture and subsequent frozen revisions. v1/v2 must not be used to reintroduce old schema ceilings or staging behavior into current v3 implementation.
