@@ -98,11 +98,60 @@ if /usr/bin/otool -L "$KEYBOARD_BINARY" | grep -Fq "@rpath/llama.framework/llama
   fi
 fi
 
+# AltStore/AltSign discovers requested capabilities from the source
+# executable's code-signature entitlements. The Xcode build above remains
+# identity-free; add only ad-hoc signatures here so the sideload input carries
+# the requested App Group for AltStore to register/rewrite/provision.
+while IFS= read -r -d '' FRAMEWORK; do
+  /usr/bin/codesign --force --sign - --timestamp=none "$FRAMEWORK"
+done < <(find "$APP_PATH" -type d -name '*.framework' -print0)
+
+while IFS= read -r -d '' DYLIB; do
+  /usr/bin/codesign --force --sign - --timestamp=none "$DYLIB"
+done < <(find "$APP_PATH" -type f -name '*.dylib' -print0)
+
+/usr/bin/codesign \
+  --force \
+  --sign - \
+  --timestamp=none \
+  --entitlements App/GestureKeyboard.entitlements \
+  "$APPEX_PATH"
+
+/usr/bin/codesign \
+  --force \
+  --sign - \
+  --timestamp=none \
+  --entitlements App/GestureIMEApp.entitlements \
+  "$APP_PATH"
+
+APP_ENTITLEMENTS_DUMP="$ARTIFACT_DIR/GestureIMEApp.ad-hoc-entitlements.plist"
+KEYBOARD_ENTITLEMENTS_DUMP="$ARTIFACT_DIR/GestureKeyboard.ad-hoc-entitlements.plist"
+
+if ! /usr/bin/codesign -d --entitlements :- "$APP_PATH" \
+  >"$APP_ENTITLEMENTS_DUMP" 2>/dev/null; then
+  echo "Unable to read ad-hoc Main App entitlements" >&2
+  exit 13
+fi
+if ! /usr/bin/codesign -d --entitlements :- "$APPEX_PATH" \
+  >"$KEYBOARD_ENTITLEMENTS_DUMP" 2>/dev/null; then
+  echo "Unable to read ad-hoc Keyboard Extension entitlements" >&2
+  exit 14
+fi
+
+SIGNED_APP_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$APP_ENTITLEMENTS_DUMP")"
+SIGNED_KEYBOARD_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$KEYBOARD_ENTITLEMENTS_DUMP")"
+if [[ "$SIGNED_APP_GROUP" != "$APP_GROUP_ID" || "$SIGNED_KEYBOARD_GROUP" != "$APP_GROUP_ID" ]]; then
+  echo "Ad-hoc App Group entitlement mismatch: app=$SIGNED_APP_GROUP keyboard=$SIGNED_KEYBOARD_GROUP expected=$APP_GROUP_ID" >&2
+  exit 15
+fi
+
+/usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
 mkdir -p "$ARTIFACT_DIR/Payload"
 ditto "$APP_PATH" "$ARTIFACT_DIR/Payload/GestureIME.app"
 (
   cd "$ARTIFACT_DIR"
-  /usr/bin/zip -qry GestureIME-keyboard-unsigned.ipa Payload
+  /usr/bin/zip -qry GestureIME-keyboard-sideload.ipa Payload
 )
 
 echo "Containing app:"
@@ -111,4 +160,10 @@ plutil -p "$APP_PATH/Info.plist"
 echo "Keyboard extension:"
 plutil -p "$APPEX_PATH/Info.plist"
 
-echo "IPA: $ARTIFACT_DIR/GestureIME-keyboard-unsigned.ipa"
+echo "Ad-hoc Main App entitlements:"
+plutil -p "$APP_ENTITLEMENTS_DUMP"
+
+echo "Ad-hoc Keyboard Extension entitlements:"
+plutil -p "$KEYBOARD_ENTITLEMENTS_DUMP"
+
+echo "IPA: $ARTIFACT_DIR/GestureIME-keyboard-sideload.ipa"
