@@ -37,6 +37,8 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         self == .editDelete || self == .cursorMove || self == .conversionSelectCandidate
     }
 
+    /// Existing ordinary editors keep their historical simple drafting
+    /// contract. The IF/ELSE editor uses the rule-specific helpers below.
     func makeDraft(argumentText: String) -> ProfileActionDraft {
         guard let argumentKey else {
             return ProfileActionDraft(actionID: rawValue)
@@ -53,6 +55,34 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         )
     }
 
+    private var resolvedStringArgument: Bool {
+        self == .textInsert || self == .textDirectInsert
+    }
+
+    func ruleArgumentText(from action: ProfileActionDraft) -> String? {
+        guard let argumentKey else { return nil }
+        return ProfileV3RuleActionDrafting.argumentText(
+            from: action,
+            key: argumentKey,
+            resolvedString: resolvedStringArgument
+        )
+    }
+
+    func makeRuleDraft(
+        argumentText: String,
+        preserving previous: ProfileActionDraft?
+    ) -> ProfileActionDraft {
+        ProfileV3RuleActionDrafting.makeDraft(
+            actionID: rawValue,
+            argumentKey: argumentKey,
+            argumentText: argumentText,
+            integerArgument: integerArgument,
+            defaultInteger: defaultInteger,
+            resolvedStringArgument: resolvedStringArgument,
+            preserving: previous
+        )
+    }
+
     private var defaultInteger: Int64 {
         switch self {
         case .editDelete: 1
@@ -64,5 +94,9 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
 
     static func from(_ actionID: String) -> CommonActionOption {
         CommonActionOption(rawValue: actionID) ?? .noop
+    }
+
+    static func exact(_ actionID: String) -> CommonActionOption? {
+        CommonActionOption(rawValue: actionID)
     }
 }
