@@ -12,6 +12,8 @@ final class ProductSettingsModel: ObservableObject {
 
     private var reader: ProductSettingsReader?
     private var writer: ProductSettingsWriter?
+    private let keySoundCapability =
+        ProductKeySoundCapability(hasFullAccess: false)
 
     init() {
         let probe = ProductSettingsCapabilityProbe.probeMainBundle()
@@ -37,6 +39,20 @@ final class ProductSettingsModel: ObservableObject {
 
     /// #69 §13: a setting is effective or visibly unavailable with a reason.
     var isEditable: Bool { deliveryCapability.crossProcessAvailable }
+
+    var keySoundEditable: Bool {
+        isEditable && keySoundCapability.isAvailable
+    }
+
+    var effectiveKeySoundEnabled: Bool {
+        keySoundCapability.effectiveEnabled(
+            storedEnabled: values.keySoundEnabled
+        )
+    }
+
+    var keySoundStatus: String {
+        keySoundCapability.japaneseReason
+    }
 
     var deliveryStatus: String {
         switch probe {
@@ -86,6 +102,7 @@ final class ProductSettingsModel: ObservableObject {
     }
 
     func setKeySound(_ enabled: Bool) {
+        guard keySoundEditable else { return }
         persist(
             hapticStrength: values.hapticStrength,
             keyboardHeightScale: values.keyboardHeightScale,

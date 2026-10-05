@@ -33,6 +33,7 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         runtime: IOSProfileV3RuntimeAdapter,
         composition: AzooKeyCompositionBridge,
         productSettings: ProductSettingsValues,
+        keySoundCapability: ProductKeySoundCapability,
         keyboardTheme: IOSKeyboardTheme = IOSKeyboardTheme(),
         onNextKeyboard: @escaping () -> Void,
         onDismissKeyboard: @escaping () -> Void
@@ -42,7 +43,10 @@ final class ProfileV3ProductKeyboardViewModel: ObservableObject {
         self.defaultPolicy = runtime.defaultPolicy()
         self.productSettings = productSettings
         self.keyboardTheme = keyboardTheme
-        self.hapticFeedback = ProductHapticFeedback(settings: productSettings)
+        self.hapticFeedback = ProductHapticFeedback(
+            settings: productSettings,
+            keySoundCapability: keySoundCapability
+        )
         self.onNextKeyboard = onNextKeyboard
         self.onDismissKeyboard = onDismissKeyboard
 

@@ -154,6 +154,32 @@ public enum ProductSettingsDeliveryCapability: Equatable, Sendable {
     }
 }
 
+public enum ProductKeySoundCapability: Equatable, Sendable {
+    case available
+    case unavailableRequiresFullAccess
+
+    public init(hasFullAccess: Bool) {
+        self = hasFullAccess ? .available : .unavailableRequiresFullAccess
+    }
+
+    public var isAvailable: Bool {
+        self == .available
+    }
+
+    public func effectiveEnabled(storedEnabled: Bool) -> Bool {
+        isAvailable && storedEnabled
+    }
+
+    public var japaneseReason: String {
+        switch self {
+        case .available:
+            "キー音を利用できます。"
+        case .unavailableRequiresFullAccess:
+            "フルアクセスを要求しない設定のため、キー音は利用できません。触覚フィードバックは利用できます。"
+        }
+    }
+}
+
 public struct GestureIMEAppGroupPaths: Equatable, Sendable {
     public let groupIdentifier: String
     public let containerURL: URL
