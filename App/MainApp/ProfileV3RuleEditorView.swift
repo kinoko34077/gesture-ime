@@ -136,9 +136,12 @@ struct ProfileV3RuleSection: View {
         var parts: [String] = []
         if let text = behavior.displayText { parts.append("表示「\(text)」") }
         if !behavior.actionsEditable {
-            parts.append("複数の動作")
-        } else if let action = behavior.action {
-            parts.append(action.actionID)
+            parts.append("詳細設定の動作")
+        } else if !behavior.actions.isEmpty {
+            let titles = behavior.actions.map { action in
+                CommonActionOption.exact(action.actionID)?.displayTitle ?? action.actionID
+            }
+            parts.append("動作 " + titles.joined(separator: " → "))
         }
         if let target = behavior.transition?.targetBoardID { parts.append("次の段階 \(target)") }
         return "→ " + (parts.isEmpty ? "何もしない" : parts.joined(separator: "・"))
@@ -210,11 +213,8 @@ private struct ProfileV3RuleBranchEditor: View {
     let onSave: (ProfileV3RuleCondition, ProfileV3BranchBehavior) -> Bool
 
     @Environment(\.dismiss) private var dismiss
-    private let actionIsOrdinaryEditable: Bool
     @State private var condition: ProfileV3RuleCondition
     @State private var behavior: ProfileV3BranchBehavior
-    @State private var actionOption: CommonActionOption?
-    @State private var actionArgument: String
     @State private var saveError: String?
 
     init(
@@ -227,39 +227,50 @@ private struct ProfileV3RuleBranchEditor: View {
         self.onSave = onSave
         _condition = State(initialValue: condition)
         _behavior = State(initialValue: behavior)
-        let option = behavior.action.flatMap { CommonActionOption.exact($0.actionID) }
-        actionIsOrdinaryEditable = behavior.action == nil || option != nil
-        _actionOption = State(initialValue: option)
-        _actionArgument = State(initialValue: behavior.action.flatMap { action in
-            option?.ruleArgumentText(from: action)
-        } ?? "")
         _saveError = State(initialValue: nil)
     }
 
     var body: some View {
         Form {
-            if condition.terms.count > 1 {
-                Picker("組み合わせ", selection: $condition.combine) {
-                    Text("すべて満たす").tag(ProfileV3RuleCondition.Combine.all)
-                    Text("いずれかを満たす").tag(ProfileV3RuleCondition.Combine.any)
-                }
-            }
-            ForEach(condition.terms.indices, id: \.self) { index in
-                Section("条件 \(index + 1)") {
-                    termEditor(index)
-                    if condition.terms.count > 1 {
-                        Button("この条件を削除", role: .destructive) {
-                            condition.terms.remove(at: index)
-                            if condition.terms.count == 1 { condition.combine = .single }
-                        }
+            Section {
+                if condition.terms.count > 1 {
+                    Picker("組み合わせ", selection: $condition.combine) {
+                        Text("すべて満たす").tag(ProfileV3RuleCondition.Combine.all)
+                        Text("いずれかを満たす").tag(ProfileV3RuleCondition.Combine.any)
                     }
                 }
-            }
-            Button {
-                if condition.combine == .single { condition.combine = .all }
-                condition.terms.append(ProfileV3RuleTerm(.flag(.compositionEmpty)))
-            } label: {
-                Label("条件を重ねる", systemImage: "plus")
+                ForEach(condition.terms.indices, id: \.self) { index in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("条件 \(index + 1)")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                        termEditor(index)
+                        if condition.terms.count > 1 {
+                            Button("この条件を削除", role: .destructive) {
+                                condition.terms.remove(at: index)
+                                if condition.terms.count == 1 {
+                                    condition.combine = .single
+                                }
+                            }
+                            .font(.caption)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                Button {
+                    if condition.combine == .single {
+                        condition.combine = .all
+                    }
+                    condition.terms.append(
+                        ProfileV3RuleTerm(.flag(.compositionEmpty))
+                    )
+                } label: {
+                    Label("条件を重ねる", systemImage: "plus.circle")
+                }
+            } header: {
+                Text("もし")
+            } footer: {
+                Text("上から順に条件を判定します。「〜でない」や、すべて／いずれかの組み合わせもここで設定できます。")
             }
 
             Section("表示") {
@@ -268,28 +279,41 @@ private struct ProfileV3RuleBranchEditor: View {
                     set: { behavior.displayText = $0.isEmpty ? nil : $0 }
                 ))
             }
-            Section("動作") {
-                if behavior.actionsEditable, actionIsOrdinaryEditable {
-                    Picker("動作", selection: $actionOption) {
-                        Text("なし").tag(nil as CommonActionOption?)
-                        ForEach(CommonActionOption.allCases) { option in
-                            Text(option.rawValue).tag(Optional(option))
+
+            Section {
+                if ordinaryActionsEditable {
+                    if behavior.actions.isEmpty {
+                        Text("動作なし")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(behavior.actions.indices, id: \.self) { index in
+                        actionCard(index)
+                    }
+                    Menu {
+                        ForEach(CommonActionOption.ruleEditorOptions) { option in
+                            Button(option.displayTitle) {
+                                addAction(option)
+                            }
                         }
+                    } label: {
+                        Label("動作を追加", systemImage: "plus.rectangle.on.rectangle")
                     }
-                    if let actionOption, actionOption.argumentKey != nil {
-                        TextField("値", text: $actionArgument)
-                            .keyboardType(actionOption.integerArgument ? .numbersAndPunctuation : .default)
-                    }
-                } else if behavior.actionsEditable {
-                    Label("詳細設定で編集された動作", systemImage: "lock")
+                    .disabled(behavior.actions.count >= 16)
+                } else {
+                    Label("詳細設定の動作を保持しています", systemImage: "lock")
                         .foregroundStyle(.secondary)
-                    Text("この動作は通常画面では変更せず、そのまま保持します。")
+                    Text("この動作列には通常画面で安全に表現できない項目があります。内容は変更せず保持します。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                } else {
-                    Text("複数の動作です（詳細設定で編集）").foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("すること")
+            } footer: {
+                if ordinaryActionsEditable {
+                    Text("上から順に実行します。iOSショートカットのように、必要な機能を追加して並べ替えます。")
                 }
             }
+
             Section("次の段階") {
                 Picker("移動先", selection: Binding(
                     get: { behavior.transition?.targetBoardID ?? "" },
@@ -305,7 +329,7 @@ private struct ProfileV3RuleBranchEditor: View {
                 }
             }
         }
-        .navigationTitle("もし〜なら")
+        .navigationTitle("条件と動作")
         .safeAreaInset(edge: .bottom) {
             if let saveError {
                 Text(saveError)
@@ -320,18 +344,7 @@ private struct ProfileV3RuleBranchEditor: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存") {
-                    var result = behavior
-                    if result.actionsEditable, actionIsOrdinaryEditable {
-                        if let actionOption {
-                            result.action = actionOption.makeRuleDraft(
-                                argumentText: actionArgument,
-                                preserving: result.action
-                            )
-                        } else {
-                            result.action = nil
-                        }
-                    }
-                    if onSave(condition, result) {
+                    if onSave(condition, behavior) {
                         dismiss()
                     } else {
                         saveError = editor.errorMessage ?? "条件を保存できません"
@@ -351,16 +364,34 @@ private struct ProfileV3RuleBranchEditor: View {
         )) {
             ForEach(availableKinds) { Text($0.title).tag($0) }
         }
+
         switch term.test {
         case .flag:
             EmptyView()
+
         case .transformMatch(let tableID):
             Picker("変換表", selection: Binding(
                 get: { tableID },
                 set: { condition.terms[index].test = .transformMatch(tableID: $0) }
             )) {
-                ForEach(editor.transformRows) { Text($0.displayTitle).tag($0.id) }
+                ForEach(editor.transformRows) {
+                    Text($0.displayTitle).tag($0.id)
+                }
             }
+            if let table = editor.transformRows.first(where: { $0.id == tableID }) {
+                NavigationLink {
+                    ProfileV3TransformEditorView(
+                        editor: editor,
+                        focusedTableID: tableID
+                    )
+                } label: {
+                    Label(
+                        "「\(table.displayTitle)」を変換表で見る",
+                        systemImage: "tablecells"
+                    )
+                }
+            }
+
         case .factEquals(let fact, let value):
             Picker("値", selection: Binding(
                 get: { value },
@@ -370,63 +401,285 @@ private struct ProfileV3RuleBranchEditor: View {
                     Text(ProfileV3RuleKind.valueLabel(fact, $0)).tag($0)
                 }
             }
+
         case .stateEquals(let stateID, let value):
             Picker("状態", selection: Binding(
                 get: { stateID },
-                set: { condition.terms[index].test = .stateEquals(stateID: $0, value: defaultValue(for: $0)) }
+                set: {
+                    condition.terms[index].test = .stateEquals(
+                        stateID: $0,
+                        value: defaultValue(for: $0)
+                    )
+                }
             )) {
                 ForEach(editor.states) { Text($0.id).tag($0.id) }
             }
             stateValuePicker(index: index, stateID: stateID, value: value)
         }
-        Toggle("「〜でない」にする", isOn: $condition.terms[index].negated)
-    }
 
-    private func values(for fact: ProfileV3RuleStringFact, current: String) -> [String] {
-        let list = fact.catalog ?? editor.layers.map(\.id)
-        return list.contains(current) || current.isEmpty ? list : [current] + list
+        Toggle(
+            "「〜でない」にする",
+            isOn: $condition.terms[index].negated
+        )
     }
 
     @ViewBuilder
-    private func stateValuePicker(index: Int, stateID: String, value: JSONNode) -> some View {
+    private func actionCard(_ index: Int) -> some View {
+        let action = behavior.actions[index]
+        if let option = CommonActionOption.exact(action.actionID) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("動作 \(index + 1)")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Menu {
+                        Button("上へ") { moveAction(index, by: -1) }
+                            .disabled(index == 0)
+                        Button("下へ") { moveAction(index, by: 1) }
+                            .disabled(index + 1 >= behavior.actions.count)
+                        Divider()
+                        Button("削除", role: .destructive) {
+                            behavior.actions.remove(at: index)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+
+                Menu {
+                    ForEach(CommonActionOption.ruleEditorOptions) { candidate in
+                        Button(candidate.displayTitle) {
+                            changeAction(index, to: candidate)
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Label(option.displayTitle, systemImage: "bolt.fill")
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                    }
+                }
+
+                actionArgumentEditor(index: index, option: option)
+            }
+            .padding(10)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    @ViewBuilder
+    private func actionArgumentEditor(
+        index: Int,
+        option: CommonActionOption
+    ) -> some View {
+        if option == .layerSet || option == .layerPush {
+            Picker("キーボード面", selection: argumentBinding(index, option)) {
+                ForEach(editor.layers) { layer in
+                    Text(layer.name?.isEmpty == false ? layer.name! : layer.id)
+                        .tag(layer.id)
+                }
+            }
+        } else if option == .macroRun {
+            Picker("マクロ", selection: argumentBinding(index, option)) {
+                ForEach(editor.macros) { macro in
+                    Text(macro.id).tag(macro.id)
+                }
+            }
+        } else if option.argumentKey != nil {
+            TextField(argumentLabel(option), text: argumentBinding(index, option))
+                .keyboardType(
+                    option.integerArgument
+                        ? .numbersAndPunctuation
+                        : .default
+                )
+        }
+    }
+
+    private func argumentLabel(_ option: CommonActionOption) -> String {
+        switch option {
+        case .textInsert, .textDirectInsert: "入力する文字"
+        case .editDelete: "削除する文字数"
+        case .cursorMove: "移動量"
+        case .conversionSelectCandidate: "候補番号"
+        case .panelOpen: "パネル"
+        case .layerSet, .layerPush: "キーボード面"
+        case .macroRun: "マクロ"
+        default: "値"
+        }
+    }
+
+    private func argumentBinding(
+        _ index: Int,
+        _ option: CommonActionOption
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                guard behavior.actions.indices.contains(index) else { return "" }
+                return option.ruleArgumentText(
+                    from: behavior.actions[index]
+                ) ?? ""
+            },
+            set: { text in
+                guard behavior.actions.indices.contains(index) else { return }
+                behavior.actions[index] = option.makeRuleDraft(
+                    argumentText: text,
+                    preserving: behavior.actions[index]
+                )
+            }
+        )
+    }
+
+    private var ordinaryActionsEditable: Bool {
+        guard behavior.actionsEditable else { return false }
+        return behavior.actions.allSatisfy { action in
+            guard let option = CommonActionOption.exact(action.actionID),
+                  option != .profileSwitch else {
+                return false
+            }
+            let allowedKeys = option.argumentKey.map { Set([$0]) } ?? Set<String>()
+            return Set(action.arguments.keys).isSubset(of: allowedKeys)
+        }
+    }
+
+    private func addAction(_ option: CommonActionOption) {
+        behavior.actions.append(
+            option.makeRuleDraft(
+                argumentText: defaultArgument(for: option),
+                preserving: nil
+            )
+        )
+    }
+
+    private func changeAction(
+        _ index: Int,
+        to option: CommonActionOption
+    ) {
+        guard behavior.actions.indices.contains(index) else { return }
+        behavior.actions[index] = option.makeRuleDraft(
+            argumentText: defaultArgument(for: option),
+            preserving: nil
+        )
+    }
+
+    private func moveAction(_ index: Int, by offset: Int) {
+        let destination = index + offset
+        guard behavior.actions.indices.contains(index),
+              behavior.actions.indices.contains(destination) else {
+            return
+        }
+        let action = behavior.actions.remove(at: index)
+        behavior.actions.insert(action, at: destination)
+    }
+
+    private func defaultArgument(
+        for option: CommonActionOption
+    ) -> String {
+        switch option {
+        case .layerSet, .layerPush:
+            editor.layers.first?.id ?? ""
+        case .macroRun:
+            editor.macros.first?.id ?? ""
+        case .editDelete, .cursorMove:
+            "1"
+        case .conversionSelectCandidate:
+            "0"
+        default:
+            ""
+        }
+    }
+
+    private func values(
+        for fact: ProfileV3RuleStringFact,
+        current: String
+    ) -> [String] {
+        let list = fact.catalog ?? editor.layers.map(\.id)
+        return list.contains(current) || current.isEmpty
+            ? list
+            : [current] + list
+    }
+
+    @ViewBuilder
+    private func stateValuePicker(
+        index: Int,
+        stateID: String,
+        value: JSONNode
+    ) -> some View {
         let options: [JSONNode] = {
-            guard let state = editor.states.first(where: { $0.id == stateID }) else { return [value] }
-            return state.type == .boolean ? [.bool(true), .bool(false)] : state.values.map(JSONNode.string)
+            guard let state = editor.states.first(where: { $0.id == stateID }) else {
+                return [value]
+            }
+            return state.type == .boolean
+                ? [.bool(true), .bool(false)]
+                : state.values.map(JSONNode.string)
         }()
         Picker("値", selection: Binding(
             get: { ProfileV3RuleSection.literalText(value) },
             set: { text in
-                if let match = options.first(where: { ProfileV3RuleSection.literalText($0) == text }) {
-                    condition.terms[index].test = .stateEquals(stateID: stateID, value: match)
+                if let match = options.first(where: {
+                    ProfileV3RuleSection.literalText($0) == text
+                }) {
+                    condition.terms[index].test = .stateEquals(
+                        stateID: stateID,
+                        value: match
+                    )
                 }
             }
         )) {
-            ForEach(options.map(ProfileV3RuleSection.literalText), id: \.self) { Text($0).tag($0) }
+            ForEach(
+                options.map(ProfileV3RuleSection.literalText),
+                id: \.self
+            ) {
+                Text($0).tag($0)
+            }
         }
     }
 
     private var availableKinds: [ProfileV3RuleKind] {
         ProfileV3RuleKind.all.filter {
             switch $0 {
-            case .state: !editor.states.isEmpty
-            case .transformMatch: !editor.transformRows.isEmpty
-            default: true
+            case .state:
+                !editor.states.isEmpty
+            case .transformMatch:
+                !editor.transformRows.isEmpty
+            default:
+                true
             }
         }
     }
 
     private func defaultValue(for stateID: String) -> JSONNode {
-        guard let state = editor.states.first(where: { $0.id == stateID }) else { return .bool(true) }
-        return state.type == .boolean ? .bool(true) : .string(state.values.first ?? "")
+        guard let state = editor.states.first(where: { $0.id == stateID }) else {
+            return .bool(true)
+        }
+        return state.type == .boolean
+            ? .bool(true)
+            : .string(state.values.first ?? "")
     }
 
-    private func defaultTest(for kind: ProfileV3RuleKind) -> ProfileV3RuleTest {
+    private func defaultTest(
+        for kind: ProfileV3RuleKind
+    ) -> ProfileV3RuleTest {
         switch kind {
-        case .flag(let flag): .flag(flag)
-        case .fact(let fact): .factEquals(fact, fact.catalog?.first ?? editor.layers.first?.id ?? "")
+        case .flag(let flag):
+            .flag(flag)
+        case .fact(let fact):
+            .factEquals(
+                fact,
+                fact.catalog?.first ?? editor.layers.first?.id ?? ""
+            )
         case .state:
-            .stateEquals(stateID: editor.states.first?.id ?? "", value: defaultValue(for: editor.states.first?.id ?? ""))
-        case .transformMatch: .transformMatch(tableID: editor.transformRows.first?.id ?? "")
+            .stateEquals(
+                stateID: editor.states.first?.id ?? "",
+                value: defaultValue(
+                    for: editor.states.first?.id ?? ""
+                )
+            )
+        case .transformMatch:
+            .transformMatch(
+                tableID: editor.transformRows.first?.id ?? ""
+            )
         }
     }
 }
