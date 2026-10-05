@@ -296,9 +296,18 @@ final class ProfileV3EditorModel: ObservableObject {
         return try? history?.document.v3EntryRules(boardID: boardID, entryID: entryID)
     }
 
-    func setSelectedRules(_ rules: ProfileV3RuleSet) {
-        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return }
-        mutate { try $0.v3SetEntryRules(boardID: boardID, entryID: entryID, rules: rules) }
+    @discardableResult
+    func setSelectedRules(_ rules: ProfileV3RuleSet) -> Bool {
+        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return false }
+        do {
+            try mutateThrowing {
+                try $0.v3SetEntryRules(boardID: boardID, entryID: entryID, rules: rules)
+            }
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     func updatePolicyValues(_ values: ProfileV3GesturePolicyValues) {

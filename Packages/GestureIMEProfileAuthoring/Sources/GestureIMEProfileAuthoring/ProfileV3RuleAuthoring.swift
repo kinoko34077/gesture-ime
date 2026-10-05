@@ -88,6 +88,39 @@ public struct ProfileV3RuleSet: Equatable, Sendable {
     }
 }
 
+extension ProfileV3RuleSet {
+    /// Ordinary authoring must treat advanced branches as semantic barriers.
+    /// Editable branches may be reordered only within one contiguous editable
+    /// segment, so an advanced branch never moves relative to ordinary rules.
+    public func canMoveOrdinaryBranch(from source: Int, to destination: Int) -> Bool {
+        guard branches.indices.contains(source),
+              branches.indices.contains(destination),
+              source != destination,
+              !branches[source].isAdvanced,
+              !branches[destination].isAdvanced else {
+            return false
+        }
+        let lower = min(source, destination)
+        let upper = max(source, destination)
+        return !branches[lower...upper].contains(where: \.isAdvanced)
+    }
+
+    @discardableResult
+    public mutating func moveOrdinaryBranch(from source: Int, to destination: Int) -> Bool {
+        guard canMoveOrdinaryBranch(from: source, to: destination) else { return false }
+        let branch = branches.remove(at: source)
+        branches.insert(branch, at: destination)
+        return true
+    }
+
+    @discardableResult
+    public mutating func deleteOrdinaryBranch(at index: Int) -> Bool {
+        guard branches.indices.contains(index), !branches[index].isAdvanced else { return false }
+        branches.remove(at: index)
+        return true
+    }
+}
+
 public enum ProfileV3Rules {
     public static func parse(_ resolver: JSONNode) throws -> ProfileV3RuleSet {
         guard var object = resolver.objectValue,
@@ -238,6 +271,62 @@ extension ProfileV3Rules {
     /// A behavior that shows and inserts `text` (same shape as presets).
     public static func textBehavior(_ text: String) -> JSONNode {
         ProfileDocument.v3TextResolver(text).objectValue?["default"] ?? .null
+    }
+}
+
+/// Shared drafting rules for the ordinary IF/ELSE Action editor.
+/// In particular, v3 text actions use a ResolvedString object rather than a
+/// raw string; existing conditional transforms/extra members are preserved.
+public enum ProfileV3RuleActionDrafting {
+    public static func argumentText(
+        from action: ProfileActionDraft,
+        key: String,
+        resolvedString: Bool = false
+    ) -> String? {
+        guard let value = action.arguments[key] else { return nil }
+        if resolvedString {
+            return value.objectValue?["base"]?.stringValue
+        }
+        switch value {
+        case .string(let text): return text
+        case .integer(let number): return String(number)
+        default: return nil
+        }
+    }
+
+    public static func makeDraft(
+        actionID: String,
+        argumentKey: String?,
+        argumentText: String,
+        integerArgument: Bool = false,
+        defaultInteger: Int64 = 0,
+        resolvedStringArgument: Bool = false,
+        preserving previous: ProfileActionDraft? = nil
+    ) -> ProfileActionDraft {
+        let sameAction = previous?.actionID == actionID ? previous : nil
+        var arguments: [String: JSONNode] = [:]
+
+        if let argumentKey {
+            if resolvedStringArgument {
+                var resolved = sameAction?.arguments[argumentKey]?.objectValue
+                    ?? ["transforms": .array([])]
+                if resolved["transforms"] == nil {
+                    resolved["transforms"] = .array([])
+                }
+                resolved["base"] = .string(argumentText)
+                arguments[argumentKey] = .object(resolved)
+            } else if integerArgument {
+                arguments[argumentKey] = .integer(Int64(argumentText) ?? defaultInteger)
+            } else {
+                arguments[argumentKey] = .string(argumentText)
+            }
+        }
+
+        return ProfileActionDraft(
+            actionID: actionID,
+            arguments: arguments,
+            extra: sameAction?.extra ?? [:]
+        )
     }
 }
 

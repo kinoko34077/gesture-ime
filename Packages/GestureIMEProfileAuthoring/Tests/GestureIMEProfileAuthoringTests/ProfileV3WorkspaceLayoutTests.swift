@@ -55,16 +55,17 @@ func portraitDefaultUsesClampedFraction() {
 }
 
 @Test
-func softwareKeyboardShrinksPrimaryWithoutFlippingAxis() {
+func softwareKeyboardOcclusionCanFlipAxisFromUsableGeometry() {
     let open = ProfileV3WorkspaceLayout.resolve(
         layoutWidth: 390, layoutHeight: 760, availableWidth: 390, availableHeight: 760, storedRatio: 0.4
     )
     let keyboard = ProfileV3WorkspaceLayout.resolve(
-        layoutWidth: 390, layoutHeight: 760, availableWidth: 390, availableHeight: 430, storedRatio: 0.4
+        layoutWidth: 390, layoutHeight: 430, availableWidth: 390, availableHeight: 430, storedRatio: 0.4
     )
-    #expect(keyboard.axis == open.axis)
-    #expect(keyboard.primary < open.primary)
-    #expect(keyboard.secondary >= 200 - 0.001)
+    #expect(open.axis == .vertical)
+    #expect(keyboard.axis == .horizontal)
+    let tuning = ProfileV3WorkspaceLayout.Tuning()
+    #expect(abs(keyboard.primary + keyboard.secondary + tuning.dividerThickness - 390) < 0.001)
 }
 
 @Test
