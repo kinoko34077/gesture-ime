@@ -28,12 +28,12 @@ struct ProfileV3ResizableWorkspace<Primary: View, Secondary: View>: View {
                 height: max(0, layout.size.height - keyboardOverlap)
             )
             let axis = ProfileV3WorkspaceLayout.axis(
-                layoutWidth: Double(layout.size.width),
-                layoutHeight: Double(layout.size.height)
+                layoutWidth: Double(available.width),
+                layoutHeight: Double(available.height)
             )
             let split = ProfileV3WorkspaceLayout.resolve(
-                layoutWidth: Double(layout.size.width),
-                layoutHeight: Double(layout.size.height),
+                layoutWidth: Double(available.width),
+                layoutHeight: Double(available.height),
                 availableWidth: Double(available.width),
                 availableHeight: Double(available.height),
                 storedRatio: liveRatio ?? storedRatio(for: axis)
