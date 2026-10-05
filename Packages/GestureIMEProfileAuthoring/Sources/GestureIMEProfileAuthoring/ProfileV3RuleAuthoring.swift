@@ -330,8 +330,8 @@ public enum ProfileV3RuleActionDrafting {
     }
 }
 
-/// #95 §F4 branch behavior editor: 表示 / 動作 / 次の段階. Unknown behavior
-/// members and anything beyond one onRelease action are kept unchanged.
+/// #95 §F4 branch behavior editor: 表示 / ordered 動作 stack / 次の段階.
+/// Unknown behavior members and malformed Action nodes remain untouched.
 public struct ProfileV3BranchBehavior: Equatable, Sendable {
     public var displayText: String?
     /// Ordered onRelease action stack for ordinary authoring.
