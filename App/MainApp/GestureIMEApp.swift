@@ -21,17 +21,16 @@ struct GestureIMEApp: App {
 @MainActor
 final class ProfileV3Workspace: ObservableObject {
     @Published var selectedProfileID: String?
-    private var editors: [String: ProfileV3EditorModel] = [:]
+    private let editors = ProfileV3EditorSessionCache<ProfileV3EditorModel>()
 
     func editor(library: ProfileLibraryModel) -> ProfileV3EditorModel? {
         let v3IDs = library.profiles.map(\.id).filter { library.isProfileV3(profileID: $0) }
         let id = [selectedProfileID, library.activeProfileID].compactMap { $0 }
             .first(where: v3IDs.contains) ?? v3IDs.first
         guard let id else { return nil }
-        if let cached = editors[id] { return cached }
-        let created = ProfileV3EditorModel(library: library, profileID: id)
-        editors[id] = created
-        return created
+        return editors.session(for: id) {
+            ProfileV3EditorModel(library: library, profileID: id)
+        }
     }
 }
 
@@ -112,7 +111,12 @@ private struct RootView: View {
                         Label(ProfileV3AppCategory.privacy.title, systemImage: "hand.raised")
                     }
                     NavigationLink {
-                        ProfileLibraryView()
+                        if let editor {
+                            ProfileV3AdvancedSettingsView(editor: editor)
+                                .id(editor.profileID)
+                        } else {
+                            ProfileV3EmptyWorkspace()
+                        }
                     } label: {
                         Label(ProfileV3AppCategory.advanced.title, systemImage: "wrench.and.screwdriver")
                     }
