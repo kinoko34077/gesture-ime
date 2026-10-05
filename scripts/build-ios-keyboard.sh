@@ -18,6 +18,20 @@ mkdir -p "$ARTIFACT_DIR"
 bash scripts/prepare-shared-runtime-ios.sh
 xcodegen generate --spec project.yml
 
+APP_GROUP_ID="group.net.kinotch.gestureime"
+APP_ENTITLEMENT_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' App/GestureIMEApp.entitlements)"
+KEYBOARD_ENTITLEMENT_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' App/GestureKeyboard.entitlements)"
+if [[ "$APP_ENTITLEMENT_GROUP" != "$APP_GROUP_ID" || "$KEYBOARD_ENTITLEMENT_GROUP" != "$APP_GROUP_ID" ]]; then
+  echo "App Group entitlement mismatch: app=$APP_ENTITLEMENT_GROUP keyboard=$KEYBOARD_ENTITLEMENT_GROUP expected=$APP_GROUP_ID" >&2
+  exit 9
+fi
+
+SOURCE_OPEN_ACCESS="$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionAttributes:RequestsOpenAccess' App/KeyboardExtension/Info.plist)"
+if [[ "$SOURCE_OPEN_ACCESS" != "false" ]]; then
+  echo "Keyboard must keep RequestsOpenAccess=false; got $SOURCE_OPEN_ACCESS" >&2
+  exit 10
+fi
+
 xcodebuild \
   -project GestureIME.xcodeproj \
   -scheme GestureIME \
@@ -48,6 +62,18 @@ EXTENSION_POINT="$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPoi
 if [[ "$EXTENSION_POINT" != "com.apple.keyboard-service" ]]; then
   echo "Unexpected extension point: $EXTENSION_POINT" >&2
   exit 5
+fi
+
+APP_INFO_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :GestureIMEAppGroupIdentifier' "$APP_PATH/Info.plist")"
+KEYBOARD_INFO_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :GestureIMEAppGroupIdentifier' "$APPEX_PATH/Info.plist")"
+BUILT_OPEN_ACCESS="$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionAttributes:RequestsOpenAccess' "$APPEX_PATH/Info.plist")"
+if [[ "$APP_INFO_GROUP" != "$APP_GROUP_ID" || "$KEYBOARD_INFO_GROUP" != "$APP_GROUP_ID" ]]; then
+  echo "Built Info.plist App Group mismatch: app=$APP_INFO_GROUP keyboard=$KEYBOARD_INFO_GROUP expected=$APP_GROUP_ID" >&2
+  exit 11
+fi
+if [[ "$BUILT_OPEN_ACCESS" != "false" ]]; then
+  echo "Built keyboard unexpectedly requests Full Access: $BUILT_OPEN_ACCESS" >&2
+  exit 12
 fi
 
 if [[ ! -f "$APPEX_PATH/default-ja.json" ]]; then

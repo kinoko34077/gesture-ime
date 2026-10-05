@@ -54,6 +54,15 @@ targets:
         embed: true
       - package: GestureIMEProfileAuthoring
       - package: GestureIMEProductSettings
+    info:
+      path: App/GestureIMEApp.Info.plist
+      properties:
+        GestureIMEAppGroupIdentifier: group.net.kinotch.gestureime
+    entitlements:
+      path: App/GestureIMEApp.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.net.kinotch.gestureime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime
@@ -116,6 +125,7 @@ targets:
       path: App/KeyboardExtension/Info.plist
       properties:
         CFBundleDisplayName: Gesture IME
+        GestureIMEAppGroupIdentifier: group.net.kinotch.gestureime
         NSExtension:
           NSExtensionAttributes:
             IsASCIICapable: false
@@ -124,6 +134,11 @@ targets:
             RequestsOpenAccess: false
           NSExtensionPointIdentifier: com.apple.keyboard-service
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"
+    entitlements:
+      path: App/GestureKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.net.kinotch.gestureime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.kinotch.gestureime.keyboard
