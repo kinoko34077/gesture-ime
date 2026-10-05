@@ -125,3 +125,103 @@ func branchBehaviorEditsKeepUnknownMembers() throws {
     locked.displayText = "x"
     #expect(locked.applied(to: multi).objectValue?["onRelease"] == multi.objectValue?["onRelease"])
 }
+
+
+@Test
+func ordinaryMutationCannotMoveOrDeleteAdvancedBranches() throws {
+    let advancedNode = try json(#"{"when":{"fact":"host.needsInputModeSwitchKey"},"behavior":{"onRelease":[]}}"#)
+    let editableA = ProfileV3RuleBranch.editable(
+        condition: ProfileV3RuleCondition(terms: [ProfileV3RuleTerm(.flag(.conversionActive))]),
+        behavior: try json(behaviorA),
+        extra: [:]
+    )
+    let editableB = ProfileV3RuleBranch.editable(
+        condition: ProfileV3RuleCondition(terms: [ProfileV3RuleTerm(.flag(.compositionEmpty))]),
+        behavior: try json(behaviorB),
+        extra: [:]
+    )
+    var rules = ProfileV3RuleSet(
+        branches: [editableA, .advanced(advancedNode), editableB],
+        elseBehavior: try json(behaviorB)
+    )
+
+    #expect(!rules.canMoveOrdinaryBranch(from: 0, to: 2))
+    #expect(!rules.moveOrdinaryBranch(from: 0, to: 2))
+    #expect(!rules.deleteOrdinaryBranch(at: 1))
+    #expect(rules.branches[1] == .advanced(advancedNode))
+
+    rules.branches.insert(editableB, at: 1)
+    #expect(rules.canMoveOrdinaryBranch(from: 0, to: 1))
+    #expect(rules.moveOrdinaryBranch(from: 0, to: 1))
+    #expect(rules.branches[2] == .advanced(advancedNode))
+    #expect(rules.deleteOrdinaryBranch(at: 0))
+    #expect(rules.branches.contains(.advanced(advancedNode)))
+}
+
+@Test
+func unsupportedSingleActionsRemainUntouchedWhenOtherBehaviorFieldsChange() throws {
+    let payloads: [JSONNode] = [
+        try json(#"{"actionID":"text.transform","arguments":{"table":"kana.small"},"future":"x"}"#),
+        try json(#"{"actionID":"state.set","arguments":{"state":"s.mode","value":true}}"#),
+        try json(#"{"actionID":"extension.future","arguments":{"x":1},"opaque":{"y":2}}"#)
+    ]
+
+    for payload in payloads {
+        let original = JSONNode.object([
+            "onRelease": .array([payload]),
+            "presentation": .object([
+                "text": .object(["base": .string("A"), "transforms": .array([])])
+            ])
+        ])
+        var edit = ProfileV3BranchBehavior(original)
+        edit.displayText = "B"
+        let updated = edit.applied(to: original)
+        #expect(updated.objectValue?["onRelease"] == .array([payload]))
+    }
+}
+
+@Test
+func ordinaryTextActionDraftingUsesResolvedStringAndPreservesTransforms() throws {
+    let transform = try json(#"{"when":{"fact":"conversion.active"},"tableRef":"kana.small"}"#)
+    let previous = ProfileActionDraft(
+        actionID: "text.insert",
+        arguments: [
+            "text": .object([
+                "base": .string("a"),
+                "transforms": .array([transform]),
+                "future": .integer(7)
+            ])
+        ],
+        extra: ["note": .string("keep")]
+    )
+
+    #expect(ProfileV3RuleActionDrafting.argumentText(
+        from: previous,
+        key: "text",
+        resolvedString: true
+    ) == "a")
+
+    let edited = ProfileV3RuleActionDrafting.makeDraft(
+        actionID: "text.insert",
+        argumentKey: "text",
+        argumentText: "b",
+        resolvedStringArgument: true,
+        preserving: previous
+    )
+    let text = try #require(edited.arguments["text"]?.objectValue)
+    #expect(text["base"] == .string("b"))
+    #expect(text["transforms"] == .array([transform]))
+    #expect(text["future"] == .integer(7))
+    #expect(edited.extra["note"] == .string("keep"))
+
+    let direct = ProfileV3RuleActionDrafting.makeDraft(
+        actionID: "text.directInsert",
+        argumentKey: "text",
+        argumentText: "x",
+        resolvedStringArgument: true
+    )
+    #expect(direct.arguments["text"] == .object([
+        "base": .string("x"),
+        "transforms": .array([])
+    ]))
+}
