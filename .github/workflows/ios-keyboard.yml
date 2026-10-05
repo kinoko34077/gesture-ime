@@ -66,7 +66,7 @@ jobs:
       - name: Upload sideload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GestureIME-keyboard-unsigned
-          path: ${{ runner.temp }}/GestureIMEKeyboardArtifact/GestureIME-keyboard-unsigned.ipa
+          name: GestureIME-keyboard-sideload
+          path: ${{ runner.temp }}/GestureIMEKeyboardArtifact/GestureIME-keyboard-sideload.ipa
           if-no-files-found: error
           retention-days: 14
