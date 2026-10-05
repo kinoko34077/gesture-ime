@@ -239,17 +239,18 @@ final class ProductSettingsTests: XCTestCase {
         )
     }
 
-    func testKeySoundCapabilityRequiresActualFullAccess() {
-        let unavailable = ProductKeySoundCapability(hasFullAccess: false)
-        XCTAssertFalse(unavailable.isAvailable)
-        XCTAssertFalse(unavailable.effectiveEnabled(storedEnabled: true))
-        XCTAssertFalse(unavailable.effectiveEnabled(storedEnabled: false))
-        XCTAssertTrue(unavailable.japaneseReason.contains("フルアクセス"))
+    func testKeySoundCapabilityDoesNotDependOnFullAccess() {
+        let withoutFullAccess = ProductKeySoundCapability(hasFullAccess: false)
+        let withFullAccess = ProductKeySoundCapability(hasFullAccess: true)
+        let direct = ProductKeySoundCapability()
 
-        let available = ProductKeySoundCapability(hasFullAccess: true)
-        XCTAssertTrue(available.isAvailable)
-        XCTAssertTrue(available.effectiveEnabled(storedEnabled: true))
-        XCTAssertFalse(available.effectiveEnabled(storedEnabled: false))
+        for capability in [withoutFullAccess, withFullAccess, direct] {
+            XCTAssertTrue(capability.isAvailable)
+            XCTAssertTrue(capability.effectiveEnabled(storedEnabled: true))
+            XCTAssertFalse(capability.effectiveEnabled(storedEnabled: false))
+            XCTAssertFalse(capability.japaneseReason.contains("フルアクセス"))
+            XCTAssertTrue(capability.japaneseReason.contains("キーボードのクリック"))
+        }
     }
 
     func testCapabilityTruthIsExplicit() {
