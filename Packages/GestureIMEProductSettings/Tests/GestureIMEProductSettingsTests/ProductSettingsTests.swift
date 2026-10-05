@@ -421,6 +421,28 @@ final class ProductSettingsCapabilityProbeTests: XCTestCase {
         XCTAssertEqual(queried, [configured])
     }
 
+    func testSignerProvidedExactConfiguredIDIsEligible() {
+        let configured = "group.net.kinotch.gestureime"
+        var configuredAttempts = 0
+
+        let result = GestureIMEAppGroupResolver.resolve(
+            appGroupIdentifier: configured,
+            signerProvidedAppGroups: [configured]
+        ) { group in
+            guard group == configured else { return nil }
+            configuredAttempts += 1
+            return configuredAttempts == 2
+                ? URL(fileURLWithPath: "/tmp/signer-configured")
+                : nil
+        }
+
+        guard case .available(let paths) = result else {
+            return XCTFail("expected signer-provided exact configured group")
+        }
+        XCTAssertEqual(paths.groupIdentifier, configured)
+        XCTAssertEqual(configuredAttempts, 2)
+    }
+
     func testSignerProvidedRewrittenGroupResolvesAfterConfiguredGroupFails() {
         let configured = "group.net.kinotch.gestureime"
         let rewritten = configured + ".TEAM123"
