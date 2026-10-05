@@ -58,21 +58,29 @@ func groupPathPersistsAsMetadataAndFlatMappingIsUnchanged() throws {
 
 @Test
 func treeNestsGroupsAndSearchRevealsAncestors() throws {
+    let aID = UUID()
+    let tsuID = UUID()
+    let waID = UUID()
     let tables = [
         ProfileV3TransformTableRows(id: "kana.small", rows: [
-            .init(from: "あ", to: "ぁ", groupPath: ["小書き", "あ行"]),
-            .init(from: "つ", to: "っ", groupPath: ["小書き", "た行"]),
-            .init(from: "わ", to: "ゎ")
+            .init(from: "あ", to: "ぁ", groupPath: ["小書き", "あ行"], editorID: aID),
+            .init(from: "つ", to: "っ", groupPath: ["小書き", "た行"], editorID: tsuID),
+            .init(from: "わ", to: "ゎ", editorID: waID)
         ])
     ]
     let tree = ProfileV3TransformGrouping.tree(tables)
     #expect(tree.count == 1)
     let root = tree[0]
-    #expect(root.children.map(\.id) == ["kana.small/小書き", "kana.small/#わ"])
+    #expect(root.children.map(\.id) == [
+        "kana.small/小書き",
+        "kana.small/#row-" + waID.uuidString
+    ])
     #expect(root.children[0].children.map(\.id) == ["kana.small/小書き/あ行", "kana.small/小書き/た行"])
 
     let result = ProfileV3TransformGrouping.search("っ", in: tree)
-    #expect(result.matches == ["kana.small/小書き/た行/#つ"])
+    #expect(result.matches == [
+        "kana.small/小書き/た行/#row-" + tsuID.uuidString
+    ])
     #expect(result.expanded == ["kana.small", "kana.small/小書き", "kana.small/小書き/た行"])
     #expect(ProfileV3TransformGrouping.search("  ", in: tree).matches.isEmpty)
 }
@@ -208,4 +216,100 @@ func csvV2RoundTripsTitleAndReverseAndV1StillImports() throws {
     #expect(throws: ProfileAuthoringError.self) {
         try ProfileV3TransformCSV.parse("table,title,groupPath,from,to,reverse\r\nt,,,a,A,maybe\r\n")
     }
+}
+
+
+@Test
+func rowIdentitySurvivesFromEditAndDocumentRefresh() throws {
+    let first = UUID()
+    let second = UUID()
+    let previous = ProfileV3TransformTableRows(id: "t", rows: [
+        .init(from: "a", to: "A", editorID: first),
+        .init(from: "b", to: "B", editorID: second)
+    ])
+    let loaded = ProfileV3TransformTableRows(id: "t", rows: [
+        .init(from: "aa", to: "A"),
+        .init(from: "b", to: "B")
+    ])
+    let reconciled = loaded.preservingEditorIDs(from: previous)
+    #expect(reconciled.rows[0].editorID == first)
+    #expect(reconciled.rows[1].editorID == second)
+    #expect(ProfileV3TransformGrouping.leafID(reconciled.rows[0], prefix: "t")
+        == "t/#row-" + first.uuidString)
+}
+
+@Test
+func identityReconciliationPrefersSemanticMatchAfterDeletion() {
+    let first = UUID()
+    let second = UUID()
+    let third = UUID()
+    let previous = ProfileV3TransformTableRows(id: "t", rows: [
+        .init(from: "a", to: "A", editorID: first),
+        .init(from: "b", to: "B", editorID: second),
+        .init(from: "c", to: "C", editorID: third)
+    ])
+    let loaded = ProfileV3TransformTableRows(id: "t", rows: [
+        .init(from: "a", to: "A"),
+        .init(from: "c", to: "C")
+    ])
+    let reconciled = loaded.preservingEditorIDs(from: previous)
+    #expect(reconciled.rows.map(\.editorID) == [first, third])
+}
+
+@Test
+func groupSubtreeMoveAndSiblingReorderAreDeterministic() throws {
+    var table = ProfileV3TransformTableRows(
+        id: "t",
+        groups: [["A"], ["A", "one"], ["A", "two"], ["B"], ["C"]],
+        rows: [
+            .init(from: "a", to: "A", groupPath: ["A", "one"]),
+            .init(from: "b", to: "B", groupPath: ["A", "two"])
+        ]
+    )
+
+    #expect(table.canReorderGroup(["B"], by: 1))
+    let reordered = table.reorderGroup(["B"], by: 1)
+    #expect(reordered)
+    let rootTree = ProfileV3TransformGrouping.tree([table])[0]
+    let rootGroups = rootTree.children.compactMap { node -> String? in
+        if case .group(let name) = node.kind { return name }
+        return nil
+    }
+    #expect(rootGroups.prefix(3) == ["A", "C", "B"])
+
+    try table.moveGroup(["A", "one"], to: ["B"])
+    #expect(table.rows[0].groupPath == ["B", "one"])
+    #expect(table.groups.contains(["B", "one"]))
+    #expect(!table.groups.contains(["A", "one"]))
+    #expect(throws: ProfileAuthoringError.self) {
+        try table.moveGroup(["B"], to: ["B", "one"])
+    }
+}
+
+
+@Test
+func incompleteExistingEditStaysTransientAndCannotDeletePersistedMapping() {
+    let id = UUID()
+    let persisted = ProfileV3TransformTableRows(id: "t", rows: [
+        .init(from: "a", to: "A", editorID: id)
+    ])
+    let incomplete = ProfileV3TransformRow(from: "", to: "A", editorID: id)
+    #expect(ProfileV3TransformEditPolicy.persistenceCandidate(for: incomplete, in: persisted) == nil)
+    #expect(persisted.rows.map(\.from) == ["a"])
+}
+
+@Test
+func draftPromotionProducesCandidateButRejectedCandidateDoesNotMutateDocument() throws {
+    var doc = try document()
+    let persisted = try doc.v3TransformTableRows()[0]
+    let draft = ProfileV3TransformRow(from: "あ", to: "x")
+    let candidate = try #require(
+        ProfileV3TransformEditPolicy.persistenceCandidate(for: draft, in: persisted)
+    )
+    let before = try doc.encoded(pretty: false)
+    #expect(throws: ProfileAuthoringError.self) {
+        try doc.v3SetTransformTableRows(candidate)
+    }
+    #expect(try doc.encoded(pretty: false) == before)
+    #expect(draft.from == "あ" && draft.to == "x")
 }
