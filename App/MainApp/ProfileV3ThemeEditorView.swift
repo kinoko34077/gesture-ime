@@ -28,9 +28,10 @@ struct ProfileV3ThemeEditorView: View {
     var body: some View {
         let theme = editor.keyboardTheme
         ProfileV3ResizableWorkspace(storageKey: "design") {
-            ProfileV3ThemePreview(
+            ProfileV3ProductPreview(
                 presentation: IOSKeyboardPresentation(theme: theme),
-                surface: editor.previewSurface()
+                surface: editor.previewSurface(),
+                composition: .product
             )
         } secondary: {
         Form {
@@ -108,19 +109,22 @@ struct ProfileV3ThemeEditorView: View {
 
 /// Shared renderer over the actual Board, plus candidate and flick-overlay
 /// samples so every token is visible.
-private struct ProfileV3ThemePreview: View {
+struct ProfileV3ProductPreview: View {
     let presentation: IOSKeyboardPresentation
     let surface: FfiProfileV3BoardSurface?
+    let composition: ProfileV3PreviewComposition
 
     var body: some View {
         VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                IOSKeyboardCandidateChip(text: "変換", selected: true, expanded: false, presentation: presentation) {}
-                IOSKeyboardCandidateChip(text: "候補", selected: false, expanded: false, presentation: presentation) {}
-                Spacer()
+            if composition.contains(.candidateBar) {
+                HStack(spacing: 4) {
+                    IOSKeyboardCandidateChip(text: "変換", selected: true, expanded: false, presentation: presentation) {}
+                    IOSKeyboardCandidateChip(text: "候補", selected: false, expanded: false, presentation: presentation) {}
+                    Spacer()
+                }
+                .frame(height: 44)
+                .background(presentation.swiftUIColor(.candidateBackground))
             }
-            .frame(height: 34)
-            .background(presentation.swiftUIColor(.candidateBackground))
 
             GeometryReader { geometry in
                 if let surface,
@@ -130,24 +134,28 @@ private struct ProfileV3ThemePreview: View {
                     height: Double(geometry.size.height)
                    ) {
                     ZStack(alignment: .topLeading) {
-                        ForEach(surface.entries, id: \.id) { entry in
-                            let frame = mapping.frame(for: entry.rect)
-                            IOSKeyboardKeyCap(
-                                text: entry.text ?? "",
-                                guides: entry.guides,
-                                pressed: false,
-                                presentation: presentation
-                            )
-                            .frame(width: CGFloat(frame.width), height: CGFloat(frame.height))
-                            .position(x: CGFloat(frame.x + frame.width / 2), y: CGFloat(frame.y + frame.height / 2))
+                        if composition.contains(.boardKeys) {
+                            ForEach(surface.entries, id: \.id) { entry in
+                                let frame = mapping.frame(for: entry.rect)
+                                IOSKeyboardKeyCap(
+                                    text: entry.text ?? "",
+                                    guides: composition.contains(.flickGuides) ? entry.guides : [],
+                                    pressed: false,
+                                    presentation: presentation
+                                )
+                                .frame(width: CGFloat(frame.width), height: CGFloat(frame.height))
+                                .position(x: CGFloat(frame.x + frame.width / 2), y: CGFloat(frame.y + frame.height / 2))
+                            }
                         }
-                        HStack(spacing: 2) {
-                            IOSKeyboardOverlayCell(text: "い", isCandidate: false, isEndpoint: false, presentation: presentation)
-                            IOSKeyboardOverlayCell(text: "あ", isCandidate: true, isEndpoint: true, presentation: presentation)
-                            IOSKeyboardOverlayCell(text: "う", isCandidate: false, isEndpoint: false, presentation: presentation)
+                        if composition.contains(.relativeOverlay) {
+                            HStack(spacing: 2) {
+                                IOSKeyboardOverlayCell(text: "い", isCandidate: false, isEndpoint: false, presentation: presentation)
+                                IOSKeyboardOverlayCell(text: "あ", isCandidate: true, isEndpoint: true, presentation: presentation)
+                                IOSKeyboardOverlayCell(text: "う", isCandidate: false, isEndpoint: false, presentation: presentation)
+                            }
+                            .frame(width: 132, height: 40)
+                            .position(x: geometry.size.width - 74, y: 24)
                         }
-                        .frame(width: 132, height: 40)
-                        .position(x: geometry.size.width - 74, y: 24)
                     }
                 } else {
                     Text("プレビューを表示できません（プロファイルにエラーがあります）")
@@ -159,7 +167,7 @@ private struct ProfileV3ThemePreview: View {
         }
         .padding(4)
         .background(presentation.swiftUIColor(.keyboardBackground))
-        .accessibilityLabel("デザインのプレビュー（実際のキーボード表示）")
+        .accessibilityLabel("キーボードのプレビュー（実際のキーボード表示）")
     }
 }
 
