@@ -227,11 +227,11 @@ private struct ProfileV3RuleBranchEditor: View {
         self.onSave = onSave
         _condition = State(initialValue: condition)
         _behavior = State(initialValue: behavior)
-        let option = behavior.action.flatMap { CommonActionOption.from($0.actionID) }
+        let option = behavior.action.flatMap { CommonActionOption.exact($0.actionID) }
         actionIsOrdinaryEditable = behavior.action == nil || option != nil
         _actionOption = State(initialValue: option)
         _actionArgument = State(initialValue: behavior.action.flatMap { action in
-            option?.argumentText(from: action)
+            option?.ruleArgumentText(from: action)
         } ?? "")
         _saveError = State(initialValue: nil)
     }
@@ -323,7 +323,7 @@ private struct ProfileV3RuleBranchEditor: View {
                     var result = behavior
                     if result.actionsEditable, actionIsOrdinaryEditable {
                         if let actionOption {
-                            result.action = actionOption.makeDraft(
+                            result.action = actionOption.makeRuleDraft(
                                 argumentText: actionArgument,
                                 preserving: result.action
                             )
