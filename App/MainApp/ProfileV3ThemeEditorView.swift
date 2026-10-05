@@ -34,7 +34,10 @@ struct ProfileV3ThemeEditorView: View {
                 composition: .product
             )
         } secondary: {
-        Form {
+        VStack(spacing: 0) {
+            persistenceHeader
+            Divider()
+            Form {
             Section("色") {
                 ForEach(Self.colorLabels, id: \.0) { item in
                     let token = item.0
@@ -68,9 +71,52 @@ struct ProfileV3ThemeEditorView: View {
                 numberRow("補助表示の大きさ", key: "guideFontSize", value: theme.guideFontSize, range: 6...24, fallback: 9)
                 numberRow("補助表示の濃さ", key: "guideOpacity", value: theme.guideOpacity, range: 0...1, fallback: 0.6)
             }
+            }
         }
         }
         .navigationTitle(ProfileV3DisplayCatalog.title(.sectionDesign))
+    }
+
+    private var persistenceHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                persistenceStatus
+                Spacer(minLength: 8)
+                Button("保存") {
+                    editor.save()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!editor.validation.valid)
+            }
+
+            if case .savedLocallyDeliveryFailed(let detail) = editor.persistenceState {
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.thinMaterial)
+    }
+
+    @ViewBuilder
+    private var persistenceStatus: some View {
+        switch editor.persistenceState {
+        case .dirty:
+            Label("未保存の変更", systemImage: "circle.fill")
+                .foregroundStyle(.orange)
+        case .savedLocally:
+            Label("アプリ内に保存済み", systemImage: "checkmark.circle")
+                .foregroundStyle(.secondary)
+        case .savedLocallyAndDelivered:
+            Label("保存済み・キーボードへ反映済み", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+        case .savedLocallyDeliveryFailed:
+            Label("アプリ内に保存済み・キーボード反映失敗", systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+        }
     }
 
     private func numberRow(
