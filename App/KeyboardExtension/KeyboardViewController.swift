@@ -66,8 +66,8 @@ final class KeyboardViewController: UIInputViewController {
                 )
                 retainedModel = model
             } else {
-                // Accepted v1/v2 staging path remains unchanged until A5 migrates
-                // the built-in product Profile to v3.
+                // Compatibility fallback for imported/historical v1/v2 Profiles.
+                // The current bundled product Profile is already v3.
                 let layout = try KeyboardLayoutRuntime.compile(
                     profileJSON: profileJSON
                 )

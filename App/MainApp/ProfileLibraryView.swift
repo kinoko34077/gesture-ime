@@ -74,7 +74,7 @@ struct ProfileLibraryView: View {
                         Button {
                             library.createFromBuiltIn()
                         } label: {
-                            Label("旧形式のキーボード（開発用）", systemImage: "keyboard")
+                            Label("組み込みキーボードを複製（開発用）", systemImage: "keyboard")
                         }
                     } label: {
                         Image(systemName: "plus")
