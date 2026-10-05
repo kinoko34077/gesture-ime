@@ -1251,12 +1251,6 @@ private struct ProfileV3EntryAdvancedSection: View {
             }
 
             overrideSection
-
-            Button(Catalog.title(.advancedConditions), action: onOpenResolver)
-                .buttonStyle(.borderedProminent)
-            Text(Catalog.help(.advancedConditions))
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
