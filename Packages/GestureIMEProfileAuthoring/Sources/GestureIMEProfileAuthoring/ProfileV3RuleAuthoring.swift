@@ -334,24 +334,41 @@ public enum ProfileV3RuleActionDrafting {
 /// members and anything beyond one onRelease action are kept unchanged.
 public struct ProfileV3BranchBehavior: Equatable, Sendable {
     public var displayText: String?
-    /// `nil` with `actionsEditable` = no action.
-    public var action: ProfileActionDraft?
-    /// False when onRelease holds more than one action (edited in 詳細設定).
+    /// Ordered onRelease action stack for ordinary authoring.
+    public var actions: [ProfileActionDraft]
+    /// False only when an onRelease item cannot be represented losslessly as
+    /// an Action draft. In that case the original JSON remains untouched.
     public let actionsEditable: Bool
     public var transition: ProfileV3TransitionDraft?
+
+    /// Compatibility convenience for callers that still work with zero/one
+    /// Action. Multi-Action behavior intentionally returns nil here.
+    public var action: ProfileActionDraft? {
+        get { actions.count == 1 ? actions[0] : nil }
+        set { actions = newValue.map { [$0] } ?? [] }
+    }
 
     public init(_ behavior: JSONNode) {
         let object = behavior.objectValue ?? [:]
         displayText = object["presentation"]?.objectValue?["text"]?.objectValue?["base"]?.stringValue
-        let actions = object["onRelease"]?.arrayValue ?? []
-        actionsEditable = actions.count <= 1
-        action = actions.count == 1 ? actions[0].objectValue.flatMap { item in
-            guard let id = item["actionID"]?.stringValue else { return nil }
-            var extra = item
-            extra.removeValue(forKey: "actionID")
-            let arguments = extra.removeValue(forKey: "arguments")?.objectValue ?? [:]
-            return ProfileActionDraft(actionID: id, arguments: arguments, extra: extra)
-        } : nil
+
+        let rawActions = object["onRelease"]?.arrayValue ?? []
+        let parsedActions = rawActions.compactMap { node -> ProfileActionDraft? in
+            guard var item = node.objectValue,
+                  let id = item["actionID"]?.stringValue else {
+                return nil
+            }
+            item.removeValue(forKey: "actionID")
+            let arguments = item.removeValue(forKey: "arguments")?.objectValue ?? [:]
+            return ProfileActionDraft(
+                actionID: id,
+                arguments: arguments,
+                extra: item
+            )
+        }
+        actionsEditable = parsedActions.count == rawActions.count
+        actions = parsedActions
+
         transition = object["transition"]?.objectValue.flatMap { item in
             guard let target = item["targetBoardRef"]?.stringValue,
                   let lifetime = item["lifetime"]?.stringValue.flatMap(ProfileV3TransitionLifetime.init(rawValue:))
@@ -375,16 +392,20 @@ public struct ProfileV3BranchBehavior: Equatable, Sendable {
         } else {
             object["presentation"] = .object(presentation)
         }
+
         if actionsEditable {
-            if let action {
-                var node = action.extra
-                node["actionID"] = .string(action.actionID)
-                node["arguments"] = .object(action.arguments)
-                object["onRelease"] = .array([.object(node)])
-            } else {
+            if actions.isEmpty {
                 object.removeValue(forKey: "onRelease")
+            } else {
+                object["onRelease"] = .array(actions.map { action in
+                    var node = action.extra
+                    node["actionID"] = .string(action.actionID)
+                    node["arguments"] = .object(action.arguments)
+                    return .object(node)
+                })
             }
         }
+
         if let transition {
             var node = object["transition"]?.objectValue ?? [:]
             node["targetBoardRef"] = .string(transition.targetBoardID)
