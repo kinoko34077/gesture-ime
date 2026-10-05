@@ -277,3 +277,31 @@ func groupSubtreeMoveAndSiblingReorderAreDeterministic() throws {
         try table.moveGroup(["B"], to: ["B", "one"])
     }
 }
+
+
+@Test
+func incompleteExistingEditStaysTransientAndCannotDeletePersistedMapping() {
+    let id = UUID()
+    let persisted = ProfileV3TransformTableRows(id: "t", rows: [
+        .init(from: "a", to: "A", editorID: id)
+    ])
+    let incomplete = ProfileV3TransformRow(from: "", to: "A", editorID: id)
+    #expect(ProfileV3TransformEditPolicy.persistenceCandidate(for: incomplete, in: persisted) == nil)
+    #expect(persisted.rows.map(\.from) == ["a"])
+}
+
+@Test
+func draftPromotionProducesCandidateButRejectedCandidateDoesNotMutateDocument() throws {
+    var doc = try document()
+    let persisted = try doc.v3TransformTableRows()[0]
+    let draft = ProfileV3TransformRow(from: "あ", to: "x")
+    let candidate = try #require(
+        ProfileV3TransformEditPolicy.persistenceCandidate(for: draft, in: persisted)
+    )
+    let before = try doc.encoded(pretty: false)
+    #expect(throws: ProfileAuthoringError.self) {
+        try doc.v3SetTransformTableRows(candidate)
+    }
+    #expect(try doc.encoded(pretty: false) == before)
+    #expect(draft.from == "あ" && draft.to == "x")
+}
