@@ -227,42 +227,44 @@ private struct SetupView: View {
                 }
 
                 Section {
-                    Group {
-                        Stepper(
-                            onIncrement: productSettings.incrementHaptic,
-                            onDecrement: productSettings.decrementHaptic
-                        ) {
-                            HStack {
-                                Text("触覚フィードバックの強さ")
-                                Spacer()
-                                Text(String(format: "%.1f", productSettings.values.hapticStrength))
-                                    .monospacedDigit()
-                            }
+                    Stepper(
+                        onIncrement: productSettings.incrementHaptic,
+                        onDecrement: productSettings.decrementHaptic
+                    ) {
+                        HStack {
+                            Text("触覚フィードバックの強さ")
+                            Spacer()
+                            Text(String(format: "%.1f", productSettings.values.hapticStrength))
+                                .monospacedDigit()
                         }
+                    }
+                    .disabled(!productSettings.isEditable)
 
-                        Stepper(
-                            onIncrement: productSettings.incrementHeightScale,
-                            onDecrement: productSettings.decrementHeightScale
-                        ) {
-                            HStack {
-                                Text("キーボードの高さ")
-                                Spacer()
-                                Text(String(format: "%.2f倍", productSettings.values.keyboardHeightScale))
-                                    .monospacedDigit()
-                            }
+                    Stepper(
+                        onIncrement: productSettings.incrementHeightScale,
+                        onDecrement: productSettings.decrementHeightScale
+                    ) {
+                        HStack {
+                            Text("キーボードの高さ")
+                            Spacer()
+                            Text(String(format: "%.2f倍", productSettings.values.keyboardHeightScale))
+                                .monospacedDigit()
                         }
+                    }
+                    .disabled(!productSettings.isEditable)
 
-                        Toggle("キーを押したときの音", isOn: Binding(
-                            get: { productSettings.values.keySoundEnabled },
-                            set: { productSettings.setKeySound($0) }
-                        ))
-                        Text("音の有無・大きさは iOS の「設定 → サウンドと触覚 → キーボードのフィードバック → サウンド」にも従います。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    Toggle("キーを押したときの音", isOn: Binding(
+                        get: { productSettings.effectiveKeySoundEnabled },
+                        set: { productSettings.setKeySound($0) }
+                    ))
+                    .disabled(!productSettings.keySoundEditable)
 
-                        Button("キーボード設定を初期値に戻す") {
-                            productSettings.reset()
-                        }
+                    Text(productSettings.keySoundStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button("キーボード設定を初期値に戻す") {
+                        productSettings.reset()
                     }
                     .disabled(!productSettings.isEditable)
 
@@ -282,7 +284,8 @@ private struct SetupView: View {
 
                 Section("設定の反映") {
                     Text(productSettings.deliveryStatus)
-                    Text("触覚・キー音・高さはこの端末の設定で、キーボード配置データには保存されません。")
+                    Text("触覚・高さはこの端末の設定で、キーボード配置データには保存されません。")
+                    Text(productSettings.keySoundStatus)
                 }
 
                 Section("キーボード配置の反映") {

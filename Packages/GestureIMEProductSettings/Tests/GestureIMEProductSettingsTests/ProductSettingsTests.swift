@@ -239,6 +239,19 @@ final class ProductSettingsTests: XCTestCase {
         )
     }
 
+    func testKeySoundCapabilityRequiresActualFullAccess() {
+        let unavailable = ProductKeySoundCapability(hasFullAccess: false)
+        XCTAssertFalse(unavailable.isAvailable)
+        XCTAssertFalse(unavailable.effectiveEnabled(storedEnabled: true))
+        XCTAssertFalse(unavailable.effectiveEnabled(storedEnabled: false))
+        XCTAssertTrue(unavailable.japaneseReason.contains("フルアクセス"))
+
+        let available = ProductKeySoundCapability(hasFullAccess: true)
+        XCTAssertTrue(available.isAvailable)
+        XCTAssertTrue(available.effectiveEnabled(storedEnabled: true))
+        XCTAssertFalse(available.effectiveEnabled(storedEnabled: false))
+    }
+
     func testCapabilityTruthIsExplicit() {
         XCTAssertTrue(
             ProductSettingsDeliveryCapability.sharedContainer

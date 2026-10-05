@@ -7,17 +7,22 @@ final class ProductHapticFeedback {
     private let generator: UIImpactFeedbackGenerator?
     private let keySound: Bool
 
-    init(settings: ProductSettingsValues) {
+    init(
+        settings: ProductSettingsValues,
+        keySoundCapability: ProductKeySoundCapability
+    ) {
         strength = CGFloat(settings.hapticStrength)
         generator = settings.hapticsEnabled
             ? UIImpactFeedbackGenerator(style: .medium)
             : nil
-        keySound = settings.keySoundEnabled
+        keySound = keySoundCapability.effectiveEnabled(
+            storedEnabled: settings.keySoundEnabled
+        )
     }
 
     /// Accepted key event (direct press, committed selection, rollback pop):
-    /// #93 / #95 §F8 input click, then haptics. Audibility follows the iOS
-    /// 「キーボードのクリック」 setting.
+    /// #93 / #95 §F8 input click, then haptics. Input-click audio is emitted
+    /// only when the keyboard actually has Full Access; haptics are independent.
     func emitCommittedSelection() {
         if keySound {
             UIDevice.current.playInputClick()
