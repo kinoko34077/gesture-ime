@@ -216,6 +216,7 @@ private struct ProfileV3PrivacyView: View {
 
 private struct SetupView: View {
     @EnvironmentObject private var productSettings: ProductSettingsModel
+    @EnvironmentObject private var library: ProfileLibraryModel
 
     var body: some View {
         List {
@@ -281,12 +282,12 @@ private struct SetupView: View {
 
                 Section("設定の反映") {
                     Text(productSettings.deliveryStatus)
-                    Text("触覚と高さはこの端末の設定で、キーボード配置データには保存されません。")
+                    Text("触覚・キー音・高さはこの端末の設定で、キーボード配置データには保存されません。")
                 }
 
                 Section("キーボード配置の反映") {
                     Text("このアプリでキーボード配置を編集・検証します。")
-                    Text("編集した配置をキーボード本体へ反映する機能は、共有領域の権限が用意されるまで利用できません。")
+                    Text(library.profileDeliveryStatus)
                 }
             }
             .navigationTitle("キーボード設定")
