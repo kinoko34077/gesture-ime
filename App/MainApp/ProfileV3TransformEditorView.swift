@@ -279,15 +279,17 @@ struct ProfileV3TransformEditorView: View {
     private func commit(_ row: ProfileV3TransformRow, in table: ProfileV3TransformTableRows) {
         guard var persistedTable = persisted(table.id) else { return }
 
-        if let index = persistedTable.rows.firstIndex(where: { $0.editorID == row.editorID }) {
+        if persistedTable.rows.contains(where: { $0.editorID == row.editorID }) {
             // Existing semantic rows never disappear merely because the user
             // temporarily clears one side. Keep incomplete/rejected edits local.
-            if row.isDraft {
+            guard let candidate = ProfileV3TransformEditPolicy.persistenceCandidate(
+                for: row,
+                in: persistedTable
+            ) else {
                 pendingEdits[table.id, default: [:]][row.editorID] = row
                 return
             }
-            persistedTable.rows[index] = row
-            if editor.setTransformTable(persistedTable) {
+            if editor.setTransformTable(candidate) {
                 pendingEdits[table.id]?[row.editorID] = nil
             } else {
                 pendingEdits[table.id, default: [:]][row.editorID] = row
@@ -302,10 +304,12 @@ struct ProfileV3TransformEditorView: View {
         } else {
             drafts[table.id, default: []].append(row)
         }
-        guard !row.isDraft else { return }
+        guard let candidate = ProfileV3TransformEditPolicy.persistenceCandidate(
+            for: row,
+            in: persistedTable
+        ) else { return }
 
-        persistedTable.rows.append(row)
-        if editor.setTransformTable(persistedTable) {
+        if editor.setTransformTable(candidate) {
             drafts[table.id]?.removeAll { $0.editorID == row.editorID }
         }
     }
