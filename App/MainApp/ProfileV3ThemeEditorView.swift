@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 import GestureIMEProfileAuthoring
 
 /// #74 / #91 / #95 §F9: Theme editor whose preview is the shared keyboard
@@ -7,6 +8,7 @@ import GestureIMEProfileAuthoring
 /// presentation-only and never touch Board geometry or Actions.
 struct ProfileV3ThemeEditorView: View {
     @ObservedObject var editor: ProfileV3EditorModel
+    @State private var importingTheme = false
 
     private static let colorLabels: [(String, String)] = [
         ("keyboardBackground", "背景"),
@@ -75,6 +77,54 @@ struct ProfileV3ThemeEditorView: View {
         }
         }
         .navigationTitle(ProfileV3DisplayCatalog.title(.sectionDesign))
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if let url = editor.exportThemeURL() {
+                    ShareLink(item: url) {
+                        Label("デザインを書き出し", systemImage: "square.and.arrow.up")
+                    }
+                }
+                Button {
+                    importingTheme = true
+                } label: {
+                    Label("デザインを読み込み", systemImage: "square.and.arrow.down")
+                }
+            }
+        }
+        .fileImporter(
+            isPresented: $importingTheme,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer {
+                    if scoped {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                do {
+                    editor.applyThemeTransfer(try Data(contentsOf: url))
+                } catch {
+                    editor.errorMessage = error.localizedDescription
+                }
+            case .failure(let error):
+                editor.errorMessage = error.localizedDescription
+            }
+        }
+        .alert(
+            "デザインを読み込めません",
+            isPresented: Binding(
+                get: { editor.errorMessage != nil },
+                set: { if !$0 { editor.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(editor.errorMessage ?? "")
+        }
     }
 
     private var persistenceHeader: some View {
