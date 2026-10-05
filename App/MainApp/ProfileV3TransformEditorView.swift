@@ -13,6 +13,9 @@ struct ProfileV3TransformEditorView: View {
     @State private var expanded: Set<String> = []
     @State private var importing = false
     @State private var drafts: [String: [ProfileV3TransformRow]] = [:]
+    /// Incomplete or validation-rejected edits of persisted rows. These are
+    /// editor-only until a valid replacement commits successfully.
+    @State private var pendingEdits: [String: [UUID: ProfileV3TransformRow]] = [:]
     @State private var renaming: RenameTarget?
     @State private var renameText = ""
     @State private var showAdvanced = false
@@ -34,6 +37,9 @@ struct ProfileV3TransformEditorView: View {
     private var tables: [ProfileV3TransformTableRows] {
         editor.transformRows.map { table in
             var copy = table
+            if let edits = pendingEdits[table.id] {
+                copy.rows = copy.rows.map { edits[$0.editorID] ?? $0 }
+            }
             copy.rows += drafts[table.id] ?? []
             return copy
         }
@@ -181,6 +187,29 @@ struct ProfileV3TransformEditorView: View {
                     Label(name, systemImage: "folder")
                     Spacer()
                     Menu {
+                        Button("上へ") {
+                            reorderGroup(path, by: -1, in: table)
+                        }
+                        .disabled(!(persisted(table.id) ?? table).canReorderGroup(path, by: -1))
+                        Button("下へ") {
+                            reorderGroup(path, by: 1, in: table)
+                        }
+                        .disabled(!(persisted(table.id) ?? table).canReorderGroup(path, by: 1))
+                        Menu("移動") {
+                            Button("最上位へ") {
+                                moveGroup(path, to: [], in: table)
+                            }
+                            ForEach(
+                                table.groups.filter { destination in
+                                    destination != path && !destination.starts(with: path)
+                                },
+                                id: \.self
+                            ) { destination in
+                                Button(destination.joined(separator: " › ") + " の中へ") {
+                                    moveGroup(path, to: destination, in: table)
+                                }
+                            }
+                        }
                         Button("名前を変更") {
                             renameText = name
                             renaming = RenameTarget(tableID: table.id, kind: .group(path))
@@ -192,7 +221,7 @@ struct ProfileV3TransformEditorView: View {
                         Button("グループを削除（中身は上の階層へ）", role: .destructive) {
                             var updated = persisted(table.id) ?? table
                             updated.deleteGroup(path)
-                            moveDrafts(tableID: table.id) { p in
+                            rewriteTransientRows(tableID: table.id) { p in
                                 p.starts(with: path) ? Array(path.dropLast()) + p.dropFirst(path.count) : p
                             }
                             editor.setTransformTable(updated)
@@ -248,20 +277,37 @@ struct ProfileV3TransformEditorView: View {
     }
 
     private func commit(_ row: ProfileV3TransformRow, in table: ProfileV3TransformTableRows) {
-        guard var updated = persisted(table.id) else { return }
-        if let index = updated.rows.firstIndex(where: { $0.editorID == row.editorID }) {
-            updated.rows[index] = row
-        } else if !row.isDraft {
-            // A draft becomes semantic once both sides are filled.
-            updated.rows.append(row)
-            drafts[table.id]?.removeAll { $0.editorID == row.editorID }
-        } else {
-            if let index = drafts[table.id]?.firstIndex(where: { $0.editorID == row.editorID }) {
-                drafts[table.id]?[index] = row
+        guard var persistedTable = persisted(table.id) else { return }
+
+        if let index = persistedTable.rows.firstIndex(where: { $0.editorID == row.editorID }) {
+            // Existing semantic rows never disappear merely because the user
+            // temporarily clears one side. Keep incomplete/rejected edits local.
+            if row.isDraft {
+                pendingEdits[table.id, default: [:]][row.editorID] = row
+                return
+            }
+            persistedTable.rows[index] = row
+            if editor.setTransformTable(persistedTable) {
+                pendingEdits[table.id]?[row.editorID] = nil
+            } else {
+                pendingEdits[table.id, default: [:]][row.editorID] = row
             }
             return
         }
-        editor.setTransformTable(updated)
+
+        // New rows live in the transient draft collection until persistence
+        // and whole-document validation both succeed.
+        if let draftIndex = drafts[table.id]?.firstIndex(where: { $0.editorID == row.editorID }) {
+            drafts[table.id]?[draftIndex] = row
+        } else {
+            drafts[table.id, default: []].append(row)
+        }
+        guard !row.isDraft else { return }
+
+        persistedTable.rows.append(row)
+        if editor.setTransformTable(persistedTable) {
+            drafts[table.id]?.removeAll { $0.editorID == row.editorID }
+        }
     }
 
     private func delete(_ row: ProfileV3TransformRow, in table: ProfileV3TransformTableRows) {
@@ -271,7 +317,9 @@ struct ProfileV3TransformEditorView: View {
         }
         guard var updated = persisted(table.id) else { return }
         updated.rows.removeAll { $0.editorID == row.editorID }
-        editor.setTransformTable(updated)
+        if editor.setTransformTable(updated) {
+            pendingEdits[table.id]?[row.editorID] = nil
+        }
     }
 
     private func move(_ row: ProfileV3TransformRow, to path: [String], in table: ProfileV3TransformTableRows) {
@@ -279,15 +327,49 @@ struct ProfileV3TransformEditorView: View {
             drafts[table.id]?[index].groupPath = path
             return
         }
+        if var pending = pendingEdits[table.id]?[row.editorID] {
+            pending.groupPath = path
+            pendingEdits[table.id]?[row.editorID] = pending
+            return
+        }
         guard var updated = persisted(table.id) else { return }
         updated.moveRow(editorID: row.editorID, to: path)
         editor.setTransformTable(updated)
     }
 
-    private func moveDrafts(tableID: String, _ transform: ([String]) -> [String]) {
-        guard var rows = drafts[tableID] else { return }
-        for index in rows.indices { rows[index].groupPath = transform(rows[index].groupPath) }
-        drafts[tableID] = rows
+    private func reorderGroup(_ path: [String], by offset: Int, in table: ProfileV3TransformTableRows) {
+        guard var updated = persisted(table.id),
+              updated.reorderGroup(path, by: offset) else { return }
+        editor.setTransformTable(updated)
+    }
+
+    private func moveGroup(_ path: [String], to parent: [String], in table: ProfileV3TransformTableRows) {
+        guard var updated = persisted(table.id) else { return }
+        let name = path.last ?? ""
+        let destination = parent + [name]
+        do {
+            try updated.moveGroup(path, to: parent)
+            rewriteTransientRows(tableID: table.id) { p in
+                p.starts(with: path) ? destination + p.dropFirst(path.count) : p
+            }
+            editor.setTransformTable(updated)
+        } catch {
+            editor.errorMessage = error.localizedDescription
+        }
+    }
+
+    private func rewriteTransientRows(tableID: String, _ transform: ([String]) -> [String]) {
+        if var rows = drafts[tableID] {
+            for index in rows.indices { rows[index].groupPath = transform(rows[index].groupPath) }
+            drafts[tableID] = rows
+        }
+        if var edits = pendingEdits[tableID] {
+            for (id, var row) in edits {
+                row.groupPath = transform(row.groupPath)
+                edits[id] = row
+            }
+            pendingEdits[tableID] = edits
+        }
     }
 
     private func applyRename() {
@@ -301,7 +383,7 @@ struct ProfileV3TransformEditorView: View {
             case .group(let path):
                 try updated.renameGroup(path, to: text)
                 let renamed = Array(path.dropLast()) + [text]
-                moveDrafts(tableID: target.tableID) { p in
+                rewriteTransientRows(tableID: target.tableID) { p in
                     p.starts(with: path) ? renamed + p.dropFirst(path.count) : p
                 }
             case .newGroup(let parent):
