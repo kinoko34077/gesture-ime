@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import GestureIMEProfileAuthoring
+import GestureIMEProductSettings
 
 @main
 struct GestureIMEApp: App {
