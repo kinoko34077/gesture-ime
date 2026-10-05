@@ -146,15 +146,19 @@ func ordinaryMutationCannotMoveOrDeleteAdvancedBranches() throws {
     )
 
     #expect(!rules.canMoveOrdinaryBranch(from: 0, to: 2))
-    #expect(!rules.moveOrdinaryBranch(from: 0, to: 2))
-    #expect(!rules.deleteOrdinaryBranch(at: 1))
+    let blockedMove = rules.moveOrdinaryBranch(from: 0, to: 2)
+    let blockedDelete = rules.deleteOrdinaryBranch(at: 1)
+    #expect(!blockedMove)
+    #expect(!blockedDelete)
     #expect(rules.branches[1] == .advanced(advancedNode))
 
     rules.branches.insert(editableB, at: 1)
     #expect(rules.canMoveOrdinaryBranch(from: 0, to: 1))
-    #expect(rules.moveOrdinaryBranch(from: 0, to: 1))
+    let allowedMove = rules.moveOrdinaryBranch(from: 0, to: 1)
+    #expect(allowedMove)
     #expect(rules.branches[2] == .advanced(advancedNode))
-    #expect(rules.deleteOrdinaryBranch(at: 0))
+    let allowedDelete = rules.deleteOrdinaryBranch(at: 0)
+    #expect(allowedDelete)
     #expect(rules.branches.contains(.advanced(advancedNode)))
 }
 
