@@ -548,6 +548,7 @@ private struct ProfileV3BoardCanvas: View {
     @State private var contextEntryID: String?
     @State private var showContext = false
     @State private var pasteMode = false
+    @State private var pasteGhost: ProfileV3Rect?
 
     private var items: [(id: String, rect: ProfileV3Rect)] {
         editor.entries.map { (id: $0.id, rect: $0.rect) }
@@ -567,7 +568,29 @@ private struct ProfileV3BoardCanvas: View {
                     entryView(entry, viewport: current)
                 }
 
-                if let candidate, interaction?.targetEntryID == nil {
+                if pasteMode, let pasteGhost {
+                    let frame = current.frame(for: pasteGhost)
+                    let valid = editor.canCreateEntry(pasteGhost)
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(valid ? Color.accentColor.opacity(0.18) : Color.red.opacity(0.18))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(
+                                    valid ? Color.accentColor : Color.red,
+                                    style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+                                )
+                        )
+                        .overlay {
+                            Image(systemName: "doc.on.doc")
+                                .foregroundStyle(valid ? Color.accentColor : Color.red)
+                        }
+                        .frame(width: frame.width, height: frame.height)
+                        .position(x: frame.midX, y: frame.midY)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+
+                if !pasteMode, let candidate, interaction?.targetEntryID == nil {
                     let frame = current.frame(for: candidate)
                     RoundedRectangle(cornerRadius: 6)
                         .stroke(
@@ -597,15 +620,22 @@ private struct ProfileV3BoardCanvas: View {
                     }
                 }
                 Button(Catalog.title(.actionCopy)) { editor.copySelectedEntry() }
-                Button(Catalog.title(.actionPaste)) { pasteMode = true }
-                    .disabled(!editor.hasCopiedEntry)
+                Button(Catalog.title(.actionPaste)) {
+                    pasteMode = true
+                    pasteGhost = nil
+                }
+                .disabled(!editor.hasCopiedEntry)
                 Button(Catalog.title(.actionDelete), role: .destructive) { editor.deleteSelectedEntry() }
             }
             .overlay(alignment: .bottom) {
                 if pasteMode {
                     HStack {
                         Text("貼り付ける位置をタップ").font(.caption.bold())
-                        Button("やめる") { pasteMode = false }.font(.caption)
+                        Button("やめる") {
+                            pasteMode = false
+                            pasteGhost = nil
+                        }
+                        .font(.caption)
                     }
                     .padding(8)
                     .background(.thinMaterial, in: Capsule())
@@ -728,6 +758,24 @@ private struct ProfileV3BoardCanvas: View {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 let base = viewport ?? fitted(size)
+                if pasteMode {
+                    pressTask?.cancel()
+                    pressTask = nil
+                    interaction = nil
+                    liveViewport = nil
+                    if let copied = editor.copiedEntryRect {
+                        let atom = base.atom(
+                            x: Double(value.location.x),
+                            y: Double(value.location.y)
+                        )
+                        pasteGhost = ProfileV3LongPress.pasteRect(
+                            copied: copied,
+                            atX: atom.x,
+                            y: atom.y
+                        )
+                    }
+                    return
+                }
                 if interaction == nil {
                     let hit = ProfileV3CanvasHitTester.hit(
                         x: Double(value.startLocation.x),
@@ -788,15 +836,27 @@ private struct ProfileV3BoardCanvas: View {
                     candidate = nil
                 }
                 let moved = hypot(value.translation.width, value.translation.height) >= 4
-                if pasteMode, !moved {
-                    // Ghost placement: tap chooses the destination; collisions rejected.
+                if pasteMode {
+                    // #95 §F2: the copied key is a live ghost until release.
+                    // Invalid placement stays visible and never mutates the document.
                     let base = viewport ?? fitted(size)
-                    let atom = base.atom(x: Double(value.location.x), y: Double(value.location.y))
-                    if let copied = editor.copiedEntryRect {
-                        let rect = ProfileV3LongPress.pasteRect(copied: copied, atX: atom.x, y: atom.y)
+                    let fallbackRect: ProfileV3Rect? = editor.copiedEntryRect.map { copied in
+                        let atom = base.atom(
+                            x: Double(value.location.x),
+                            y: Double(value.location.y)
+                        )
+                        return ProfileV3LongPress.pasteRect(
+                            copied: copied,
+                            atX: atom.x,
+                            y: atom.y
+                        )
+                    }
+                    if let rect = pasteGhost ?? fallbackRect {
+                        pasteGhost = rect
                         if editor.canCreateEntry(rect) {
                             editor.pasteCopiedEntry(rect: rect)
                             pasteMode = false
+                            pasteGhost = nil
                         } else {
                             editor.errorMessage = "その位置には貼り付けできません（他のキーと重なります）"
                         }
