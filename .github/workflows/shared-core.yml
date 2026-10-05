@@ -14,6 +14,7 @@ on:
       - "Packages/GestureIMEProductSettings/**"
       - "spec/**"
       - "scripts/check-product-delete-contract.py"
+      - "scripts/check-builtin-transform-authoring.py"
       - ".github/workflows/shared-core.yml"
 
 permissions:
@@ -63,3 +64,6 @@ jobs:
 
       - name: Validate built-in Profile JSON
         run: python3 -m json.tool App/KeyboardExtension/Resources/default-ja.json >/dev/null
+
+      - name: Validate built-in Transform authoring
+        run: python3 scripts/check-builtin-transform-authoring.py
