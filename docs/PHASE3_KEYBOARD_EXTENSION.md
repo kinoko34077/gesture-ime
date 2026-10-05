@@ -2,6 +2,8 @@
 
 Issue: #13
 
+> **Historical Phase 3 record.** This document describes the v1-era extension milestone and is preserved for implementation history. It is not the current product/Profile specification. Current authority is Profile v3 #43, as revised by #69 and frozen R95 #95; the bundled `default-ja.json` is now `gesture-ime.profile.v3`.
+
 ## Purpose
 
 Phase 3 moves GestureIMECore into a real iOS custom keyboard extension while preserving the platform-common semantic boundary.
@@ -22,7 +24,7 @@ Canonical bundled data:
 
 The UI is compiled from the profile's active layer, layout placements, key definitions and binding set. Kana mappings are not duplicated in Swift source.
 
-Current development layout:
+Historical Phase 3 development layout:
 
 ```text
 あ   か   さ   ⌫
@@ -37,9 +39,9 @@ Ordinary kana keys remain cardinal-only. The dedicated `◇` key carries experim
 - [E] -> →
 - [E,N] -> →↑
 
-## Gesture tuning
+## Gesture tuning — historical Phase 3 behavior
 
-The `⚙︎` key dispatches the common `panel.open` action and opens an extension-local panel for:
+At the Phase 3 milestone, the `⚙︎` key dispatched the common `panel.open` action and opens an extension-local panel for:
 - dead zone;
 - stage-1 commit distance;
 - stage-2 commit distance;
@@ -72,4 +74,4 @@ GitHub Actions macOS/Xcode
 
 Full Access is not required.
 
-Kana/Kanji conversion and candidate UI remain Phase 4.
+Historical milestone note: at Phase 3, Kana/Kanji conversion and candidate UI were deferred to Phase 4. They are not deferred in the current Profile v3 product.
