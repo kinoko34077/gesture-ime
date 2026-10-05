@@ -37,19 +37,31 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         self == .editDelete || self == .cursorMove || self == .conversionSelectCandidate
     }
 
-    func makeDraft(argumentText: String) -> ProfileActionDraft {
-        guard let argumentKey else {
-            return ProfileActionDraft(actionID: rawValue)
-        }
-        if integerArgument {
-            return ProfileActionDraft(
-                actionID: rawValue,
-                arguments: [argumentKey: .integer(Int64(argumentText) ?? defaultInteger)]
-            )
-        }
-        return ProfileActionDraft(
+    var resolvedStringArgument: Bool {
+        self == .textInsert || self == .textDirectInsert
+    }
+
+    func argumentText(from action: ProfileActionDraft) -> String? {
+        guard let argumentKey else { return nil }
+        return ProfileV3RuleActionDrafting.argumentText(
+            from: action,
+            key: argumentKey,
+            resolvedString: resolvedStringArgument
+        )
+    }
+
+    func makeDraft(
+        argumentText: String,
+        preserving previous: ProfileActionDraft?
+    ) -> ProfileActionDraft {
+        ProfileV3RuleActionDrafting.makeDraft(
             actionID: rawValue,
-            arguments: [argumentKey: .string(argumentText)]
+            argumentKey: argumentKey,
+            argumentText: argumentText,
+            integerArgument: integerArgument,
+            defaultInteger: defaultInteger,
+            resolvedStringArgument: resolvedStringArgument,
+            preserving: previous
         )
     }
 
@@ -62,7 +74,7 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         }
     }
 
-    static func from(_ actionID: String) -> CommonActionOption {
-        CommonActionOption(rawValue: actionID) ?? .noop
+    static func from(_ actionID: String) -> CommonActionOption? {
+        CommonActionOption(rawValue: actionID)
     }
 }
