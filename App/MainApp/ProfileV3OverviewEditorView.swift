@@ -1528,12 +1528,20 @@ private struct ProfileV3RuntimePreviewSheet: View {
                             systemImage: "square.grid.3x3"
                         )
                     } else {
-                        ProfileV3ProductPreview(
-                            presentation: IOSKeyboardPresentation(theme: editor.keyboardTheme),
-                            surface: surface,
-                            composition: .product
-                        )
-                        .padding()
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 12)
+                            ProfileV3ProductPreview(
+                                presentation: IOSKeyboardPresentation(theme: editor.keyboardTheme),
+                                surface: surface,
+                                composition: .product
+                            )
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 344)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(radius: 2, y: 1)
+                            Spacer(minLength: 12)
+                        }
+                        .padding(.horizontal, 12)
                     }
                 } else if let error {
                     ContentUnavailableView(
