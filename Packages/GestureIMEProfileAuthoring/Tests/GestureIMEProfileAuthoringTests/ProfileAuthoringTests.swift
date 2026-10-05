@@ -488,3 +488,40 @@ func unpublishedNewerSnapshotIsNeverPromotedAsLastKnownGood() throws {
     let active = try #require(activeOptional)
     #expect(active.manifest == published)
 }
+
+
+@Test
+func activeProfileReadOnlyReaderConstructionDoesNotCreateSharedRoot() throws {
+    let parent = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-reader-tests-\(UUID().uuidString)")
+    let root = parent.appendingPathComponent("ProfileDelivery", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: parent) }
+
+    #expect(!FileManager.default.fileExists(atPath: root.path))
+    _ = try ActiveProfileSnapshotReader(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    #expect(!FileManager.default.fileExists(atPath: root.path))
+}
+
+@Test
+func activeProfileReadOnlyReaderConsumesWriterPublication() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-active-reader-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let writer = try ActiveProfileSnapshotWriter(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let manifest = try writer.publish(Data(validProfile.utf8))
+
+    let reader = try ActiveProfileSnapshotReader(
+        rootURL: root,
+        validator: acceptingValidator
+    )
+    let snapshot = try #require(try reader.readLastKnownGood())
+    #expect(snapshot.manifest == manifest)
+    #expect(snapshot.data == Data(validProfile.utf8))
+}

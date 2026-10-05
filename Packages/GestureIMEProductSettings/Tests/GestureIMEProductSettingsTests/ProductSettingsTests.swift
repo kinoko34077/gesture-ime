@@ -288,3 +288,36 @@ final class ProductSettingsCapabilityProbeTests: XCTestCase {
         XCTAssertTrue(ProductSettingsCapabilityProbe.Unavailable.appGroupNotConfigured.japaneseReason.contains("App Group"))
     }
 }
+
+
+@Test
+func readOnlyReaderConstructionDoesNotCreateSharedRoot() throws {
+    let parent = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-settings-reader-tests-\(UUID().uuidString)")
+    let root = parent.appendingPathComponent("ProductSettings", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: parent) }
+
+    #expect(!FileManager.default.fileExists(atPath: root.path))
+    _ = try ProductSettingsReader(rootURL: root)
+    #expect(!FileManager.default.fileExists(atPath: root.path))
+}
+
+@Test
+func readOnlyReaderConsumesWriterPublication() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("gesture-ime-settings-reader-tests-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let values = try ProductSettingsValues(
+        hapticStrength: 0.7,
+        keyboardHeightScale: 1.15,
+        keySoundEnabled: false
+    )
+    let writer = try ProductSettingsWriter(rootURL: root)
+    let manifest = try writer.publish(values)
+
+    let reader = try ProductSettingsReader(rootURL: root)
+    let snapshot = try #require(try reader.readLastKnownGood())
+    #expect(snapshot.manifest == manifest)
+    #expect(snapshot.values == values)
+}
