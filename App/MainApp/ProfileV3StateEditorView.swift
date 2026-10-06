@@ -221,7 +221,8 @@ private struct ProfileV3CreateStateSheet: View {
             }
 
             if editor.createEnumState(
-                initialValue: enumInitialValue
+                values: [enumInitialValue],
+                defaultValue: enumInitialValue
             ) != nil {
                 dismiss()
             } else {
@@ -473,7 +474,7 @@ private struct ProfileV3StateDetailView: View {
 
         switch state.type {
         case .boolean:
-            if editor.updateBooleanState(
+            if editor.setBooleanState(
                 id: state.id,
                 defaultValue: booleanDefault
             ) {
@@ -492,7 +493,7 @@ private struct ProfileV3StateDetailView: View {
                 return
             }
 
-            if editor.updateEnumState(
+            if editor.setEnumState(
                 id: state.id,
                 values: enumValues,
                 defaultValue: enumDefault
