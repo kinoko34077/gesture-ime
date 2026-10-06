@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import GestureIMEProfileAuthoring
 
@@ -149,8 +150,7 @@ struct ProfileV3OverviewEditorView: View {
                 if let entry = editor.selectedEntry {
                     ProfileV3EntryInspector(
                         editor: editor,
-                        entry: entry,
-                        onOpenResolver: { sheet = .resolver }
+                        entry: entry
                     )
                     .id(entry.id)
                 } else {
@@ -167,33 +167,14 @@ struct ProfileV3OverviewEditorView: View {
                 }
 
                 profileSection
-                advancedProfileSection
+                boardManagementSection
             }
             .padding()
         }
     }
 
     private var profileSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            NavigationLink {
-                ProfileV3InputSettingsView(editor: editor)
-            } label: {
-                Label(Catalog.title(.sectionInputSettings), systemImage: "hand.draw")
-            }
-            .accessibilityHint(Catalog.help(.sectionInputSettings))
-
-            NavigationLink {
-                ProfileV3ThemeEditorView(editor: editor)
-            } label: {
-                Label(Catalog.title(.sectionDesign), systemImage: "paintpalette")
-            }
-
-            NavigationLink {
-                ProfileV3TransformEditorView(editor: editor)
-            } label: {
-                Label("文字変換表（小書き・濁点・大文字など）", systemImage: "character.textbox")
-            }
-
+        VStack(alignment: .leading, spacing: 8) {
             Menu {
                 ForEach(ProfileV3Preset.allCases) { preset in
                     Button(Catalog.title(preset.displayKey)) {
@@ -203,9 +184,6 @@ struct ProfileV3OverviewEditorView: View {
             } label: {
                 Label(Catalog.title(.presetSection), systemImage: "square.grid.3x3.square")
             }
-            Text(Catalog.help(.presetSection))
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
             Menu {
                 Button(Catalog.title(.actionRename)) { sheet = .renameLayer }
@@ -233,88 +211,26 @@ struct ProfileV3OverviewEditorView: View {
         }
     }
 
-    private var advancedProfileSection: some View {
-        DisclosureGroup("▶︎ " + Catalog.title(.sectionAdvanced)) {
-            VStack(alignment: .leading, spacing: 10) {
-                if !editor.validation.valid {
-                    Text(Catalog.validationMessage(code: editor.validation.errorCode))
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                    if let detail = editor.validation.detail {
-                        Text(detail)
-                            .font(.caption2.monospaced())
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                LabeledContent(Catalog.title(.advancedInternalID)) {
-                    Text(editor.profileID).font(.caption.monospaced())
-                }
-                if let boardID = editor.currentBoardID {
-                    LabeledContent(Catalog.title(.conceptBoard)) {
-                        Text(boardID).font(.caption.monospaced())
-                    }
-                }
-
-                Menu {
-                    Button("入力面を追加") { sheet = .createBoard }
-                    Button("この入力面を複製") { sheet = .duplicateBoard }
-                    Button("入力面を開く…") { sheet = .openBoard }
-                    Divider()
-                    Button("この入力面を削除", role: .destructive) {
-                        editor.deleteCurrentBoard()
-                    }
-                } label: {
-                    Label(Catalog.title(.conceptBoard), systemImage: "square.grid.3x3")
-                }
-
-                Text(Catalog.title(.advancedInboundReferences))
-                    .font(.subheadline.bold())
-                if editor.inboundReferences.isEmpty {
-                    Text("なし")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(editor.inboundReferences) { reference in
-                        Button {
-                            editor.openInboundReference(reference)
-                        } label: {
-                            Text(reference.path)
-                                .font(.caption2.monospaced())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                Text(Catalog.title(.advancedProfileSemantics))
-                    .font(.subheadline.bold())
-                HStack {
-                    semanticButton("状態", count: editor.states.count, sheet: .states)
-                    semanticButton("変換表", count: editor.transformTables.count, sheet: .transformTables)
-                    semanticButton("マクロ", count: editor.macros.count, sheet: .macros)
-                }
+    private var boardManagementSection: some View {
+        Menu {
+            Button("入力面を追加") {
+                editor.createBoard(id: generatedID(prefix: "board"))
             }
-            .padding(.top, 6)
+            Button("この入力面を複製") {
+                editor.duplicateCurrentBoard(newBoardID: generatedID(prefix: "board"))
+            }
+            Button("入力面を開く…") { sheet = .openBoard }
+            Divider()
+            Button("この入力面を削除", role: .destructive) {
+                editor.deleteCurrentBoard()
+            }
+        } label: {
+            Label(Catalog.title(.conceptBoard), systemImage: "square.grid.3x3")
         }
     }
 
-    private func semanticButton(
-        _ title: String,
-        count: Int,
-        sheet target: ProfileV3EditorSheet
-    ) -> some View {
-        Button {
-            sheet = target
-        } label: {
-            VStack {
-                Text("\(count)")
-                    .font(.title3.monospacedDigit())
-                Text(title)
-                    .font(.caption)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
+    private func generatedID(prefix: String) -> String {
+        prefix + "." + UUID().uuidString.lowercased()
     }
 
     @ToolbarContentBuilder
@@ -382,60 +298,11 @@ struct ProfileV3OverviewEditorView: View {
                 return true
             }
 
-        case .createBoard:
-            ProfileV3SingleTextSheet(
-                title: "入力面を追加",
-                label: Catalog.title(.advancedInternalID),
-                initialValue: "board.new"
-            ) { value in
-                editor.createBoard(id: value)
-                return true
-            }
-
-        case .duplicateBoard:
-            ProfileV3SingleTextSheet(
-                title: "この入力面を複製",
-                label: Catalog.title(.advancedInternalID),
-                initialValue: (editor.currentBoardID ?? "board") + ".copy"
-            ) { value in
-                editor.duplicateCurrentBoard(newBoardID: value)
-                return true
-            }
-
         case .openBoard:
             ProfileV3BoardPickerSheet(editor: editor)
 
-        case .resolver:
-            ProfileV3JSONEditorSheet(
-                title: Catalog.title(.advancedConditions),
-                initialJSON: editor.selectedResolverJSON() ?? "{}"
-            ) { text in
-                editor.setSelectedResolverJSON(text)
-            }
-
-        case .states:
-            semanticEditor(.states, title: "状態")
-
-        case .transformTables:
-            semanticEditor(.transformTables, title: "変換表")
-
-        case .macros:
-            semanticEditor(.macros, title: "マクロ")
-
         case .preview:
             ProfileV3RuntimePreviewSheet(editor: editor)
-        }
-    }
-
-    private func semanticEditor(
-        _ section: ProfileV3SemanticSection,
-        title: String
-    ) -> some View {
-        ProfileV3JSONEditorSheet(
-            title: title,
-            initialJSON: editor.semanticSectionJSON(section) ?? "[]"
-        ) { text in
-            editor.setSemanticSectionJSON(section, text: text)
         }
     }
 }
@@ -445,13 +312,7 @@ private enum ProfileV3EditorSheet: String, Identifiable {
     case createLayer
     case duplicateLayer
     case renameLayer
-    case createBoard
-    case duplicateBoard
     case openBoard
-    case resolver
-    case states
-    case transformTables
-    case macros
     case preview
 
     var id: String { rawValue }
@@ -948,8 +809,6 @@ private struct ProfileV3AtomicGrid: View {
 private struct ProfileV3EntryInspector: View {
     @ObservedObject var editor: ProfileV3EditorModel
     let entry: ProfileV3BoardEntrySummary
-    let onOpenResolver: () -> Void
-
     @State private var displayText = ""
     @State private var tapText = ""
 
@@ -988,8 +847,7 @@ private struct ProfileV3EntryInspector: View {
             DisclosureGroup("▶︎ " + Catalog.title(.advancedSection)) {
                 ProfileV3EntryAdvancedSection(
                     editor: editor,
-                    entry: entry,
-                    onOpenResolver: onOpenResolver
+                    entry: entry
                 )
                 .padding(.top, 6)
             }
@@ -1226,14 +1084,8 @@ private struct ProfileV3DirectionField: View {
 private struct ProfileV3EntryAdvancedSection: View {
     @ObservedObject var editor: ProfileV3EditorModel
     let entry: ProfileV3BoardEntrySummary
-    let onOpenResolver: () -> Void
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            LabeledContent(Catalog.title(.advancedInternalID)) {
-                Text(entry.id).font(.caption.monospaced())
-            }
-
             if let transition = entry.transition {
                 Picker(
                     Catalog.title(.advancedTransitionLifetime),
@@ -1385,22 +1237,12 @@ private struct ProfileV3CreateLayerSheet: View {
     @ObservedObject var editor: ProfileV3EditorModel
     let duplicate: Bool
 
-    @State private var layerID = "layer.new"
     @State private var name = ""
-    @State private var boardID = "board.layer.new"
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("内部ID", text: $layerID)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
                 TextField("名前", text: $name)
-                if duplicate {
-                    TextField("新しい入力面の内部ID", text: $boardID)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
             }
             .navigationTitle(duplicate ? "キーボード面を複製" : "キーボード面を追加")
             .toolbar {
@@ -1409,11 +1251,12 @@ private struct ProfileV3CreateLayerSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(duplicate ? "複製" : "追加") {
+                        let layerID = generatedID(prefix: "layer")
                         if duplicate {
                             editor.duplicateSelectedLayer(
                                 newLayerID: layerID,
                                 name: name.isEmpty ? nil : name,
-                                newRootBoardID: boardID
+                                newRootBoardID: generatedID(prefix: "board")
                             )
                         } else {
                             editor.createLayer(
@@ -1423,14 +1266,13 @@ private struct ProfileV3CreateLayerSheet: View {
                         }
                         dismiss()
                     }
-                    .disabled(
-                        layerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            || (duplicate
-                                && boardID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    )
                 }
             }
         }
+    }
+
+    private func generatedID(prefix: String) -> String {
+        prefix + "." + UUID().uuidString.lowercased()
     }
 }
 
@@ -1440,67 +1282,29 @@ private struct ProfileV3BoardPickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            List(editor.boards) { board in
-                Button {
-                    editor.navigate(to: board.id)
-                    dismiss()
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(board.id)
-                            Text("キー \(board.entryCount)個")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if board.id == editor.currentBoardID {
-                            Image(systemName: "checkmark")
+            List {
+                ForEach(Array(editor.boards.enumerated()), id: \.element.id) { index, board in
+                    Button {
+                        editor.navigate(to: board.id)
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("入力面 \(index + 1)")
+                                Text("キー \(board.entryCount)個")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if board.id == editor.currentBoardID {
+                                Image(systemName: "checkmark")
+                                    .accessibilityLabel("現在の入力面")
+                            }
                         }
                     }
                 }
             }
             .navigationTitle("入力面を開く")
-        }
-    }
-}
-
-private struct ProfileV3JSONEditorSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let title: String
-    let onSave: (String) -> Bool
-
-    @State private var text: String
-
-    init(
-        title: String,
-        initialJSON: String,
-        onSave: @escaping (String) -> Bool
-    ) {
-        self.title = title
-        self.onSave = onSave
-        _text = State(initialValue: initialJSON)
-    }
-
-    var body: some View {
-        NavigationStack {
-            TextEditor(text: $text)
-                .font(.system(.body, design: .monospaced))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .padding(8)
-                .navigationTitle(title)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("キャンセル") { dismiss() }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("検証して適用") {
-                            if onSave(text) {
-                                dismiss()
-                            }
-                        }
-                    }
-                }
         }
     }
 }
