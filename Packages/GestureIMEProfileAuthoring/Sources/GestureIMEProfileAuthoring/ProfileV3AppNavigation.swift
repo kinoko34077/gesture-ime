@@ -1,22 +1,35 @@
 import Foundation
 
-// #92 / #95 §F7: the frozen top-level IA. Four tabs; each of the eight
-// categories lives in exactly one tab and is reachable in ≤1 tap.
+// #157 U1 / P13: task-domain IA. Four tabs; Profile is global scope.
+// Every canonical ordinary destination lives in exactly one tab and is
+// reachable in <= 1 tap from that tab's root.
 
 public enum ProfileV3AppCategory: String, CaseIterable, Sendable {
-    case keyboardEditor, inputSettings, conversionDictionary, design
-    case keyboardSettings, language, privacy, advanced
+    case keyboardEditor
+    case inputSettings
+    case transformTables
+    case states
+    case macros
+    case conversionDictionary
+    case design
+    case keyboardSettings
+    case language
+    case privacy
+    case advanced
 
     public var title: String {
         switch self {
         case .keyboardEditor: "キーボードを編集"
-        case .inputSettings: "入力設定"
-        case .conversionDictionary: "変換・辞書"
+        case .inputSettings: "ジェスチャー設定"
+        case .transformTables: "文字変換表"
+        case .states: "状態"
+        case .macros: "マクロ"
+        case .conversionDictionary: "変換・辞書の状態"
         case .design: "デザイン"
         case .keyboardSettings: "キーボード設定"
         case .language: "言語"
         case .privacy: "プライバシー"
-        case .advanced: "詳細設定・開発者向け"
+        case .advanced: "開発者"
         }
     }
 }
@@ -37,10 +50,14 @@ public enum ProfileV3AppTab: String, CaseIterable, Sendable {
     /// (0 taps); otherwise each is one row (1 tap).
     public var categories: [ProfileV3AppCategory] {
         switch self {
-        case .edit: [.keyboardEditor]
-        case .input: [.inputSettings, .conversionDictionary]
-        case .design: [.design]
-        case .settings: [.keyboardSettings, .language, .privacy, .advanced]
+        case .edit:
+            [.keyboardEditor]
+        case .input:
+            [.inputSettings, .transformTables, .states, .macros, .conversionDictionary]
+        case .design:
+            [.design]
+        case .settings:
+            [.keyboardSettings, .language, .privacy, .advanced]
         }
     }
 
