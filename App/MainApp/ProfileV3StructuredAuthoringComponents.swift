@@ -90,3 +90,26 @@ func profileV3MoveMenuItems(
     Button("下へ", action: onMoveDown)
         .disabled(!canMoveDown)
 }
+
+
+struct ProfileV3InlineAuthoringError: View {
+    let message: String
+    let correctionHint: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(message, systemImage: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(.primary)
+
+            Text(correctionHint)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.thinMaterial)
+        .accessibilityElement(children: .combine)
+    }
+}
