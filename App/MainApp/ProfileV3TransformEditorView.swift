@@ -27,7 +27,6 @@ struct ProfileV3TransformEditorView: View {
     @State private var pendingEdits: [String: [UUID: ProfileV3TransformRow]] = [:]
     @State private var renaming: RenameTarget?
     @State private var renameText = ""
-    @State private var showAdvanced = false
 
     private struct RenameTarget: Identifiable {
         enum Kind { case tableTitle, group([String]), newGroup([String]) }
@@ -73,37 +72,42 @@ struct ProfileV3TransformEditorView: View {
                         nodeView(child, table: table, search: search)
                     }
                     addRowButton(table: table, path: [])
-                } header: {
-                    Text(table.displayTitle)
                 }
-            }
-            Section {
-                Button {
-                    if let id = try? editor.newTransformTableID() {
-                        editor.setTransformTable(ProfileV3TransformTableRows(id: id, title: "新しい変換表", rows: []))
-                    }
-                } label: {
-                    Label("変換表を追加", systemImage: "plus.rectangle.on.rectangle")
-                }
-                Toggle("内部IDを表示（詳細設定）", isOn: $showAdvanced)
-            } footer: {
-                Text("グループは編集用の整理です。変換の結果は変わりません。")
             }
         }
         .searchable(text: $query, prompt: "変換前・変換後・グループを検索")
         .navigationTitle("文字変換表")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                if let url = editor.exportTransformCSV() {
-                    ShareLink(item: url) {
-                        Label("CSVを書き出し", systemImage: "square.and.arrow.up")
-                    }
-                }
                 Button {
-                    importing = true
+                    createTable()
                 } label: {
-                    Label("CSVを読み込み", systemImage: "square.and.arrow.down")
+                    Image(systemName: "plus")
                 }
+                .accessibilityLabel("変換表を追加")
+
+                Menu {
+                    if let url = editor.exportTransformCSV() {
+                        ShareLink(item: url) {
+                            Label(
+                                "CSVを書き出し",
+                                systemImage: "square.and.arrow.up"
+                            )
+                        }
+                    }
+
+                    Button {
+                        importing = true
+                    } label: {
+                        Label(
+                            "CSVを読み込み",
+                            systemImage: "square.and.arrow.down"
+                        )
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("文字変換表のその他の操作")
             }
         }
         .fileImporter(
@@ -140,31 +144,49 @@ struct ProfileV3TransformEditorView: View {
         }
     }
 
-    // MARK: Table header (title, reverseAll, advanced ID)
+    // MARK: Table header
 
     @ViewBuilder
     private func tableHeader(_ table: ProfileV3TransformTableRows) -> some View {
-        HStack {
-            Button {
-                renameText = table.title ?? ""
-                renaming = RenameTarget(tableID: table.id, kind: .tableTitle)
-            } label: {
-                Label("タイトルを変更", systemImage: "pencil")
-            }
-            .buttonStyle(.borderless)
-            Spacer()
+        HStack(spacing: 8) {
+            Text(table.displayTitle)
+                .font(.headline)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
             Menu {
-                Button("グループを追加") {
+                Button {
+                    renameText = table.title ?? ""
+                    renaming = RenameTarget(
+                        tableID: table.id,
+                        kind: .tableTitle
+                    )
+                } label: {
+                    Label("タイトルを変更", systemImage: "pencil")
+                }
+
+                Button {
                     renameText = ""
-                    renaming = RenameTarget(tableID: table.id, kind: .newGroup([]))
+                    renaming = RenameTarget(
+                        tableID: table.id,
+                        kind: .newGroup([])
+                    )
+                } label: {
+                    Label(
+                        "グループを追加",
+                        systemImage: "folder.badge.plus"
+                    )
                 }
             } label: {
-                Image(systemName: "folder.badge.plus").frame(width: 44, height: 44)
+                Image(systemName: "ellipsis.circle")
+                    .frame(width: 44, height: 44)
             }
-            .accessibilityLabel("グループを追加")
+            .accessibilityLabel("\(table.displayTitle) の操作")
         }
+
         Toggle(
-            "すべての行を逆向きにも変換",
+            "表全体を逆向きにも変換",
             isOn: Binding(
                 get: { table.reverseAll },
                 set: { on in
@@ -174,11 +196,6 @@ struct ProfileV3TransformEditorView: View {
                 }
             )
         )
-        if showAdvanced {
-            LabeledContent(ProfileV3DisplayCatalog.title(.advancedInternalID)) {
-                Text(table.id).font(.caption.monospaced())
-            }
-        }
     }
 
     // MARK: Nodes
@@ -276,11 +293,30 @@ struct ProfileV3TransformEditorView: View {
         ProfileV3TransformGrouping.decode(String(nodeID.dropFirst(tableID.count + 1)))
     }
 
-    private func isOpen(_ id: String, search: (expanded: Set<String>, matches: Set<String>)) -> Binding<Bool> {
+    private func isOpen(
+        _ id: String,
+        search: (expanded: Set<String>, matches: Set<String>)
+    ) -> Binding<Bool> {
         Binding(
-            get: { expanded.contains(id) || search.expanded.contains(id) },
+            get: {
+                expanded.contains(id)
+                    || search.expanded.contains(id)
+            },
             set: { open in
-                if open { expanded.insert(id) } else { expanded.remove(id) }
+                // Search expansion is temporary presentation state. Do not
+                // overwrite the user's persistent disclosure choices while a
+                // query is forcing ancestors open.
+                guard query
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .isEmpty else {
+                    return
+                }
+
+                if open {
+                    expanded.insert(id)
+                } else {
+                    expanded.remove(id)
+                }
             }
         )
     }
@@ -296,6 +332,19 @@ struct ProfileV3TransformEditorView: View {
     }
 
     // MARK: Mutations
+
+    private func createTable() {
+        guard let id = try? editor.newTransformTableID() else {
+            return
+        }
+        editor.setTransformTable(
+            ProfileV3TransformTableRows(
+                id: id,
+                title: "新しい変換表",
+                rows: []
+            )
+        )
+    }
 
     private func persisted(_ tableID: String) -> ProfileV3TransformTableRows? {
         editor.transformRows.first { $0.id == tableID }
@@ -438,47 +487,136 @@ private struct ProfileV3TransformRowEditor: View {
     @State private var to = ""
 
     var body: some View {
-        HStack(spacing: 6) {
-            TextField("変換前", text: $from)
-                .frame(minWidth: 0, maxWidth: .infinity)
-                .onSubmit(commit)
-            Image(systemName: reverseAll || row.reverse ? "arrow.left.arrow.right" : "arrow.right")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            TextField("変換後", text: $to)
-                .frame(minWidth: 0, maxWidth: .infinity)
-                .onSubmit(commit)
-            // Row reverse: shown checked and disabled when the table reverses all.
-            Toggle(
-                "逆",
-                isOn: Binding(
-                    get: { reverseAll || row.reverse },
-                    set: { on in
-                        var updated = row
-                        updated.reverse = on
-                        onCommit(updated)
-                    }
-                )
-            )
-            .toggleStyle(.button)
-            .disabled(reverseAll || row.isDraft)
-            .accessibilityLabel("逆向きにも変換")
-            Menu {
-                Button("グループなしへ移動") { onMove([]) }
-                ForEach(groups, id: \.self) { path in
-                    Button(path.joined(separator: " › ") + " へ移動") { onMove(path) }
+        VStack(alignment: .leading, spacing: 4) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    fromField
+                        .frame(minWidth: 112)
+                    directionIcon
+                    toField
+                        .frame(minWidth: 112)
                 }
-                Divider()
-                Button("削除", role: .destructive, action: onDelete)
-            } label: {
-                Image(systemName: "ellipsis").frame(width: 32, height: 44)
+
+                VStack(spacing: 4) {
+                    fromField
+
+                    HStack {
+                        Spacer()
+                        directionIcon
+                        Spacer()
+                    }
+
+                    toField
+                }
             }
-            .accessibilityLabel("行の操作")
+
+            HStack(spacing: 8) {
+                Toggle(
+                    "逆向き",
+                    isOn: Binding(
+                        get: { reverseAll || row.reverse },
+                        set: { on in
+                            var updated = row
+                            updated.reverse = on
+                            onCommit(updated)
+                        }
+                    )
+                )
+                .toggleStyle(.button)
+                .disabled(reverseAll || row.isDraft)
+                .accessibilityLabel("逆向きにも変換")
+                .accessibilityHint(
+                    reverseAll
+                        ? "表全体の設定で有効です"
+                        : "この行だけ逆向き変換を切り替えます"
+                )
+
+                if reverseAll {
+                    Text("表全体で有効")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                if highlighted {
+                    Image(systemName: "magnifyingglass")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("検索結果")
+                }
+
+                Spacer(minLength: 4)
+
+                Menu {
+                    Button("グループなしへ移動") {
+                        onMove([])
+                    }
+
+                    ForEach(groups, id: \.self) { path in
+                        Button(
+                            path.joined(separator: " › ")
+                                + " へ移動"
+                        ) {
+                            onMove(path)
+                        }
+                    }
+
+                    Divider()
+
+                    Button(
+                        "削除",
+                        role: .destructive,
+                        action: onDelete
+                    )
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 32, height: 44)
+                }
+                .accessibilityLabel("行の操作")
+            }
         }
         .textFieldStyle(.roundedBorder)
-        .listRowBackground(highlighted ? Color.yellow.opacity(0.2) : nil)
+        .listRowBackground(
+            highlighted
+                ? Color.secondary.opacity(0.10)
+                : nil
+        )
         .onAppear(perform: sync)
-        .onChange(of: row) { _, _ in sync() }
+        .onChange(of: row) { _, _ in
+            sync()
+        }
+    }
+
+    private var fromField: some View {
+        TextField("変換前", text: $from)
+            .frame(
+                minWidth: 0,
+                maxWidth: .infinity,
+                alignment: .leading
+            )
+            .layoutPriority(1)
+            .onSubmit(commit)
+    }
+
+    private var toField: some View {
+        TextField("変換後", text: $to)
+            .frame(
+                minWidth: 0,
+                maxWidth: .infinity,
+                alignment: .leading
+            )
+            .layoutPriority(1)
+            .onSubmit(commit)
+    }
+
+    private var directionIcon: some View {
+        Image(
+            systemName:
+                reverseAll || row.reverse
+                    ? "arrow.left.arrow.right"
+                    : "arrow.right"
+        )
+        .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
     }
 
     private func sync() {
@@ -487,12 +625,14 @@ private struct ProfileV3TransformRowEditor: View {
     }
 
     private func commit() {
-        onCommit(ProfileV3TransformRow(
-            from: from,
-            to: to,
-            groupPath: row.groupPath,
-            reverse: row.reverse,
-            editorID: row.editorID
-        ))
+        onCommit(
+            ProfileV3TransformRow(
+                from: from,
+                to: to,
+                groupPath: row.groupPath,
+                reverse: row.reverse,
+                editorID: row.editorID
+            )
+        )
     }
 }
