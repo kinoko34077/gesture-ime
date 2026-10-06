@@ -1,3 +1,17 @@
+@Test
+func stateIDsAreGeneratedInternallyWithoutRenamingExistingIdentity() {
+    #expect(
+        ProfileV3StateAuthoringPolicy.nextStateID(
+            existingIDs: []
+        ) == "state.new"
+    )
+    #expect(
+        ProfileV3StateAuthoringPolicy.nextStateID(
+            existingIDs: ["state.new", "state.new.2"]
+        ) == "state.new.3"
+    )
+}
+
 import Testing
 @testable import GestureIMEProfileAuthoring
 
