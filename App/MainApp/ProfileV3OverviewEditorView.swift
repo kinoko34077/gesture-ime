@@ -30,7 +30,7 @@ struct ProfileV3OverviewEditorView: View {
     }
 
     var body: some View {
-        ProfileV3ResizableWorkspace(storageKey: "board") {
+        ProfileV3PriorityWorkspace {
             VStack(spacing: 6) {
                 contextBar
                 canvas
@@ -171,6 +171,7 @@ struct ProfileV3OverviewEditorView: View {
             }
             .padding()
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var profileSection: some View {
