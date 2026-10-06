@@ -532,10 +532,17 @@ final class ProfileV3EditorModel: ObservableObject {
     }
 
     func createEnumState(
-        values: [String],
-        defaultValue: String
+        initialValue: String
     ) -> String? {
         do {
+            if let error =
+                ProfileV3StateAuthoringPolicy.enumValidationError(
+                    values: [initialValue],
+                    defaultValue: initialValue
+                ) {
+                throw ProfileAuthoringError.invalidJSON(error)
+            }
+
             guard let document = history?.document else {
                 throw ProfileAuthoringError.invalidJSON(
                     "Editor document is unavailable"
@@ -545,8 +552,8 @@ final class ProfileV3EditorModel: ObservableObject {
             try mutateThrowing {
                 try $0.v3UpsertEnumState(
                     id: id,
-                    values: values,
-                    defaultValue: defaultValue
+                    values: [initialValue],
+                    defaultValue: initialValue
                 )
             }
             errorMessage = nil
@@ -558,7 +565,7 @@ final class ProfileV3EditorModel: ObservableObject {
     }
 
     @discardableResult
-    func setBooleanState(
+    func updateBooleanState(
         id: String,
         defaultValue: Bool
     ) -> Bool {
@@ -578,7 +585,7 @@ final class ProfileV3EditorModel: ObservableObject {
     }
 
     @discardableResult
-    func setEnumState(
+    func updateEnumState(
         id: String,
         values: [String],
         defaultValue: String
