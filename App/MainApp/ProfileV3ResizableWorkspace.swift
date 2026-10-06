@@ -151,9 +151,8 @@ struct ProfileV3PriorityWorkspace<Primary: View, Secondary: View>: View {
     }
 }
 
-/// #100 / frozen #95 §F5: one shared workspace primitive for the Board editor
-/// and the Design editor. Layout comes only from actual usable geometry; the
-/// divider changes presentation state only (never Profile/Board/settings).
+/// Legacy free-split workspace retained for Design until U7 removes its
+/// divider. U2 no longer uses this primitive for the Board/Edit workspace.
 struct ProfileV3ResizableWorkspace<Primary: View, Secondary: View>: View {
     /// Distinguishes persisted split ratios ("board", "design").
     let storageKey: String
