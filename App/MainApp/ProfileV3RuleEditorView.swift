@@ -54,52 +54,75 @@ struct ProfileV3RuleSection: View {
     }
 
     @ViewBuilder
-    private func branchRow(rules: ProfileV3RuleSet, index: Int, branch: ProfileV3RuleBranch) -> some View {
-        HStack(alignment: .top) {
-            switch branch {
-            case .advanced:
-                Label("詳細設定で編集された条件", systemImage: "lock")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            case .editable(let condition, let behavior, let extra):
-                NavigationLink {
-                    ProfileV3RuleBranchEditor(
-                        editor: editor,
-                        condition: condition,
-                        behavior: ProfileV3BranchBehavior(behavior),
-                        onSave: { newCondition, newBehavior in
-                            var updated = rules
-                            updated.branches[index] = .editable(
-                                condition: newCondition,
-                                behavior: newBehavior.applied(to: behavior),
-                                extra: extra
-                            )
-                            return editor.setSelectedRules(updated)
+    private func branchRow(
+        rules: ProfileV3RuleSet,
+        index: Int,
+        branch: ProfileV3RuleBranch
+    ) -> some View {
+        ProfileV3HierarchyRow(depth: 1) {
+            HStack(alignment: .top) {
+                switch branch {
+                case .advanced:
+                    Label("詳細設定で編集された条件", systemImage: "lock")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                case .editable(let condition, let behavior, let extra):
+                    NavigationLink {
+                        ProfileV3RuleBranchEditor(
+                            editor: editor,
+                            condition: condition,
+                            behavior: ProfileV3BranchBehavior(behavior),
+                            onSave: { newCondition, newBehavior in
+                                var updated = rules
+                                updated.branches[index] = .editable(
+                                    condition: newCondition,
+                                    behavior: newBehavior.applied(to: behavior),
+                                    extra: extra
+                                )
+                                return editor.setSelectedRules(updated)
+                            }
+                        )
+                    } label: {
+                        VStack(alignment: .leading) {
+                            Text("もし " + Self.describe(condition))
+                                .font(.caption)
+                            Text(Self.describe(ProfileV3BranchBehavior(behavior)))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
-                    )
-                } label: {
-                    VStack(alignment: .leading) {
-                        Text("もし " + Self.describe(condition)).font(.caption)
-                        Text(Self.describe(ProfileV3BranchBehavior(behavior)))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
                     }
                 }
-            }
-            Spacer()
-            if !branch.isAdvanced {
-                Menu {
-                    Button("上へ") { move(rules, index, by: -1) }
-                        .disabled(!rules.canMoveOrdinaryBranch(from: index, to: index - 1))
-                    Button("下へ") { move(rules, index, by: 1) }
-                        .disabled(!rules.canMoveOrdinaryBranch(from: index, to: index + 1))
-                    Button("削除", role: .destructive) {
-                        var updated = rules
-                        guard updated.deleteOrdinaryBranch(at: index) else { return }
-                        editor.setSelectedRules(updated)
+
+                Spacer()
+
+                if !branch.isAdvanced {
+                    Menu {
+                        profileV3MoveMenuItems(
+                            canMoveUp: rules.canMoveOrdinaryBranch(
+                                from: index,
+                                to: index - 1
+                            ),
+                            canMoveDown: rules.canMoveOrdinaryBranch(
+                                from: index,
+                                to: index + 1
+                            ),
+                            onMoveUp: { move(rules, index, by: -1) },
+                            onMoveDown: { move(rules, index, by: 1) }
+                        )
+                        Divider()
+                        Button("削除", role: .destructive) {
+                            var updated = rules
+                            guard updated.deleteOrdinaryBranch(at: index) else {
+                                return
+                            }
+                            editor.setSelectedRules(updated)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .frame(width: 44, height: 44)
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle").accessibilityLabel("条件の操作")
+                    .accessibilityLabel("条件の操作")
                 }
             }
         }
@@ -332,13 +355,10 @@ private struct ProfileV3RuleBranchEditor: View {
         .navigationTitle("条件と動作")
         .safeAreaInset(edge: .bottom) {
             if let saveError {
-                Text(saveError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(.thinMaterial)
+                ProfileV3InlineAuthoringError(
+                    message: saveError,
+                    correctionHint: "内容を修正して、もう一度保存してください。"
+                )
             }
         }
         .toolbar {
@@ -434,17 +454,21 @@ private struct ProfileV3RuleBranchEditor: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                     Menu {
-                        Button("上へ") { moveAction(index, by: -1) }
-                            .disabled(index == 0)
-                        Button("下へ") { moveAction(index, by: 1) }
-                            .disabled(index + 1 >= behavior.actions.count)
+                        profileV3MoveMenuItems(
+                            canMoveUp: index > 0,
+                            canMoveDown: index + 1 < behavior.actions.count,
+                            onMoveUp: { moveAction(index, by: -1) },
+                            onMoveDown: { moveAction(index, by: 1) }
+                        )
                         Divider()
                         Button("削除", role: .destructive) {
                             behavior.actions.remove(at: index)
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                            .frame(width: 44, height: 44)
                     }
+                    .accessibilityLabel("動作の操作")
                 }
 
                 Menu {
