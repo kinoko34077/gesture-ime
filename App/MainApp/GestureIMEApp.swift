@@ -245,13 +245,20 @@ private struct ProfileV3ProfileMenu: View {
     @ObservedObject var workspace: ProfileV3Workspace
 
     var body: some View {
+        let profiles = library.profiles.filter { library.isProfileV3(profileID: $0.id) }
+        let scopedID = [workspace.selectedProfileID, library.activeProfileID]
+            .compactMap { $0 }
+            .first(where: { candidate in profiles.contains(where: { $0.id == candidate }) })
+            ?? profiles.first?.id
+        let scopedName = profiles.first(where: { $0.id == scopedID })?.name
+
         Menu {
-            ForEach(library.profiles.filter { library.isProfileV3(profileID: $0.id) }) { profile in
+            ForEach(profiles) { profile in
                 Button {
                     workspace.selectedProfileID = profile.id
                 } label: {
-                    if library.activeProfileID == profile.id {
-                        Label(profile.name, systemImage: "checkmark.circle")
+                    if scopedID == profile.id {
+                        Label(profile.name, systemImage: "checkmark")
                     } else {
                         Text(profile.name)
                     }
@@ -265,8 +272,9 @@ private struct ProfileV3ProfileMenu: View {
                 Label("新しいキーボード", systemImage: "plus")
             }
         } label: {
-            Label("キーボード一覧", systemImage: "list.bullet")
+            Label(scopedName ?? "キーボード", systemImage: "keyboard")
         }
+        .accessibilityLabel("編集中のキーボード: " + (scopedName ?? "なし"))
     }
 }
 
