@@ -51,81 +51,192 @@ private struct RootView: View {
                         ProfileV3EmptyWorkspace()
                     }
                 }
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        ProfileV3ProfileMenu(workspace: workspace)
-                    }
-                }
+                .toolbar { profileScopeToolbar }
             }
             .tabItem { Label(ProfileV3AppTab.edit.title, systemImage: "keyboard") }
 
             NavigationStack {
-                List {
-                    if let editor {
-                        NavigationLink {
-                            ProfileV3InputSettingsView(editor: editor)
-                        } label: {
-                            Label(ProfileV3AppCategory.inputSettings.title, systemImage: "hand.draw")
-                        }
-                        NavigationLink {
-                            ProfileV3TransformEditorView(editor: editor)
-                        } label: {
-                            Label(ProfileV3AppCategory.conversionDictionary.title, systemImage: "character.textbox")
-                        }
-                    } else {
-                        ProfileV3EmptyWorkspace()
-                    }
-                    Section("変換・辞書の状態") {
-                        Text("かな漢字変換はこの端末内の辞書で行います。")
-                        Text("入力の学習は行いません（学習機能はオフです）。")
-                    }
-                }
-                .navigationTitle(ProfileV3AppTab.input.title)
+                ProfileV3InputLandingView(editor: editor)
+                    .toolbar { profileScopeToolbar }
             }
             .tabItem { Label(ProfileV3AppTab.input.title, systemImage: "hand.draw") }
 
             NavigationStack {
-                if let editor {
-                    ProfileV3ThemeEditorView(editor: editor)
-                        .id(editor.profileID)
-                } else {
-                    ProfileV3EmptyWorkspace()
+                Group {
+                    if let editor {
+                        ProfileV3ThemeEditorView(editor: editor)
+                            .id(editor.profileID)
+                    } else {
+                        ProfileV3EmptyWorkspace()
+                    }
                 }
+                .toolbar { profileScopeToolbar }
             }
             .tabItem { Label(ProfileV3AppTab.design.title, systemImage: "paintpalette") }
 
             NavigationStack {
-                List {
-                    NavigationLink {
-                        SetupView()
-                    } label: {
-                        Label(ProfileV3AppCategory.keyboardSettings.title, systemImage: "slider.horizontal.3")
-                    }
-                    NavigationLink {
-                        ProfileV3LanguageView(editor: editor)
-                    } label: {
-                        Label(ProfileV3AppCategory.language.title, systemImage: "globe")
-                    }
-                    NavigationLink {
-                        ProfileV3PrivacyView()
-                    } label: {
-                        Label(ProfileV3AppCategory.privacy.title, systemImage: "hand.raised")
-                    }
-                    NavigationLink {
-                        if let editor {
-                            ProfileV3AdvancedSettingsView(editor: editor)
-                                .id(editor.profileID)
-                        } else {
-                            ProfileV3EmptyWorkspace()
-                        }
-                    } label: {
-                        Label(ProfileV3AppCategory.advanced.title, systemImage: "wrench.and.screwdriver")
-                    }
-                }
-                .navigationTitle(ProfileV3AppTab.settings.title)
+                ProfileV3SettingsLandingView(editor: editor)
+                    .toolbar { profileScopeToolbar }
             }
             .tabItem { Label(ProfileV3AppTab.settings.title, systemImage: "gearshape") }
         }
+    }
+
+    @ToolbarContentBuilder
+    private var profileScopeToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            ProfileV3ProfileMenu(workspace: workspace)
+        }
+    }
+}
+
+private struct ProfileV3InputLandingView: View {
+    let editor: ProfileV3EditorModel?
+
+    var body: some View {
+        List {
+            if let editor {
+                NavigationLink {
+                    ProfileV3InputSettingsView(editor: editor)
+                } label: {
+                    Label(ProfileV3AppCategory.inputSettings.title, systemImage: "hand.draw")
+                }
+
+                NavigationLink {
+                    ProfileV3TransformEditorView(editor: editor)
+                } label: {
+                    Label(ProfileV3AppCategory.transformTables.title, systemImage: "character.textbox")
+                }
+
+                NavigationLink {
+                    ProfileV3SemanticCollectionOverview(editor: editor, kind: .states)
+                } label: {
+                    Label(ProfileV3AppCategory.states.title, systemImage: "switch.2")
+                }
+
+                NavigationLink {
+                    ProfileV3SemanticCollectionOverview(editor: editor, kind: .macros)
+                } label: {
+                    Label(ProfileV3AppCategory.macros.title, systemImage: "list.bullet.rectangle")
+                }
+
+                NavigationLink {
+                    ProfileV3ConversionStatusView()
+                } label: {
+                    HStack {
+                        Label(ProfileV3AppCategory.conversionDictionary.title, systemImage: "text.book.closed")
+                        Spacer()
+                        Text("端末内・学習オフ")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                ProfileV3EmptyWorkspace()
+            }
+        }
+        .navigationTitle(ProfileV3AppTab.input.title)
+    }
+}
+
+private enum ProfileV3SemanticCollectionKind {
+    case states
+    case macros
+
+    var title: String {
+        switch self {
+        case .states: ProfileV3AppCategory.states.title
+        case .macros: ProfileV3AppCategory.macros.title
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .states: "switch.2"
+        case .macros: "list.bullet.rectangle"
+        }
+    }
+
+    func count(in editor: ProfileV3EditorModel) -> Int {
+        switch self {
+        case .states: editor.states.count
+        case .macros: editor.macros.count
+        }
+    }
+}
+
+private struct ProfileV3SemanticCollectionOverview: View {
+    @ObservedObject var editor: ProfileV3EditorModel
+    let kind: ProfileV3SemanticCollectionKind
+
+    var body: some View {
+        List {
+            let count = kind.count(in: editor)
+            if count == 0 {
+                ContentUnavailableView(
+                    "\(kind.title)はありません",
+                    systemImage: kind.systemImage
+                )
+            } else {
+                LabeledContent("登録済み") {
+                    Text("\(count)件")
+                        .monospacedDigit()
+                }
+            }
+        }
+        .navigationTitle(kind.title)
+    }
+}
+
+private struct ProfileV3ConversionStatusView: View {
+    var body: some View {
+        List {
+            LabeledContent("かな漢字変換") {
+                Text("端末内")
+            }
+            LabeledContent("入力の学習") {
+                Text("オフ")
+            }
+        }
+        .navigationTitle(ProfileV3AppCategory.conversionDictionary.title)
+    }
+}
+
+private struct ProfileV3SettingsLandingView: View {
+    let editor: ProfileV3EditorModel?
+
+    var body: some View {
+        List {
+            NavigationLink {
+                SetupView()
+            } label: {
+                Label(ProfileV3AppCategory.keyboardSettings.title, systemImage: "slider.horizontal.3")
+            }
+
+            NavigationLink {
+                ProfileV3LanguageView(editor: editor)
+            } label: {
+                Label(ProfileV3AppCategory.language.title, systemImage: "globe")
+            }
+
+            NavigationLink {
+                ProfileV3PrivacyView()
+            } label: {
+                Label(ProfileV3AppCategory.privacy.title, systemImage: "hand.raised")
+            }
+
+            NavigationLink {
+                if let editor {
+                    ProfileV3AdvancedSettingsView(editor: editor)
+                        .id(editor.profileID)
+                } else {
+                    ProfileV3EmptyWorkspace()
+                }
+            } label: {
+                Label(ProfileV3AppCategory.advanced.title, systemImage: "hammer")
+            }
+        }
+        .navigationTitle(ProfileV3AppTab.settings.title)
     }
 }
 
@@ -294,19 +405,7 @@ private struct SetupView: View {
                     Text(library.profileDeliveryStatus)
                 }
 
-                Section("署名・共有領域の診断") {
-                    let diagnostics =
-                        AppGroupRuntimeDiagnosticsProbe.captureMainBundle()
 
-                    Text(diagnostics.japaneseDiagnosis)
-                    Text(diagnostics.report)
-                        .font(.system(.caption2, design: .monospaced))
-                        .textSelection(.enabled)
-
-                    ShareLink(item: diagnostics.report) {
-                        Label("診断結果を共有", systemImage: "square.and.arrow.up")
-                    }
-                }
             }
             .navigationTitle("キーボード設定")
     }
