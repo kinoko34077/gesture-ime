@@ -18,20 +18,60 @@ public enum ProfileV3StateAuthoringPolicy {
     public static func nextStateID(existingIDs: [String]) -> String {
         let existing = Set(existingIDs)
         var index = 1
-        while existing.contains("state.state-(index)") {
+        while existing.contains("state.state-\(index)") {
             index += 1
         }
-        return "state.state-(index)"
+        return "state.state-\(index)"
     }
 
     public static func isValidEnum(
         values: [String],
         defaultValue: String
     ) -> Bool {
-        !values.isEmpty
-            && values.count <= 32
-            && Set(values).count == values.count
-            && values.contains(defaultValue)
+        enumValidationError(
+            values: values,
+            defaultValue: defaultValue
+        ) == nil
+    }
+
+    public static func enumValidationError(
+        values: [String],
+        defaultValue: String
+    ) -> String? {
+        guard !values.isEmpty else {
+            return "列挙型には1つ以上の値が必要です。"
+        }
+        guard values.count <= 32 else {
+            return "列挙型の値は32個までです。"
+        }
+        guard values.allSatisfy({ !$0.isEmpty }) else {
+            return "空の値は登録できません。"
+        }
+        guard Set(values).count == values.count else {
+            return "同じ値を複数登録できません。"
+        }
+        guard values.contains(defaultValue) else {
+            return "初期値を登録済みの値から選んでください。"
+        }
+        return nil
+    }
+
+    public static func movedValues(
+        _ values: [String],
+        from index: Int,
+        by offset: Int
+    ) -> [String]? {
+        let destination = index + offset
+        guard values.indices.contains(index),
+              values.indices.contains(destination),
+              index != destination else {
+            return nil
+        }
+
+        var copy = values
+        let value = copy.remove(at: index)
+        copy.insert(value, at: destination)
+        return copy
     }
 
     /// Deletes one Enum value without ever leaving the State with an invalid
