@@ -15,6 +15,22 @@ public struct ProfileV3EnumDeletionResult: Equatable, Sendable {
 /// This policy does not mutate ProfileDocument. It exists so invalid/incomplete
 /// UI edits can remain local until the user commits a valid State definition.
 public enum ProfileV3StateAuthoringPolicy {
+    public static func nextStateID(
+        existingIDs: [String],
+        base: String = "state.new"
+    ) -> String {
+        let used = Set(existingIDs)
+        if !used.contains(base) {
+            return base
+        }
+
+        var index = 2
+        while used.contains("\(base).\(index)") {
+            index += 1
+        }
+        return "\(base).\(index)"
+    }
+
     public static func enumValidationError(
         values: [String],
         defaultValue: String
