@@ -355,6 +355,17 @@ private struct ProfileV3StateDetailView: View {
                     if state.type == .enumeration {
                         enumValuesSection(state)
                     }
+
+                    if let localError {
+                        Section {
+                            ProfileV3InlineAuthoringError(
+                                message: localError,
+                                correctionHint:
+                                    "入力内容を確認して、もう一度操作してください。"
+                            )
+                            .listRowInsets(EdgeInsets())
+                        }
+                    }
                 }
                 .toolbar {
                     if state.type == .enumeration {
@@ -374,15 +385,6 @@ private struct ProfileV3StateDetailView: View {
         }
         .navigationTitle(stateID)
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
-            if let localError {
-                ProfileV3InlineAuthoringError(
-                    message: localError,
-                    correctionHint:
-                        "入力内容を確認して、もう一度操作してください。"
-                )
-            }
-        }
         .confirmationDialog(
             "削除後の初期値",
             isPresented: Binding(
@@ -511,14 +513,6 @@ private struct ProfileV3StateDetailView: View {
                 .frame(minHeight: 44)
             }
 
-            if let localError {
-                ProfileV3InlineAuthoringError(
-                    message: localError,
-                    correctionHint:
-                        "入力中の値は保持されています。重複や空欄を修正してください。"
-                )
-                .listRowInsets(EdgeInsets())
-            }
         } header: {
             Text("選択肢")
         }
