@@ -705,6 +705,32 @@ extension ProfileDocument {
         try v3DeleteTopLevelObject(arrayName: "states", id: id)
     }
 
+    public mutating func v3DuplicateState(
+        sourceID: String,
+        newID: String
+    ) throws {
+        try Self.v3ValidateSemanticID(newID, field: "state.id")
+        var top = try v3TopObject()
+        var states = try v3MutableArray(in: top, named: "states")
+
+        guard !states.contains(where: {
+            $0.objectValue?["id"]?.stringValue == newID
+        }) else {
+            throw ProfileAuthoringError.duplicateProfile(newID)
+        }
+
+        guard var source = states.first(where: {
+            $0.objectValue?["id"]?.stringValue == sourceID
+        })?.objectValue else {
+            throw ProfileAuthoringError.missingReference(sourceID)
+        }
+
+        source["id"] = .string(newID)
+        states.append(.object(source))
+        top["states"] = .array(states)
+        root = .object(top)
+    }
+
     public mutating func v3UpsertTransformTable(
         id: String,
         entries: [ProfileV3TransformEntry]
