@@ -658,7 +658,9 @@ extension ProfileDocument {
 
     public func v3NewStateID() throws -> String {
         ProfileV3StateAuthoringPolicy.nextStateID(
-            existingIDs: try v3StateSummaries().map(\.id)
+            existingIDs: try v3Array(named: "states").compactMap {
+                $0.objectValue?["id"]?.stringValue
+            }
         )
     }
 
