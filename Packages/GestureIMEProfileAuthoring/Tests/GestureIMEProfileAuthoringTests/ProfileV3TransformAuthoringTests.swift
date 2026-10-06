@@ -186,6 +186,10 @@ func reverseFlagsPersistAndConflictsAreRejected() throws {
     let reread = try doc.v3TransformTableRows()[0]
     #expect(reread.reverseAll)
     #expect(reread.effectiveReverse(reread.rows[1]))
+    #expect(
+        !reread.rows[1].reverse,
+        "table-level reverse must not rewrite the authored row flag"
+    )
 
     var conflict = reread
     conflict.rows.append(ProfileV3TransformRow(from: "ぁ", to: "x"))
