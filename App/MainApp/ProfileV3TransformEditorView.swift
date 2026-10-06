@@ -279,18 +279,18 @@ struct ProfileV3TransformEditorView: View {
     }
 
     private func addTable() {
-        guard let id =
-                try? editor.newTransformTableID() else {
-            return
-        }
-
-        _ = editor.setTransformTable(
-            ProfileV3TransformTableRows(
-                id: id,
-                title: "新しい変換表",
-                rows: []
+        do {
+            let id = try editor.newTransformTableID()
+            _ = editor.setTransformTable(
+                ProfileV3TransformTableRows(
+                    id: id,
+                    title: "新しい変換表",
+                    rows: []
+                )
             )
-        )
+        } catch {
+            editor.errorMessage = error.localizedDescription
+        }
     }
 
     // MARK: Nodes
@@ -455,30 +455,6 @@ struct ProfileV3TransformEditorView: View {
     }
 
     // MARK: Mutations
-
-    private func ordinaryTitle(
-        for table: ProfileV3TransformTableRows
-    ) -> String {
-        let position = editor.transformRows.firstIndex {
-            $0.id == table.id
-        } ?? 0
-        return table.ordinaryTitle(position: position)
-    }
-
-    private func createTable() {
-        do {
-            let id = try editor.newTransformTableID()
-            _ = editor.setTransformTable(
-                ProfileV3TransformTableRows(
-                    id: id,
-                    title: "新しい変換表",
-                    rows: []
-                )
-            )
-        } catch {
-            editor.errorMessage = error.localizedDescription
-        }
-    }
 
     private func persisted(_ tableID: String) -> ProfileV3TransformTableRows? {
         editor.transformRows.first { $0.id == tableID }
@@ -709,13 +685,20 @@ private struct ProfileV3TransformRowEditor: View {
     @ViewBuilder
     private var reverseControl: some View {
         if reverseAll {
-            Label(
-                "表全体で逆",
-                systemImage: "arrow.left.arrow.right"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Toggle(
+                    "逆",
+                    isOn: .constant(true)
+                )
+                .toggleStyle(.button)
+                .disabled(true)
+
+                Text("表全体で有効")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             .frame(minHeight: 44)
+            .accessibilityElement(children: .combine)
             .accessibilityLabel(
                 "逆向きにも変換。表全体の設定で有効"
             )
