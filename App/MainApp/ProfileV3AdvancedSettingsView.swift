@@ -1,5 +1,6 @@
 import SwiftUI
 import GestureIMEProfileAuthoring
+import GestureIMEProductSettings
 
 /// #113 / frozen #95 §F7: truthful advanced/developer landing surface.
 ///
@@ -62,6 +63,19 @@ struct ProfileV3AdvancedSettingsView: View {
                 }
             }
 
+            Section("署名・共有領域の診断") {
+                let diagnostics = AppGroupRuntimeDiagnosticsProbe.captureMainBundle()
+
+                Text(diagnostics.japaneseDiagnosis)
+                Text(diagnostics.report)
+                    .font(.system(.caption2, design: .monospaced))
+                    .textSelection(.enabled)
+
+                ShareLink(item: diagnostics.report) {
+                    Label("診断結果を共有", systemImage: "square.and.arrow.up")
+                }
+            }
+
             Section("Raw JSON") {
                 Button("選択中キーの条件 JSON") {
                     sheet = .resolver
@@ -91,7 +105,7 @@ struct ProfileV3AdvancedSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(ProfileV3AppCategory.advanced.title)
+        .navigationTitle("開発者")
         .sheet(item: $sheet) { item in
             advancedJSONEditor(item)
         }
