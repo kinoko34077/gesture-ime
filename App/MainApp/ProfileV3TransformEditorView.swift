@@ -63,43 +63,55 @@ struct ProfileV3TransformEditorView: View {
         let tree = ProfileV3TransformGrouping.tree(current)
         let search = ProfileV3TransformGrouping.search(query, in: tree)
         List {
+            if current.isEmpty {
+                ContentUnavailableView {
+                    Label("変換表はありません", systemImage: "character.textbox")
+                } description: {
+                    Text("変換前と変換後の文字を対応づける表を追加できます。")
+                }
+            }
+
             ForEach(current.indices, id: \.self) { index in
                 let table = current[index]
                 let node = tree[index]
                 Section {
                     tableHeader(
                         table,
-                        title: ordinaryTitle(for: table)
+                        fallbackPosition: index
                     )
                     ForEach(node.children) { child in
-                        nodeView(child, table: table, search: search)
+                        nodeView(
+                            child,
+                            table: table,
+                            search: search
+                        )
                     }
-                    addRowButton(table: table, path: [])
+                    addRowButton(
+                        table: table,
+                        path: []
+                    )
                 }
             }
         }
-        .searchable(text: $query, prompt: "変換前・変換後・グループを検索")
+        .searchable(
+            text: $query,
+            prompt: "変換前・変換後・グループを検索"
+        )
         .navigationTitle("文字変換表")
-        .safeAreaInset(edge: .bottom) {
-            if let message = editor.errorMessage {
-                ProfileV3InlineAuthoringError(
-                    message: message,
-                    correctionHint:
-                        "入力中の内容は保持されています。内容を修正して、もう一度操作してください。"
-                )
-            }
-        }
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItemGroup(
+                placement: .topBarTrailing
+            ) {
                 Button {
-                    createTable()
+                    addTable()
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("変換表を追加")
 
                 Menu {
-                    if let url = editor.exportTransformCSV() {
+                    if let url =
+                            editor.exportTransformCSV() {
                         ShareLink(item: url) {
                             Label(
                                 "CSVを書き出し",
@@ -119,7 +131,7 @@ struct ProfileV3TransformEditorView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
-                .accessibilityLabel("文字変換表のその他の操作")
+                .accessibilityLabel("その他の操作")
             }
         }
         .fileImporter(
@@ -156,48 +168,56 @@ struct ProfileV3TransformEditorView: View {
         }
     }
 
-    // MARK: Table header
+    // MARK: Table identity + table-wide controls
 
     @ViewBuilder
     private func tableHeader(
         _ table: ProfileV3TransformTableRows,
-        title: String
+        fallbackPosition: Int
     ) -> some View {
         HStack(spacing: 8) {
-            Text(title)
-                .font(.headline)
-                .lineLimit(1)
+            Button {
+                renameText = table.title ?? ""
+                renaming = RenameTarget(
+                    tableID: table.id,
+                    kind: .tableTitle
+                )
+            } label: {
+                HStack(spacing: 6) {
+                    Text(
+                        ordinaryTitle(
+                            table,
+                            fallbackPosition:
+                                fallbackPosition
+                        )
+                    )
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("タイトルを変更")
 
             Spacer(minLength: 8)
 
             Menu {
-                Button {
-                    renameText = table.title ?? ""
-                    renaming = RenameTarget(
-                        tableID: table.id,
-                        kind: .tableTitle
-                    )
-                } label: {
-                    Label("タイトルを変更", systemImage: "pencil")
-                }
-
-                Button {
+                Button("グループを追加") {
                     renameText = ""
                     renaming = RenameTarget(
                         tableID: table.id,
                         kind: .newGroup([])
                     )
-                } label: {
-                    Label(
-                        "グループを追加",
-                        systemImage: "folder.badge.plus"
-                    )
                 }
             } label: {
-                Image(systemName: "ellipsis.circle")
+                Image(systemName: "folder.badge.plus")
                     .frame(width: 44, height: 44)
             }
-            .accessibilityLabel("\(title) の操作")
+            .accessibilityLabel("グループを追加")
         }
 
         Toggle(
@@ -205,10 +225,41 @@ struct ProfileV3TransformEditorView: View {
             isOn: Binding(
                 get: { table.reverseAll },
                 set: { on in
-                    var updated = persisted(table.id) ?? table
+                    var updated =
+                        persisted(table.id) ?? table
                     updated.reverseAll = on
-                    editor.setTransformTable(updated)
+                    _ = editor.setTransformTable(updated)
                 }
+            )
+        )
+        .frame(minHeight: 44)
+    }
+
+    private func ordinaryTitle(
+        _ table: ProfileV3TransformTableRows,
+        fallbackPosition: Int
+    ) -> String {
+        let position =
+            editor.transformRows.firstIndex(where: {
+                $0.id == table.id
+            })
+            ?? fallbackPosition
+        return table.ordinaryTitle(
+            position: position
+        )
+    }
+
+    private func addTable() {
+        guard let id =
+                try? editor.newTransformTableID() else {
+            return
+        }
+
+        _ = editor.setTransformTable(
+            ProfileV3TransformTableRows(
+                id: id,
+                title: "新しい変換表",
+                rows: []
             )
         )
     }
@@ -287,16 +338,44 @@ struct ProfileV3TransformEditorView: View {
             })
         case .leaf(let row):
             return AnyView(
-                ProfileV3HierarchyRow(depth: row.groupPath.count) {
+                ProfileV3HierarchyRow(
+                    depth: row.groupPath.count
+                ) {
                     ProfileV3TransformRowEditor(
                         row: row,
                         reverseAll: table.reverseAll,
-                        highlighted: search.matches.contains(node.id),
+                        highlighted:
+                            search.matches.contains(
+                                node.id
+                            ),
                         groups: table.groups,
-                        onCommit: { updated in commit(updated, in: table) },
-                        onDelete: { delete(row, in: table) },
-                        onMove: { path in move(row, to: path, in: table) }
+                        onCommit: { updated in
+                            commit(updated, in: table)
+                        },
+                        onDelete: {
+                            delete(row, in: table)
+                        },
+                        onMove: { path in
+                            move(
+                                row,
+                                to: path,
+                                in: table
+                            )
+                        }
                     )
+                }
+                .swipeActions(
+                    edge: .trailing,
+                    allowsFullSwipe: false
+                ) {
+                    Button(role: .destructive) {
+                        delete(row, in: table)
+                    } label: {
+                        Label(
+                            "削除",
+                            systemImage: "trash"
+                        )
+                    }
                 }
             )
         case .table:
@@ -513,97 +592,28 @@ private struct ProfileV3TransformRowEditor: View {
     @State private var to = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 6) {
-                    fromField
-                        .frame(minWidth: 112)
-                    directionIcon
-                    toField
-                        .frame(minWidth: 112)
-                }
-
-                VStack(spacing: 4) {
-                    fromField
-
-                    HStack {
-                        Spacer()
-                        directionIcon
-                        Spacer()
-                    }
-
-                    toField
-                }
+        VStack(
+            alignment: .leading,
+            spacing: 4
+        ) {
+            if highlighted {
+                Label(
+                    "検索結果",
+                    systemImage: "magnifyingglass"
+                )
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 8) {
-                Toggle(
-                    "逆向き",
-                    isOn: Binding(
-                        get: { reverseAll || row.reverse },
-                        set: { on in
-                            var updated = row
-                            updated.reverse = on
-                            onCommit(updated)
-                        }
-                    )
-                )
-                .toggleStyle(.button)
-                .disabled(reverseAll || row.isDraft)
-                .accessibilityLabel("逆向きにも変換")
-                .accessibilityHint(
-                    reverseAll
-                        ? "表全体の設定で有効です"
-                        : "この行だけ逆向き変換を切り替えます"
-                )
-
-                if reverseAll {
-                    Text("表全体で有効")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                if highlighted {
-                    Image(systemName: "magnifyingglass")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel("検索結果")
-                }
-
-                Spacer(minLength: 4)
-
-                Menu {
-                    Button("グループなしへ移動") {
-                        onMove([])
-                    }
-
-                    ForEach(groups, id: \.self) { path in
-                        Button(
-                            path.joined(separator: " › ")
-                                + " へ移動"
-                        ) {
-                            onMove(path)
-                        }
-                    }
-
-                    Divider()
-
-                    Button(
-                        "削除",
-                        role: .destructive,
-                        action: onDelete
-                    )
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .frame(width: 32, height: 44)
-                }
-                .accessibilityLabel("行の操作")
+            ViewThatFits(in: .horizontal) {
+                inlineRow
+                stackedRow
             }
         }
         .textFieldStyle(.roundedBorder)
         .listRowBackground(
             highlighted
-                ? Color.secondary.opacity(0.10)
+                ? Color.secondary.opacity(0.08)
                 : nil
         )
         .onAppear(perform: sync)
@@ -612,37 +622,127 @@ private struct ProfileV3TransformRowEditor: View {
         }
     }
 
-    private var fromField: some View {
+    private var inlineRow: some View {
+        HStack(spacing: 6) {
+            mappingFields(
+                minimumFieldWidth: 88
+            )
+            reverseControl
+            rowMenu
+        }
+    }
+
+    private var stackedRow: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                mappingFields(
+                    minimumFieldWidth: 0
+                )
+            }
+
+            HStack(spacing: 8) {
+                reverseControl
+                Spacer(minLength: 8)
+                rowMenu
+            }
+            .frame(minHeight: 44)
+        }
+    }
+
+    @ViewBuilder
+    private func mappingFields(
+        minimumFieldWidth: CGFloat
+    ) -> some View {
         TextField("変換前", text: $from)
             .frame(
-                minWidth: 0,
-                maxWidth: .infinity,
-                alignment: .leading
+                minWidth: minimumFieldWidth,
+                maxWidth: .infinity
             )
-            .layoutPriority(1)
             .onSubmit(commit)
-    }
 
-    private var toField: some View {
-        TextField("変換後", text: $to)
-            .frame(
-                minWidth: 0,
-                maxWidth: .infinity,
-                alignment: .leading
-            )
-            .layoutPriority(1)
-            .onSubmit(commit)
-    }
-
-    private var directionIcon: some View {
         Image(
             systemName:
                 reverseAll || row.reverse
-                    ? "arrow.left.arrow.right"
-                    : "arrow.right"
+                ? "arrow.left.arrow.right"
+                : "arrow.right"
         )
         .foregroundStyle(.secondary)
         .accessibilityHidden(true)
+
+        TextField("変換後", text: $to)
+            .frame(
+                minWidth: minimumFieldWidth,
+                maxWidth: .infinity
+            )
+            .onSubmit(commit)
+    }
+
+    @ViewBuilder
+    private var reverseControl: some View {
+        if reverseAll {
+            Label(
+                "表全体で逆",
+                systemImage: "arrow.left.arrow.right"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(minHeight: 44)
+            .accessibilityLabel(
+                "逆向きにも変換。表全体の設定で有効"
+            )
+        } else {
+            Toggle(
+                "逆",
+                isOn: Binding(
+                    get: { row.reverse },
+                    set: { on in
+                        var updated = row
+                        updated.reverse = on
+                        onCommit(updated)
+                    }
+                )
+            )
+            .toggleStyle(.button)
+            .disabled(row.isDraft)
+            .frame(minHeight: 44)
+            .accessibilityLabel(
+                "逆向きにも変換"
+            )
+            .accessibilityValue(
+                row.reverse ? "オン" : "オフ"
+            )
+        }
+    }
+
+    private var rowMenu: some View {
+        Menu {
+            Button("グループなしへ移動") {
+                onMove([])
+            }
+
+            ForEach(groups, id: \.self) { path in
+                Button(
+                    path.joined(
+                        separator: " › "
+                    )
+                    + " へ移動"
+                ) {
+                    onMove(path)
+                }
+            }
+
+            Divider()
+
+            Button(
+                "削除",
+                role: .destructive,
+                action: onDelete
+            )
+        } label: {
+            Image(systemName: "ellipsis")
+                .frame(width: 44, height: 44)
+        }
+        .accessibilityLabel("行の操作")
     }
 
     private func sync() {
