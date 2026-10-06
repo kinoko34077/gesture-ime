@@ -80,6 +80,90 @@ func storedRatioRoundTripsAndIsClamped() {
     #expect(clamped.secondary >= 200 - 0.001)
 }
 
+
+@Test
+func priorityWorkspaceUsesExactlyTwoStackedPhoneStates() {
+    let canvas = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 390,
+        availableHeight: 760,
+        priority: .canvas
+    )
+    #expect(canvas.mode == .stacked)
+    #expect(canvas.priority == .canvas)
+    #expect(abs(canvas.inspector - min(max(0.34 * 760, 176), 240)) < 0.001)
+    #expect(abs(canvas.canvas + canvas.inspector - 760) < 0.001)
+
+    let inspector = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 390,
+        availableHeight: 760,
+        priority: .inspector
+    )
+    #expect(inspector.mode == .stacked)
+    #expect(inspector.priority == .inspector)
+    #expect(abs(inspector.canvas - min(max(0.28 * 760, 144), 220)) < 0.001)
+    #expect(abs(inspector.canvas + inspector.inspector - 760) < 0.001)
+
+    #expect(canvas != inspector)
+}
+
+@Test
+func priorityWorkspaceWideModeRequiresBothWorkingWidths() {
+    let narrow = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 640,
+        availableHeight: 430,
+        priority: .canvas
+    )
+    #expect(narrow.mode == .stacked)
+
+    let wide = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 700,
+        availableHeight: 430,
+        priority: .inspector
+    )
+    #expect(wide.mode == .sideBySide)
+    #expect(wide.canvas >= 360)
+    #expect(wide.inspector >= 280)
+    #expect(abs(wide.canvas + wide.inspector - 700) < 0.001)
+}
+
+@Test
+func priorityWorkspaceWideInspectorUsesBoundedP13Width() {
+    let medium = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 900,
+        availableHeight: 430,
+        priority: .canvas
+    )
+    #expect(medium.mode == .sideBySide)
+    #expect(abs(medium.inspector - 306) < 0.001)
+
+    let veryWide = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 1400,
+        availableHeight: 900,
+        priority: .inspector
+    )
+    #expect(veryWide.inspector == 360)
+    #expect(veryWide.canvas == 1040)
+}
+
+@Test
+func priorityWorkspaceHasNoRatioInputOrRatioPersistenceContract() {
+    let canvas = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 390,
+        availableHeight: 760,
+        priority: .canvas
+    )
+    let inspector = ProfileV3PriorityWorkspaceLayout.resolve(
+        availableWidth: 390,
+        availableHeight: 760,
+        priority: .inspector
+    )
+
+    #expect(canvas.priority == .canvas)
+    #expect(inspector.priority == .inspector)
+    #expect(canvas.canvas > inspector.canvas)
+    #expect(canvas.inspector < inspector.inspector)
+}
+
 @Test
 func longPressNeedsDurationAndStillness() {
     #expect(ProfileV3LongPress.isLongPress(elapsed: 0.5, movement: 3))
