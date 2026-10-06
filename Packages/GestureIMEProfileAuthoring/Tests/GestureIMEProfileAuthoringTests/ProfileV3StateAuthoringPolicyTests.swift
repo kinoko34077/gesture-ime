@@ -12,6 +12,10 @@ func enumDraftValidationPreservesSchemaMeaning() {
         defaultValue: ""
     ) != nil)
     #expect(ProfileV3StateAuthoringPolicy.enumValidationError(
+        values: [""],
+        defaultValue: ""
+    ) != nil)
+    #expect(ProfileV3StateAuthoringPolicy.enumValidationError(
         values: ["a", "a"],
         defaultValue: "a"
     ) != nil)
