@@ -1,5 +1,29 @@
 import GestureIMEProfileAuthoring
 
+enum CommonActionPurpose: String, CaseIterable, Identifiable {
+    case text
+    case editing
+    case keyboard
+    case conversion
+    case panel
+    case automation
+    case system
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .text: "文字入力"
+        case .editing: "編集"
+        case .keyboard: "キーボード面"
+        case .conversion: "変換"
+        case .panel: "パネル"
+        case .automation: "マクロ"
+        case .system: "キーボード本体"
+        }
+    }
+}
+
 enum CommonActionOption: String, CaseIterable, Identifiable {
     case noop
     case textInsert = "text.insert"
@@ -39,11 +63,61 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Options that can be fully configured from the current phone editor.
-    /// profile.switch needs a profile-library picker owned outside one Profile
-    /// editing session, so it remains an advanced action here.
+    /// Options that can be fully configured from one Profile editing session.
+    /// profile.switch needs a profile-library picker owned outside this scope,
+    /// so it remains preserved but read-only in ordinary Action authoring.
+    static var ordinaryEditorOptions: [CommonActionOption] {
+        allCases.filter {
+            $0 != .noop && $0 != .profileSwitch
+        }
+    }
+
+    /// Compatibility alias for the existing Rule editor call sites while U6
+    /// moves Rule and Macro onto one ordinary Action grammar.
     static var ruleEditorOptions: [CommonActionOption] {
-        allCases.filter { $0 != .noop && $0 != .profileSwitch }
+        ordinaryEditorOptions
+    }
+
+    var purpose: CommonActionPurpose {
+        switch self {
+        case .textInsert, .textDirectInsert:
+            .text
+        case .editDelete, .cursorMove:
+            .editing
+        case .layerSet, .layerPush, .layerPop:
+            .keyboard
+        case .conversionCommit, .conversionSelectCandidate:
+            .conversion
+        case .panelOpen:
+            .panel
+        case .macroRun:
+            .automation
+        case .systemNextKeyboard, .systemDismissKeyboard:
+            .system
+        case .noop, .profileSwitch:
+            .system
+        }
+    }
+
+    var argumentLabel: String {
+        switch self {
+        case .textInsert, .textDirectInsert:
+            "入力する文字"
+        case .editDelete:
+            "削除する文字数"
+        case .cursorMove:
+            "移動量"
+        case .conversionSelectCandidate:
+            "候補番号"
+        case .panelOpen:
+            "パネル"
+        case .layerSet, .layerPush:
+            "キーボード面"
+        case .macroRun:
+            "マクロ"
+        default:
+            "値"
+        }
     }
 
     var argumentKey: String? {
@@ -86,7 +160,9 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         self == .textInsert || self == .textDirectInsert
     }
 
-    func ruleArgumentText(from action: ProfileActionDraft) -> String? {
+    func ordinaryArgumentText(
+        from action: ProfileActionDraft
+    ) -> String? {
         guard let argumentKey else { return nil }
         return ProfileV3RuleActionDrafting.argumentText(
             from: action,
@@ -95,7 +171,7 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         )
     }
 
-    func makeRuleDraft(
+    func makeOrdinaryDraft(
         argumentText: String,
         preserving previous: ProfileActionDraft?
     ) -> ProfileActionDraft {
@@ -108,6 +184,37 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
             resolvedStringArgument: resolvedStringArgument,
             preserving: previous
         )
+    }
+
+    func ruleArgumentText(from action: ProfileActionDraft) -> String? {
+        ordinaryArgumentText(from: action)
+    }
+
+    func makeRuleDraft(
+        argumentText: String,
+        preserving previous: ProfileActionDraft?
+    ) -> ProfileActionDraft {
+        makeOrdinaryDraft(
+            argumentText: argumentText,
+            preserving: previous
+        )
+    }
+
+    static func supportsOrdinaryEditing(
+        _ action: ProfileActionDraft
+    ) -> Bool {
+        guard
+            let option = exact(action.actionID),
+            ordinaryEditorOptions.contains(option)
+        else {
+            return false
+        }
+
+        let allowedKeys =
+            option.argumentKey.map { Set([$0]) }
+            ?? Set<String>()
+        return Set(action.arguments.keys)
+            .isSubset(of: allowedKeys)
     }
 
     private var defaultInteger: Int64 {
