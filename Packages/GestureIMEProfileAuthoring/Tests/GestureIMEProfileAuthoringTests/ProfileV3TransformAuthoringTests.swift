@@ -136,6 +136,18 @@ func csvRejectsBadHeaderDuplicatesAndShortRowsWithoutMutation() throws {
 // MARK: - #101 / frozen #95 §F6
 
 @Test
+func ordinaryUntitledTransformDoesNotExposeInternalID() {
+    let table = ProfileV3TransformTableRows(
+        id: "tt.internal.secret",
+        rows: []
+    )
+
+    #expect(table.ordinaryTitle(position: 0) == "変換表 1")
+    #expect(table.ordinaryTitle(position: 1) == "変換表 2")
+    #expect(!table.ordinaryTitle(position: 0).contains(table.id))
+}
+
+@Test
 func titleRenameKeepsInternalIDAndNewIDsAreGenerated() throws {
     var doc = try document()
     var table = try doc.v3TransformTableRows()[0]
@@ -174,6 +186,10 @@ func reverseFlagsPersistAndConflictsAreRejected() throws {
     let reread = try doc.v3TransformTableRows()[0]
     #expect(reread.reverseAll)
     #expect(reread.effectiveReverse(reread.rows[1]))
+    #expect(
+        !reread.rows[1].reverse,
+        "table-level reverse must not rewrite the authored row flag"
+    )
 
     var conflict = reread
     conflict.rows.append(ProfileV3TransformRow(from: "ぁ", to: "x"))

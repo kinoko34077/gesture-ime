@@ -654,10 +654,16 @@ final class ProfileV3EditorModel: ObservableObject {
     @discardableResult
     func setTransformTable(_ table: ProfileV3TransformTableRows) -> Bool {
         do {
-            try mutateThrowing { try $0.v3SetTransformTableRows(table) }
-            if let index = transformRows.firstIndex(where: { $0.id == table.id }) {
-                transformRows[index] = transformRows[index].preservingEditorIDs(from: table)
+            try mutateThrowing {
+                try $0.v3SetTransformTableRows(table)
             }
+            if let index = transformRows.firstIndex(
+                where: { $0.id == table.id }
+            ) {
+                transformRows[index] = transformRows[index]
+                    .preservingEditorIDs(from: table)
+            }
+            errorMessage = nil
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -668,7 +674,10 @@ final class ProfileV3EditorModel: ObservableObject {
     func applyTransformCSV(_ text: String) {
         do {
             let tables = try ProfileV3TransformCSV.parse(text)
-            try mutateThrowing { try $0.v3ApplyTransformCSV(tables) }
+            try mutateThrowing {
+                try $0.v3ApplyTransformCSV(tables)
+            }
+            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
