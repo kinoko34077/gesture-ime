@@ -84,6 +84,13 @@ public struct ProfileV3TransformTableRows: Identifiable, Equatable, Sendable {
         return id
     }
 
+    /// Ordinary authoring never falls back to the internal semantic ID.
+    /// Position is presentation-only and does not affect identity/runtime.
+    public func ordinaryTitle(position: Int) -> String {
+        if let title, !title.isEmpty { return title }
+        return "変換表 \(max(0, position) + 1)"
+    }
+
     public func effectiveReverse(_ row: ProfileV3TransformRow) -> Bool {
         reverseAll || row.reverse
     }
