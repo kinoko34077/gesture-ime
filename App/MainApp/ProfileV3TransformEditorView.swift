@@ -2,10 +2,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 import GestureIMEProfileAuthoring
 
-/// #101 / frozen #95 §F6: Transform authoring v2. Ordinary UI shows table
-/// titles (internal IDs only under 詳細), real group nodes (no path text),
-/// reverse checkboxes and transient blank draft rows. Disclosure/search and
-/// drafts are view-local; only valid rows reach the Profile.
+/// #157 U5: dense ordinary Transform authoring. Semantic grouping/search/CSV/
+/// draft/reverse behavior stays owned by the existing authoring engine; this
+/// view applies the P13 title-first, no-internal-ID presentation contract.
 struct ProfileV3TransformEditorView: View {
     @ObservedObject var editor: ProfileV3EditorModel
     let focusedTableID: String?
@@ -151,11 +150,41 @@ struct ProfileV3TransformEditorView: View {
         }
         .alert(
             renameTitle,
-            isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
+            isPresented: Binding(
+                get: { renaming != nil },
+                set: {
+                    if !$0 { renaming = nil }
+                }
+            )
         ) {
             TextField("名前", text: $renameText)
-            Button("キャンセル", role: .cancel) { renaming = nil }
-            Button("OK") { applyRename() }
+            Button("キャンセル", role: .cancel) {
+                renaming = nil
+            }
+            Button("OK") {
+                applyRename()
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let message = editor.errorMessage {
+                VStack(spacing: 0) {
+                    ProfileV3InlineAuthoringError(
+                        message: message,
+                        correctionHint:
+                            "入力内容は残っています。衝突や未入力を修正して、もう一度確定してください。"
+                    )
+
+                    Button("閉じる") {
+                        editor.errorMessage = nil
+                    }
+                    .font(.caption)
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: 44
+                    )
+                    .background(.thinMaterial)
+                }
+            }
         }
     }
 
