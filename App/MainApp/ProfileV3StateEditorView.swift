@@ -107,10 +107,10 @@ struct ProfileV3StateEditorView: View {
         switch state.type {
         case .boolean:
             return "オン／オフ・初期値 "
-                + (booleanDefault(state) ? "オン" : "オフ")
+                + (stateBooleanDefault(state) ? "オン" : "オフ")
 
         case .enumeration:
-            return "\(state.values.count)個の値・初期値「\(enumDefault(state))」"
+            return "\(state.values.count)個の値・初期値「\(stateEnumDefault(state))」"
         }
     }
 
@@ -263,9 +263,9 @@ private struct ProfileV3StateDetailView: View {
     ) {
         _editor = ObservedObject(wrappedValue: editor)
         self.state = state
-        _booleanDefault = State(initialValue: booleanDefault(state))
+        _booleanDefault = State(initialValue: stateBooleanDefault(state))
         _enumValues = State(initialValue: state.values)
-        _enumDefault = State(initialValue: enumDefault(state))
+        _enumDefault = State(initialValue: stateEnumDefault(state))
     }
 
     var body: some View {
@@ -609,7 +609,7 @@ private struct ProfileV3DefaultReplacementSheet: View {
     }
 }
 
-private func booleanDefault(
+private func stateBooleanDefault(
     _ state: ProfileV3StateSummary
 ) -> Bool {
     if case .bool(let value) = state.defaultValue {
@@ -618,7 +618,7 @@ private func booleanDefault(
     return false
 }
 
-private func enumDefault(
+private func stateEnumDefault(
     _ state: ProfileV3StateSummary
 ) -> String {
     if case .string(let value) = state.defaultValue {
