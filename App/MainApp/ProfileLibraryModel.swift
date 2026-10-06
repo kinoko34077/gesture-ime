@@ -150,6 +150,29 @@ final class ProfileLibraryModel: ObservableObject {
     }
 
     @discardableResult
+    func importV3Profile(from url: URL) -> String? {
+        guard let store else { return nil }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer {
+            if scoped { url.stopAccessingSecurityScopedResource() }
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let document = try ProfileDocument(data: data)
+            guard document.isProfileV3 else {
+                throw ProfileLibraryImportError.unsupportedProfileFormat
+            }
+            let summary = try store.importProfile(data)
+            try reload()
+            return summary.id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
     func importProfile(from url: URL) -> String? {
         guard let store else { return nil }
         let scoped = url.startAccessingSecurityScopedResource()
@@ -311,6 +334,14 @@ final class ProfileLibraryModel: ObservableObject {
     }
 }
 
+
+private enum ProfileLibraryImportError: LocalizedError {
+    case unsupportedProfileFormat
+
+    var errorDescription: String? {
+        "このキーボード形式は現在の編集画面では読み込めません。"
+    }
+}
 
 private enum ProfileLibraryDeliveryError: LocalizedError {
     case sharedContainerUnavailable(String)
