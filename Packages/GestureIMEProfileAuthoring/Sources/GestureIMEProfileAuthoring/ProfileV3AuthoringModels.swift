@@ -252,10 +252,18 @@ public struct ProfileV3TransformTableSummary: Identifiable, Equatable, Sendable 
 public struct ProfileV3MacroSummary: Identifiable, Equatable, Sendable {
     public let id: String
     public let actions: [ProfileActionDraft]
+    /// False when the raw Macro contains Action nodes that cannot be represented
+    /// losslessly by ordinary structured authoring.
+    public let actionsEditable: Bool
 
-    public init(id: String, actions: [ProfileActionDraft]) {
+    public init(
+        id: String,
+        actions: [ProfileActionDraft],
+        actionsEditable: Bool = true
+    ) {
         self.id = id
         self.actions = actions
+        self.actionsEditable = actionsEditable
     }
 }
 
