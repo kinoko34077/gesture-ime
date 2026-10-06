@@ -77,3 +77,43 @@ func deletingNonDefaultPreservesCurrentDefaultAndLastValueCannotDisappear() thro
         ) == nil
     )
 }
+
+
+@Test
+func duplicatingStatePreservesUnknownMembersButGetsNewIdentity() throws {
+    var document = try ProfileDocument.emptyV3(
+        id: "user.v3.state-duplicate",
+        name: "State Duplicate"
+    )
+    try document.v3SetSemanticSectionNode(
+        .states,
+        node: .array([
+            .object([
+                "id": .string("latinCase"),
+                "type": .string("enum"),
+                "values": .array([.string("lower"), .string("upper")]),
+                "default": .string("lower"),
+                "futureStateMember": .object(["keep": .bool(true)])
+            ])
+        ])
+    )
+
+    let newID = try document.v3NewStateID()
+    #expect(newID == "state.state-1")
+    try document.v3DuplicateState(sourceID: "latinCase", newID: newID)
+
+    let node = try document.v3SemanticSectionNode(.states)
+    let states = try #require(node.arrayValue)
+    #expect(states.count == 2)
+
+    let duplicate = try #require(
+        states.first(where: { $0.objectValue?["id"]?.stringValue == newID })?
+            .objectValue
+    )
+    #expect(duplicate["type"] == .string("enum"))
+    #expect(duplicate["default"] == .string("lower"))
+    #expect(
+        duplicate["futureStateMember"] ==
+            .object(["keep": .bool(true)])
+    )
+}
