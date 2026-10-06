@@ -466,6 +466,59 @@ func v3StateTransformAndMacroEditsPreserveUnicodeAndClearEnumValuesOnBoolean() t
 }
 
 @Test
+func v3StateDuplicateAndEditPreserveUnknownMembers() throws {
+    let source = """
+    {
+      "schema":"gesture-ime.profile.v3",
+      "id":"user.v3.state.unknown",
+      "name":"State Unknown",
+      "version":1,
+      "gesturePolicy":{
+        "deadZone":0.1,
+        "initialCellCommitDistance":0.5,
+        "subsequentCellCommitDistance":0.4,
+        "angularHysteresisDegrees":8
+      },
+      "initialLayerRef":"layer.base",
+      "layers":[{"id":"layer.base","rootBoardRef":"board.base"}],
+      "boards":[{"id":"board.base","entries":[]}],
+      "states":[
+        {
+          "id":"mode",
+          "type":"enum",
+          "values":["a","b"],
+          "default":"a",
+          "futureState":{"keep":true}
+        }
+      ],
+      "transformTables":[],
+      "macros":[]
+    }
+    """
+
+    var document = try ProfileDocument(jsonString: source)
+    try document.v3UpsertEnumState(
+        id: "mode",
+        values: ["b", "a"],
+        defaultValue: "b"
+    )
+    try document.v3DuplicateState(
+        sourceID: "mode",
+        newID: "mode.copy"
+    )
+
+    let object = try v3JSON(document)
+    let states = try #require(object["states"] as? [[String: Any]])
+    let edited = try #require(states.first(where: { $0["id"] as? String == "mode" }))
+    let copied = try #require(states.first(where: { $0["id"] as? String == "mode.copy" }))
+
+    #expect((edited["futureState"] as? [String: Any])?["keep"] as? Bool == true)
+    #expect((copied["futureState"] as? [String: Any])?["keep"] as? Bool == true)
+    #expect(copied["default"] as? String == "b")
+    #expect(copied["values"] as? [String] == ["b", "a"])
+}
+
+@Test
 func v3UnknownOrdinaryMembersSurviveTargetedEdits() throws {
     let source = """
     {

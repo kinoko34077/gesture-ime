@@ -127,7 +127,7 @@ private struct ProfileV3InputLandingView: View {
                 }
 
                 NavigationLink {
-                    ProfileV3SemanticCollectionOverview(editor: editor, kind: .states)
+                    ProfileV3StateEditorView(editor: editor)
                 } label: {
                     Label(ProfileV3AppCategory.states.title, systemImage: "switch.2")
                 }
