@@ -25,6 +25,9 @@ public enum ProfileV3StateAuthoringPolicy {
         guard values.count <= 32 else {
             return "列挙型の値は32個までです。"
         }
+        guard values.allSatisfy({ !$0.isEmpty }) else {
+            return "空の値は登録できません。"
+        }
         guard Set(values).count == values.count else {
             return "同じ値を複数登録できません。"
         }
