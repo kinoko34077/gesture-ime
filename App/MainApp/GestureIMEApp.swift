@@ -157,6 +157,7 @@ private enum ProfileV3SemanticCollectionKind {
         }
     }
 
+    @MainActor
     func count(in editor: ProfileV3EditorModel) -> Int {
         switch self {
         case .states: editor.states.count
