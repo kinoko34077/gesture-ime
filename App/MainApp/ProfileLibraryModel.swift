@@ -74,18 +74,21 @@ final class ProfileLibraryModel: ObservableObject {
         }
     }
 
-    func createEmptyV3() {
-        guard let store else { return }
+    @discardableResult
+    func createEmptyV3() -> String? {
+        guard let store else { return nil }
         do {
             let suffix = Int(Date().timeIntervalSince1970 * 1000)
             let document = try ProfileDocument.emptyV3(
                 id: "user.v3.\(suffix)",
-                name: "新しいv3プロファイル"
+                name: "新しいキーボード"
             )
-            _ = try store.save(document)
+            let summary = try store.save(document)
             try reload()
+            return summary.id
         } catch {
             errorMessage = error.localizedDescription
+            return nil
         }
     }
 
@@ -93,19 +96,33 @@ final class ProfileLibraryModel: ObservableObject {
         (try? document(id: profileID).isProfileV3) == true
     }
 
-    func clone(profileID: String) {
-        guard let store else { return }
+    @discardableResult
+    func clone(profileID: String) -> String? {
+        guard let store else { return nil }
         do {
             let source = try store.load(id: profileID)
-            let suffix = Int(Date().timeIntervalSince1970)
-            _ = try store.clone(
-                source: source,
-                id: "user.clone.\(suffix)",
-                name: source.summary.name + " のコピー"
-            )
-            try reload()
+            return clone(document: source)
         } catch {
             errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func clone(document: ProfileDocument) -> String? {
+        guard let store else { return nil }
+        do {
+            let suffix = Int(Date().timeIntervalSince1970 * 1000)
+            let summary = try store.clone(
+                source: document,
+                id: "user.clone.\(suffix)",
+                name: document.summary.name + " のコピー"
+            )
+            try reload()
+            return summary.id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
         }
     }
 
@@ -132,8 +149,9 @@ final class ProfileLibraryModel: ObservableObject {
         }
     }
 
-    func importProfile(from url: URL) {
-        guard let store else { return }
+    @discardableResult
+    func importProfile(from url: URL) -> String? {
+        guard let store else { return nil }
         let scoped = url.startAccessingSecurityScopedResource()
         defer {
             if scoped { url.stopAccessingSecurityScopedResource() }
@@ -141,8 +159,24 @@ final class ProfileLibraryModel: ObservableObject {
 
         do {
             let data = try Data(contentsOf: url)
-            _ = try store.importProfile(data)
+            let summary = try store.importProfile(data)
             try reload()
+            return summary.id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func rename(profileID: String, name: String) {
+        do {
+            var document = try document(id: profileID)
+            try document.rename(name)
+            let outcome = try save(document)
+            if case .savedLocallyDeliveryFailed(let detail) = outcome {
+                errorMessage =
+                    "名前はアプリ内に保存されましたが、キーボード本体への反映に失敗しました。\(detail)"
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
