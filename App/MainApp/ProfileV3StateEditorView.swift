@@ -453,9 +453,9 @@ private struct ProfileV3StateDetailView: View {
         replacementDefault: String?
     ) {
         guard let result =
-            ProfileV3StateAuthoringPolicy.deletingValue(
+            ProfileV3StateAuthoringPolicy.deletingEnumValue(
                 at: index,
-                from: enumValues,
+                values: enumValues,
                 defaultValue: enumDefault,
                 replacementDefault: replacementDefault
             ) else {
