@@ -34,6 +34,30 @@ func enumPolicyMatchesExistingStateConstraints() {
 }
 
 @Test
+func enumDraftValidationRejectsEmptyValuesAndMoveIsBounded() {
+    #expect(
+        ProfileV3StateAuthoringPolicy.enumValidationError(
+            values: [""],
+            defaultValue: ""
+        ) != nil
+    )
+    #expect(
+        ProfileV3StateAuthoringPolicy.movedValues(
+            ["a", "b", "c"],
+            from: 1,
+            by: -1
+        ) == ["b", "a", "c"]
+    )
+    #expect(
+        ProfileV3StateAuthoringPolicy.movedValues(
+            ["a", "b"],
+            from: 0,
+            by: -1
+        ) == nil
+    )
+}
+
+@Test
 func deletingCurrentEnumDefaultRequiresExplicitReplacement() throws {
     let blocked = ProfileV3StateAuthoringPolicy.deletingEnumValue(
         at: 0,
