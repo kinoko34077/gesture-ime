@@ -3,26 +3,27 @@ import GestureIMEProfileAuthoring
 
 struct ProfileV3StateEditorView: View {
     @ObservedObject var editor: ProfileV3EditorModel
-
-    @State private var createKind: StateCreateKind?
+    @State private var showingCreate = false
     @State private var localError: String?
 
     var body: some View {
         List {
             if editor.states.isEmpty {
-                ContentUnavailableView(
-                    "状態はありません",
-                    systemImage: "switch.2",
-                    description: Text(
-                        "オン／オフ、または複数の選択肢を持つ状態を追加できます。"
-                    )
-                )
+                ContentUnavailableView {
+                    Label("状態はありません", systemImage: "switch.2")
+                } description: {
+                    Text("オン／オフ、または複数の選択肢を持つ状態を追加できます。")
+                } actions: {
+                    Button("状態を追加") {
+                        showingCreate = true
+                    }
+                }
             } else {
                 ForEach(editor.states) { state in
                     NavigationLink {
                         ProfileV3StateDetailView(
                             editor: editor,
-                            stateID: state.id
+                            state: state
                         )
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
@@ -33,45 +34,35 @@ struct ProfileV3StateEditorView: View {
                         }
                         .frame(minHeight: 44, alignment: .leading)
                     }
-                    .swipeActions(
-                        edge: .trailing,
-                        allowsFullSwipe: false
-                    ) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
-                            delete(state)
+                            if !editor.deleteState(id: state.id) {
+                                captureEditorError(
+                                    fallback: "状態を削除できません。"
+                                )
+                            }
                         } label: {
                             Label("削除", systemImage: "trash")
-                        }
-
-                        Button {
-                            duplicate(state)
-                        } label: {
-                            Label(
-                                "複製",
-                                systemImage: "plus.square.on.square"
-                            )
                         }
                     }
                     .contextMenu {
                         Button {
-                            duplicate(state)
+                            if editor.duplicateState(id: state.id) == nil {
+                                captureEditorError(
+                                    fallback: "状態を複製できません。"
+                                )
+                            }
                         } label: {
                             Label(
                                 "複製",
                                 systemImage: "plus.square.on.square"
                             )
-                        }
-
-                        Button(role: .destructive) {
-                            delete(state)
-                        } label: {
-                            Label("削除", systemImage: "trash")
                         }
                     }
                 }
             }
         }
-        .navigationTitle("状態")
+        .navigationTitle(ProfileV3AppCategory.states.title)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -90,39 +81,23 @@ struct ProfileV3StateEditorView: View {
                 .disabled(!editor.canRedo)
                 .accessibilityLabel("やり直す")
 
-                Menu {
-                    Button {
-                        createKind = .boolean
-                    } label: {
-                        Label("オン／オフ", systemImage: "switch.2")
-                    }
-
-                    Button {
-                        createKind = .enumeration
-                    } label: {
-                        Label(
-                            "選択肢",
-                            systemImage: "list.bullet"
-                        )
-                    }
+                Button {
+                    showingCreate = true
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("状態を追加")
             }
         }
-        .sheet(item: $createKind) { kind in
-            ProfileV3StateCreateSheet(
-                editor: editor,
-                kind: kind
-            )
+        .sheet(isPresented: $showingCreate) {
+            ProfileV3CreateStateSheet(editor: editor)
         }
         .safeAreaInset(edge: .bottom) {
             if let localError {
                 ProfileV3InlineAuthoringError(
                     message: localError,
                     correctionHint:
-                        "参照している条件を変更するか、状態の内容を修正してからもう一度操作してください。"
+                        "参照中の条件または状態の内容を確認して、もう一度操作してください。"
                 )
             }
         }
@@ -131,28 +106,12 @@ struct ProfileV3StateEditorView: View {
     private func summary(_ state: ProfileV3StateSummary) -> String {
         switch state.type {
         case .boolean:
-            return "オン／オフ・初期値: "
+            return "オン／オフ・初期値 "
                 + (booleanDefault(state) ? "オン" : "オフ")
+
         case .enumeration:
-            return "選択肢 (state.values.count)個・初期値: "
-                + enumDefault(state)
+            return "\(state.values.count)個の値・初期値「\(enumDefault(state))」"
         }
-    }
-
-    private func duplicate(_ state: ProfileV3StateSummary) {
-        guard editor.duplicateState(id: state.id) != nil else {
-            captureEditorError(fallback: "状態を複製できません")
-            return
-        }
-        localError = nil
-    }
-
-    private func delete(_ state: ProfileV3StateSummary) {
-        guard editor.deleteState(id: state.id) else {
-            captureEditorError(fallback: "状態を削除できません")
-            return
-        }
-        localError = nil
     }
 
     private func captureEditorError(fallback: String) {
@@ -161,7 +120,7 @@ struct ProfileV3StateEditorView: View {
     }
 }
 
-private enum StateCreateKind: String, Identifiable {
+private enum ProfileV3CreateStateKind: String, CaseIterable, Identifiable {
     case boolean
     case enumeration
 
@@ -169,57 +128,59 @@ private enum StateCreateKind: String, Identifiable {
 
     var title: String {
         switch self {
-        case .boolean: "オン／オフの状態"
-        case .enumeration: "選択肢の状態"
+        case .boolean: "オン／オフ"
+        case .enumeration: "選択肢"
         }
     }
 }
 
-private struct ProfileV3StateCreateSheet: View {
+private struct ProfileV3CreateStateSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var editor: ProfileV3EditorModel
-    let kind: StateCreateKind
 
+    @State private var kind: ProfileV3CreateStateKind = .boolean
     @State private var booleanDefault = false
-    @State private var firstValue = ""
+    @State private var enumInitialValue = ""
     @State private var localError: String?
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    LabeledContent("種類") {
-                        Text(kind.title)
+                Section("種類") {
+                    Picker("種類", selection: $kind) {
+                        ForEach(ProfileV3CreateStateKind.allCases) {
+                            Text($0.title).tag($0)
+                        }
                     }
-
-                    switch kind {
-                    case .boolean:
-                        Toggle(
-                            "初期値",
-                            isOn: $booleanDefault
-                        )
-
-                    case .enumeration:
-                        TextField(
-                            "最初の選択肢",
-                            text: $firstValue
-                        )
-                    }
+                    .pickerStyle(.segmented)
                 }
 
-                if let localError {
-                    Section {
-                        ProfileV3InlineAuthoringError(
-                            message: localError,
-                            correctionHint:
-                                "入力内容を残したまま修正して、もう一度追加してください。"
+                switch kind {
+                case .boolean:
+                    Section("初期値") {
+                        Toggle("オン", isOn: $booleanDefault)
+                    }
+
+                case .enumeration:
+                    Section("最初の値") {
+                        TextField(
+                            "例: 通常",
+                            text: $enumInitialValue
                         )
-                        .listRowInsets(EdgeInsets())
                     }
                 }
             }
             .navigationTitle("状態を追加")
             .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                if let localError {
+                    ProfileV3InlineAuthoringError(
+                        message: localError,
+                        correctionHint:
+                            "入力内容は残っています。修正して、もう一度追加してください。"
+                    )
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") {
@@ -237,424 +198,414 @@ private struct ProfileV3StateCreateSheet: View {
     }
 
     private func create() {
+        localError = nil
+
         switch kind {
         case .boolean:
-            guard editor.createBooleanState(
+            if editor.createBooleanState(
                 defaultValue: booleanDefault
-            ) != nil else {
-                captureEditorError(
-                    fallback: "状態を追加できません"
-                )
-                return
+            ) != nil {
+                dismiss()
+            } else {
+                captureEditorError()
             }
 
         case .enumeration:
-            guard !firstValue
-                .trimmingCharacters(
-                    in: .whitespacesAndNewlines
-                )
-                .isEmpty else {
-                localError = "最初の選択肢を入力してください。"
+            if let error =
+                ProfileV3StateAuthoringPolicy.enumValidationError(
+                    values: [enumInitialValue],
+                    defaultValue: enumInitialValue
+                ) {
+                localError = error
                 return
             }
 
-            guard editor.createEnumState(
-                values: [firstValue],
-                defaultValue: firstValue
-            ) != nil else {
-                captureEditorError(
-                    fallback: "状態を追加できません"
-                )
-                return
+            if editor.createEnumState(
+                initialValue: enumInitialValue
+            ) != nil {
+                dismiss()
+            } else {
+                captureEditorError()
             }
         }
-
-        dismiss()
     }
 
-    private func captureEditorError(fallback: String) {
-        localError = editor.errorMessage ?? fallback
+    private func captureEditorError() {
+        localError =
+            editor.errorMessage
+            ?? "状態を追加できません。"
         editor.errorMessage = nil
     }
 }
 
 private struct ProfileV3StateDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var editor: ProfileV3EditorModel
-    let stateID: String
+    let state: ProfileV3StateSummary
 
-    @State private var newValue = ""
+    @State private var booleanDefault: Bool
+    @State private var enumValues: [String]
+    @State private var enumDefault: String
+    @State private var showingAddValue = false
+    @State private var pendingDefaultDeletion: PendingDefaultDeletion?
     @State private var localError: String?
-    @State private var pendingDefaultDeletion: String?
+
+    private struct PendingDefaultDeletion: Identifiable {
+        let index: Int
+        let value: String
+
+        var id: String { "\(index):\(value)" }
+    }
+
+    init(
+        editor: ProfileV3EditorModel,
+        state: ProfileV3StateSummary
+    ) {
+        _editor = ObservedObject(wrappedValue: editor)
+        self.state = state
+        _booleanDefault = State(initialValue: booleanDefault(state))
+        _enumValues = State(initialValue: state.values)
+        _enumDefault = State(initialValue: enumDefault(state))
+    }
 
     var body: some View {
-        Group {
-            if let state {
-                List {
-                    Section("状態") {
-                        LabeledContent("ID") {
-                            Text(state.id)
-                                .font(.caption.monospaced())
-                                .textSelection(.enabled)
-                        }
-
-                        LabeledContent("種類") {
-                            Text(
-                                state.type == .boolean
-                                    ? "オン／オフ"
-                                    : "選択肢"
-                            )
-                        }
-
-                        switch state.type {
-                        case .boolean:
-                            Toggle(
-                                "初期値",
-                                isOn: Binding(
-                                    get: { booleanDefault(state) },
-                                    set: { value in
-                                        if !editor.setBooleanState(
-                                            id: state.id,
-                                            defaultValue: value
-                                        ) {
-                                            captureEditorError(
-                                                fallback:
-                                                    "初期値を変更できません"
-                                            )
-                                        } else {
-                                            localError = nil
-                                        }
-                                    }
-                                )
-                            )
-
-                        case .enumeration:
-                            Picker(
-                                "初期値",
-                                selection: Binding(
-                                    get: {
-                                        enumDefault(state)
-                                    },
-                                    set: { value in
-                                        commitEnum(
-                                            values: state.values,
-                                            defaultValue: value
-                                        )
-                                    }
-                                )
-                            ) {
-                                ForEach(
-                                    state.values,
-                                    id: \.self
-                                ) { value in
-                                    Text(value).tag(value)
-                                }
-                            }
-                        }
-                    }
-
-                    if state.type == .enumeration {
-                        enumValuesSection(state)
-                    }
-
-                    if let localError {
-                        Section {
-                            ProfileV3InlineAuthoringError(
-                                message: localError,
-                                correctionHint:
-                                    "入力内容を確認して、もう一度操作してください。"
-                            )
-                            .listRowInsets(EdgeInsets())
-                        }
-                    }
+        Form {
+            Section("状態") {
+                LabeledContent("識別子") {
+                    Text(state.id)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
                 }
-                .toolbar {
-                    if state.type == .enumeration {
-                        ToolbarItem(
-                            placement: .topBarTrailing
-                        ) {
-                            EditButton()
-                        }
-                    }
+
+                LabeledContent("種類") {
+                    Text(
+                        state.type == .boolean
+                            ? "オン／オフ"
+                            : "選択肢"
+                    )
                 }
-            } else {
-                ContentUnavailableView(
-                    "状態が見つかりません",
-                    systemImage: "questionmark.circle"
+            }
+
+            switch state.type {
+            case .boolean:
+                Section("初期値") {
+                    Toggle("オン", isOn: $booleanDefault)
+                }
+
+            case .enumeration:
+                enumEditor
+            }
+        }
+        .navigationTitle(state.id)
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            if let localError {
+                ProfileV3InlineAuthoringError(
+                    message: localError,
+                    correctionHint:
+                        "現在の入力は残っています。内容を修正して、もう一度保存してください。"
                 )
             }
         }
-        .navigationTitle(stateID)
-        .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog(
-            "削除後の初期値",
-            isPresented: Binding(
-                get: { pendingDefaultDeletion != nil },
-                set: {
-                    if !$0 {
-                        pendingDefaultDeletion = nil
-                    }
-                }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let state,
-               let deleting = pendingDefaultDeletion {
-                ForEach(
-                    state.values.filter { $0 != deleting },
-                    id: \.self
-                ) { replacement in
-                    Button(replacement) {
-                        deleteDefaultValue(
-                            deleting,
-                            replacement: replacement,
-                            state: state
-                        )
-                    }
+        .toolbar {
+            if state.type == .enumeration {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EditButton()
                 }
             }
 
-            Button("キャンセル", role: .cancel) {
-                pendingDefaultDeletion = nil
+            ToolbarItem(placement: .confirmationAction) {
+                Button("保存") {
+                    save()
+                }
             }
-        } message: {
-            Text(
-                "この値は現在の初期値です。削除後に使う初期値を選んでください。"
-            )
+        }
+        .sheet(isPresented: $showingAddValue) {
+            ProfileV3EnumValueSheet(
+                existingValues: enumValues
+            ) { value in
+                enumValues.append(value)
+            }
+        }
+        .sheet(item: $pendingDefaultDeletion) { pending in
+            ProfileV3DefaultReplacementSheet(
+                values: enumValues,
+                deletingIndex: pending.index
+            ) { replacement in
+                applyDeletion(
+                    index: pending.index,
+                    replacementDefault: replacement
+                )
+            }
         }
     }
 
-    private var state: ProfileV3StateSummary? {
-        editor.states.first { $0.id == stateID }
-    }
-
     @ViewBuilder
-    private func enumValuesSection(
-        _ state: ProfileV3StateSummary
-    ) -> some View {
-        Section {
-            ForEach(
-                Array(state.values.enumerated()),
-                id: \.element
-            ) { index, value in
+    private var enumEditor: some View {
+        Section("値") {
+            ForEach(enumValues.indices, id: \.self) { index in
                 HStack(spacing: 8) {
-                    Text(value)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(enumValues[index])
+
+                        if enumValues[index] == enumDefault {
+                            Text("初期値")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
 
                     Spacer()
-
-                    if value == enumDefault(state) {
-                        Image(systemName: "checkmark")
-                            .accessibilityLabel("初期値")
-                    }
 
                     Menu {
                         profileV3MoveMenuItems(
                             canMoveUp: index > 0,
                             canMoveDown:
-                                index + 1 < state.values.count,
+                                index + 1 < enumValues.count,
                             onMoveUp: {
-                                moveValue(
-                                    state,
-                                    from: index,
-                                    by: -1
-                                )
+                                moveValue(index, by: -1)
                             },
                             onMoveDown: {
-                                moveValue(
-                                    state,
-                                    from: index,
-                                    by: 1
-                                )
+                                moveValue(index, by: 1)
                             }
                         )
 
                         Divider()
 
-                        Button(
-                            "削除",
-                            role: .destructive
-                        ) {
-                            requestDeleteValue(
-                                value,
-                                from: state
-                            )
+                        Button("削除", role: .destructive) {
+                            requestDelete(index)
                         }
-                        .disabled(state.values.count <= 1)
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(
-                        "(value) の操作"
+                        "\(enumValues[index]) の操作"
                     )
                 }
                 .frame(minHeight: 44)
             }
             .onMove { source, destination in
-                var values = state.values
-                values.move(
+                enumValues.move(
                     fromOffsets: source,
                     toOffset: destination
                 )
-                commitEnum(
-                    values: values,
-                    defaultValue: enumDefault(state)
-                )
             }
 
-            HStack(spacing: 8) {
-                TextField(
-                    "新しい選択肢",
-                    text: $newValue
-                )
+            Button {
+                showingAddValue = true
+            } label: {
+                Label("値を追加", systemImage: "plus")
+            }
+        }
 
-                Button("追加") {
-                    addValue(to: state)
+        Section("初期値") {
+            Picker("初期値", selection: $enumDefault) {
+                ForEach(enumValues, id: \.self) { value in
+                    Text(value).tag(value)
                 }
-                .frame(minHeight: 44)
+            }
+        }
+    }
+
+    private func moveValue(_ index: Int, by offset: Int) {
+        guard let moved =
+            ProfileV3StateAuthoringPolicy.movedValues(
+                enumValues,
+                from: index,
+                by: offset
+            ) else {
+            return
+        }
+        enumValues = moved
+    }
+
+    private func requestDelete(_ index: Int) {
+        localError = nil
+
+        guard enumValues.indices.contains(index) else {
+            return
+        }
+
+        if enumValues.count <= 1 {
+            localError =
+                "最後の値は削除できません。列挙型には1つ以上の値が必要です。"
+            return
+        }
+
+        if enumValues[index] == enumDefault {
+            pendingDefaultDeletion = PendingDefaultDeletion(
+                index: index,
+                value: enumValues[index]
+            )
+            return
+        }
+
+        applyDeletion(
+            index: index,
+            replacementDefault: nil
+        )
+    }
+
+    private func applyDeletion(
+        index: Int,
+        replacementDefault: String?
+    ) {
+        guard let result =
+            ProfileV3StateAuthoringPolicy.deletingValue(
+                at: index,
+                from: enumValues,
+                defaultValue: enumDefault,
+                replacementDefault: replacementDefault
+            ) else {
+            localError =
+                "初期値を置き換えてから削除してください。"
+            return
+        }
+
+        enumValues = result.values
+        enumDefault = result.defaultValue
+        pendingDefaultDeletion = nil
+    }
+
+    private func save() {
+        localError = nil
+
+        switch state.type {
+        case .boolean:
+            if editor.updateBooleanState(
+                id: state.id,
+                defaultValue: booleanDefault
+            ) {
+                dismiss()
+            } else {
+                captureEditorError()
             }
 
-        } header: {
-            Text("選択肢")
+        case .enumeration:
+            if let error =
+                ProfileV3StateAuthoringPolicy.enumValidationError(
+                    values: enumValues,
+                    defaultValue: enumDefault
+                ) {
+                localError = error
+                return
+            }
+
+            if editor.updateEnumState(
+                id: state.id,
+                values: enumValues,
+                defaultValue: enumDefault
+            ) {
+                dismiss()
+            } else {
+                captureEditorError()
+            }
         }
     }
 
-    private func addValue(
-        to state: ProfileV3StateSummary
-    ) {
-        guard !newValue
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            .isEmpty else {
-            localError = "選択肢を入力してください。"
-            return
-        }
-
-        let values = state.values + [newValue]
-        let currentDefault = enumDefault(state)
-        guard ProfileV3StateAuthoringPolicy.isValidEnum(
-            values: values,
-            defaultValue: currentDefault
-        ) else {
-            localError =
-                state.values.contains(newValue)
-                    ? "同じ選択肢は追加できません。"
-                    : "選択肢は32個までです。"
-            return
-        }
-
-        guard commitEnum(
-            values: values,
-            defaultValue: currentDefault
-        ) else {
-            return
-        }
-
-        newValue = ""
-        localError = nil
-    }
-
-    @discardableResult
-    private func commitEnum(
-        values: [String],
-        defaultValue: String
-    ) -> Bool {
-        guard editor.setEnumState(
-            id: stateID,
-            values: values,
-            defaultValue: defaultValue
-        ) else {
-            captureEditorError(
-                fallback: "状態を変更できません"
-            )
-            return false
-        }
-        localError = nil
-        return true
-    }
-
-    private func moveValue(
-        _ state: ProfileV3StateSummary,
-        from index: Int,
-        by offset: Int
-    ) {
-        let target = index + offset
-        guard state.values.indices.contains(index),
-              state.values.indices.contains(target) else {
-            return
-        }
-
-        var values = state.values
-        values.swapAt(index, target)
-        _ = commitEnum(
-            values: values,
-            defaultValue: enumDefault(state)
-        )
-    }
-
-    private func requestDeleteValue(
-        _ value: String,
-        from state: ProfileV3StateSummary
-    ) {
-        let currentDefault = enumDefault(state)
-        if value == currentDefault {
-            pendingDefaultDeletion = value
-            return
-        }
-
-        guard let index = state.values.firstIndex(
-            of: value
-        ), let deletion =
-            ProfileV3StateAuthoringPolicy
-                .deletingEnumValue(
-                    at: index,
-                    values: state.values,
-                    defaultValue: currentDefault,
-                    replacementDefault: nil
-                ) else {
-            localError = "この選択肢は削除できません。"
-            return
-        }
-
-        _ = commitEnum(
-            values: deletion.values,
-            defaultValue: deletion.defaultValue
-        )
-    }
-
-    private func deleteDefaultValue(
-        _ value: String,
-        replacement: String,
-        state: ProfileV3StateSummary
-    ) {
-        defer {
-            pendingDefaultDeletion = nil
-        }
-
-        guard let index = state.values.firstIndex(
-            of: value
-        ), let deletion =
-            ProfileV3StateAuthoringPolicy
-                .deletingEnumValue(
-                    at: index,
-                    values: state.values,
-                    defaultValue: enumDefault(state),
-                    replacementDefault: replacement
-                ) else {
-            localError =
-                "削除後の初期値を選べません。"
-            return
-        }
-
-        _ = commitEnum(
-            values: deletion.values,
-            defaultValue: deletion.defaultValue
-        )
-    }
-
-    private func captureEditorError(fallback: String) {
-        localError = editor.errorMessage ?? fallback
+    private func captureEditorError() {
+        localError =
+            editor.errorMessage
+            ?? "状態を保存できません。"
         editor.errorMessage = nil
+    }
+}
+
+private struct ProfileV3EnumValueSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let existingValues: [String]
+    let onAdd: (String) -> Void
+
+    @State private var value = ""
+    @State private var localError: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField("値", text: $value)
+            }
+            .navigationTitle("値を追加")
+            .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                if let localError {
+                    ProfileV3InlineAuthoringError(
+                        message: localError,
+                        correctionHint:
+                            "入力した値は残っています。別の値に修正してください。"
+                    )
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("追加") {
+                        add()
+                    }
+                }
+            }
+        }
+    }
+
+    private func add() {
+        localError = nil
+
+        if value.isEmpty {
+            localError = "空の値は登録できません。"
+            return
+        }
+
+        if existingValues.contains(value) {
+            localError = "同じ値はすでに登録されています。"
+            return
+        }
+
+        if existingValues.count >= 32 {
+            localError = "列挙型の値は32個までです。"
+            return
+        }
+
+        onAdd(value)
+        dismiss()
+    }
+}
+
+private struct ProfileV3DefaultReplacementSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let values: [String]
+    let deletingIndex: Int
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(
+                    values.indices.filter {
+                        $0 != deletingIndex
+                    },
+                    id: \.self
+                ) { index in
+                    Button(values[index]) {
+                        onSelect(values[index])
+                        dismiss()
+                    }
+                }
+            }
+            .navigationTitle("新しい初期値")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 
