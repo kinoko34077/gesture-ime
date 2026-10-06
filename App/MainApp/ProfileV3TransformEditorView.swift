@@ -197,18 +197,23 @@ struct ProfileV3TransformEditorView: View {
                 }
                 addRowButton(table: table, path: path)
             } label: {
-                HStack {
-                    Label(name, systemImage: "folder")
-                    Spacer()
-                    Menu {
-                        Button("上へ") {
-                            reorderGroup(path, by: -1, in: table)
-                        }
-                        .disabled(!(persisted(table.id) ?? table).canReorderGroup(path, by: -1))
-                        Button("下へ") {
-                            reorderGroup(path, by: 1, in: table)
-                        }
-                        .disabled(!(persisted(table.id) ?? table).canReorderGroup(path, by: 1))
+                ProfileV3HierarchyRow(depth: max(0, path.count - 1)) {
+                    HStack {
+                        Label(name, systemImage: "folder")
+                        Spacer()
+                        Menu {
+                        profileV3MoveMenuItems(
+                            canMoveUp: (persisted(table.id) ?? table)
+                                .canReorderGroup(path, by: -1),
+                            canMoveDown: (persisted(table.id) ?? table)
+                                .canReorderGroup(path, by: 1),
+                            onMoveUp: {
+                                reorderGroup(path, by: -1, in: table)
+                            },
+                            onMoveDown: {
+                                reorderGroup(path, by: 1, in: table)
+                            }
+                        )
                         Menu("移動") {
                             Button("最上位へ") {
                                 moveGroup(path, to: [], in: table)
@@ -240,22 +245,28 @@ struct ProfileV3TransformEditorView: View {
                             }
                             editor.setTransformTable(updated)
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("グループの操作")
                     }
-                    .accessibilityLabel("グループの操作")
                 }
             })
         case .leaf(let row):
-            return AnyView(ProfileV3TransformRowEditor(
-                row: row,
-                reverseAll: table.reverseAll,
-                highlighted: search.matches.contains(node.id),
-                groups: table.groups,
-                onCommit: { updated in commit(updated, in: table) },
-                onDelete: { delete(row, in: table) },
-                onMove: { path in move(row, to: path, in: table) }
-            ))
+            return AnyView(
+                ProfileV3HierarchyRow(depth: row.groupPath.count) {
+                    ProfileV3TransformRowEditor(
+                        row: row,
+                        reverseAll: table.reverseAll,
+                        highlighted: search.matches.contains(node.id),
+                        groups: table.groups,
+                        onCommit: { updated in commit(updated, in: table) },
+                        onDelete: { delete(row, in: table) },
+                        onMove: { path in move(row, to: path, in: table) }
+                    )
+                }
+            )
         case .table:
             return AnyView(EmptyView())
         }
