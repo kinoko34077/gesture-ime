@@ -67,7 +67,10 @@ struct ProfileV3TransformEditorView: View {
                 let table = current[index]
                 let node = tree[index]
                 Section {
-                    tableHeader(table)
+                    tableHeader(
+                        table,
+                        title: ordinaryTitle(for: table)
+                    )
                     ForEach(node.children) { child in
                         nodeView(child, table: table, search: search)
                     }
@@ -77,6 +80,15 @@ struct ProfileV3TransformEditorView: View {
         }
         .searchable(text: $query, prompt: "変換前・変換後・グループを検索")
         .navigationTitle("文字変換表")
+        .safeAreaInset(edge: .bottom) {
+            if let message = editor.errorMessage {
+                ProfileV3InlineAuthoringError(
+                    message: message,
+                    correctionHint:
+                        "入力中の内容は保持されています。内容を修正して、もう一度操作してください。"
+                )
+            }
+        }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -147,9 +159,12 @@ struct ProfileV3TransformEditorView: View {
     // MARK: Table header
 
     @ViewBuilder
-    private func tableHeader(_ table: ProfileV3TransformTableRows) -> some View {
+    private func tableHeader(
+        _ table: ProfileV3TransformTableRows,
+        title: String
+    ) -> some View {
         HStack(spacing: 8) {
-            Text(table.displayTitle)
+            Text(title)
                 .font(.headline)
                 .lineLimit(1)
 
@@ -182,7 +197,7 @@ struct ProfileV3TransformEditorView: View {
                 Image(systemName: "ellipsis.circle")
                     .frame(width: 44, height: 44)
             }
-            .accessibilityLabel("\(table.displayTitle) の操作")
+            .accessibilityLabel("\(title) の操作")
         }
 
         Toggle(
@@ -333,17 +348,28 @@ struct ProfileV3TransformEditorView: View {
 
     // MARK: Mutations
 
+    private func ordinaryTitle(
+        for table: ProfileV3TransformTableRows
+    ) -> String {
+        let position = editor.transformRows.firstIndex {
+            $0.id == table.id
+        } ?? 0
+        return table.ordinaryTitle(position: position)
+    }
+
     private func createTable() {
-        guard let id = try? editor.newTransformTableID() else {
-            return
-        }
-        editor.setTransformTable(
-            ProfileV3TransformTableRows(
-                id: id,
-                title: "新しい変換表",
-                rows: []
+        do {
+            let id = try editor.newTransformTableID()
+            _ = editor.setTransformTable(
+                ProfileV3TransformTableRows(
+                    id: id,
+                    title: "新しい変換表",
+                    rows: []
+                )
             )
-        )
+        } catch {
+            editor.errorMessage = error.localizedDescription
+        }
     }
 
     private func persisted(_ tableID: String) -> ProfileV3TransformTableRows? {
