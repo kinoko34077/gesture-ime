@@ -656,6 +656,39 @@ extension ProfileDocument {
         }
     }
 
+    public func v3NewStateID() throws -> String {
+        ProfileV3StateAuthoringPolicy.nextStateID(
+            existingIDs: try v3StateSummaries().map(\.id)
+        )
+    }
+
+    public mutating func v3DuplicateState(
+        sourceID: String,
+        newID: String
+    ) throws {
+        try Self.v3ValidateSemanticID(newID, field: "state.id")
+
+        var top = try v3TopObject()
+        var items = try v3MutableArray(in: top, named: "states")
+
+        guard !items.contains(where: {
+            $0.objectValue?["id"]?.stringValue == newID
+        }) else {
+            throw ProfileAuthoringError.duplicateProfile(newID)
+        }
+
+        guard var source = items.first(where: {
+            $0.objectValue?["id"]?.stringValue == sourceID
+        })?.objectValue else {
+            throw ProfileAuthoringError.missingReference(sourceID)
+        }
+
+        source["id"] = .string(newID)
+        items.append(.object(source))
+        top["states"] = .array(items)
+        root = .object(top)
+    }
+
     public mutating func v3UpsertBooleanState(
         id: String,
         defaultValue: Bool
