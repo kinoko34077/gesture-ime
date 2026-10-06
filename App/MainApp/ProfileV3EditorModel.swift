@@ -612,6 +612,134 @@ final class ProfileV3EditorModel: ObservableObject {
         return try? runtime.directSurface()
     }
 
+    // MARK: - #157 U4 State authoring
+
+    func createBooleanState(defaultValue: Bool) -> String? {
+        do {
+            guard let document = history?.document else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Editor document is unavailable"
+                )
+            }
+            let id = try document.v3NewStateID()
+            try mutateThrowing {
+                try $0.v3UpsertBooleanState(
+                    id: id,
+                    defaultValue: defaultValue
+                )
+            }
+            errorMessage = nil
+            return id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func createEnumState(
+        values: [String],
+        defaultValue: String
+    ) -> String? {
+        do {
+            guard let document = history?.document else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Editor document is unavailable"
+                )
+            }
+            let id = try document.v3NewStateID()
+            try mutateThrowing {
+                try $0.v3UpsertEnumState(
+                    id: id,
+                    values: values,
+                    defaultValue: defaultValue
+                )
+            }
+            errorMessage = nil
+            return id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func setBooleanState(
+        id: String,
+        defaultValue: Bool
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertBooleanState(
+                    id: id,
+                    defaultValue: defaultValue
+                )
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func setEnumState(
+        id: String,
+        values: [String],
+        defaultValue: String
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertEnumState(
+                    id: id,
+                    values: values,
+                    defaultValue: defaultValue
+                )
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func duplicateState(id: String) -> String? {
+        do {
+            guard let document = history?.document else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Editor document is unavailable"
+                )
+            }
+            let newID = try document.v3NewStateID()
+            try mutateThrowing {
+                try $0.v3DuplicateState(
+                    sourceID: id,
+                    newID: newID
+                )
+            }
+            errorMessage = nil
+            return newID
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func deleteState(id: String) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3DeleteState(id: id)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     // MARK: - #79 Transform authoring
 
     func newTransformTableID() throws -> String {
