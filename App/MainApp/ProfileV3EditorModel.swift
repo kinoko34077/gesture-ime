@@ -128,6 +128,111 @@ final class ProfileV3EditorModel: ObservableObject {
         return library.clone(document: document)
     }
 
+    @discardableResult
+    func createBooleanState(defaultValue: Bool = false) -> String? {
+        let id = nextStateID(base: "state.new")
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertBooleanState(
+                    id: id,
+                    defaultValue: defaultValue
+                )
+            }
+            return id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func createEnumState(initialValue: String) -> String? {
+        let id = nextStateID(base: "state.new")
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertEnumState(
+                    id: id,
+                    values: [initialValue],
+                    defaultValue: initialValue
+                )
+            }
+            return id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func updateBooleanState(
+        id: String,
+        defaultValue: Bool
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertBooleanState(
+                    id: id,
+                    defaultValue: defaultValue
+                )
+            }
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func updateEnumState(
+        id: String,
+        values: [String],
+        defaultValue: String
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertEnumState(
+                    id: id,
+                    values: values,
+                    defaultValue: defaultValue
+                )
+            }
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func duplicateState(id: String) -> String? {
+        let newID = nextStateID(base: id + ".copy")
+        do {
+            try mutateThrowing {
+                try $0.v3DuplicateState(
+                    sourceID: id,
+                    newID: newID
+                )
+            }
+            return newID
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func deleteState(id: String) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3DeleteState(id: id)
+            }
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func encodedProfileJSON(pretty: Bool = true) -> String? {
         guard let document = history?.document,
               let data = try? document.encoded(pretty: pretty) else {
@@ -925,6 +1030,19 @@ final class ProfileV3EditorModel: ObservableObject {
             self.selectedEntryID = nil
         }
         refreshSelectionDerived()
+    }
+
+    private func nextStateID(base: String) -> String {
+        let used = Set(states.map(\.id))
+        if !used.contains(base) {
+            return base
+        }
+
+        var index = 2
+        while used.contains("\(base).\(index)") {
+            index += 1
+        }
+        return "\(base).\(index)"
     }
 
     private func nextEntryID() -> String {
