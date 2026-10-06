@@ -117,3 +117,25 @@ func duplicatingStatePreservesUnknownMembersButGetsNewIdentity() throws {
             .object(["keep": .bool(true)])
     )
 }
+
+
+@Test
+func generatedStateIDAlsoAvoidsUnsupportedAdvancedNodes() throws {
+    var document = try ProfileDocument.emptyV3(
+        id: "user.v3.advanced-state-id",
+        name: "Advanced State ID"
+    )
+    try document.v3SetSemanticSectionNode(
+        .states,
+        node: .array([
+            .object([
+                "id": .string("state.state-1"),
+                "type": .string("future-state-kind"),
+                "default": .string("opaque"),
+                "future": .bool(true)
+            ])
+        ])
+    )
+
+    #expect(try document.v3NewStateID() == "state.state-2")
+}
