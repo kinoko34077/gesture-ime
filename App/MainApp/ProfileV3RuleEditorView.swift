@@ -355,13 +355,10 @@ private struct ProfileV3RuleBranchEditor: View {
         .navigationTitle("条件と動作")
         .safeAreaInset(edge: .bottom) {
             if let saveError {
-                Text(saveError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(.thinMaterial)
+                ProfileV3InlineAuthoringError(
+                    message: saveError,
+                    correctionHint: "内容を修正して、もう一度保存してください。"
+                )
             }
         }
         .toolbar {
