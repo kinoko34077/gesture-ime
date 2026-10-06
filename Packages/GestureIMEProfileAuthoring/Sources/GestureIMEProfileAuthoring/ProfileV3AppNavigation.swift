@@ -86,6 +86,10 @@ public final class ProfileV3EditorSessionCache<Session: AnyObject> {
         return created
     }
 
+    public func existingSession(for profileID: String) -> Session? {
+        sessions[profileID]
+    }
+
     public func remove(profileID: String) {
         sessions.removeValue(forKey: profileID)
     }

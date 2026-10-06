@@ -24,13 +24,31 @@ final class ProfileV3Workspace: ObservableObject {
     @Published var selectedProfileID: String?
     private let editors = ProfileV3EditorSessionCache<ProfileV3EditorModel>()
 
-    func editor(library: ProfileLibraryModel) -> ProfileV3EditorModel? {
+    func resolvedProfileID(library: ProfileLibraryModel) -> String? {
         let v3IDs = library.profiles.map(\.id).filter { library.isProfileV3(profileID: $0) }
-        let id = [selectedProfileID, library.activeProfileID].compactMap { $0 }
+        return [selectedProfileID, library.activeProfileID].compactMap { $0 }
             .first(where: v3IDs.contains) ?? v3IDs.first
-        guard let id else { return nil }
+    }
+
+    func editor(library: ProfileLibraryModel) -> ProfileV3EditorModel? {
+        guard let id = resolvedProfileID(library: library) else { return nil }
         return editors.session(for: id) {
             ProfileV3EditorModel(library: library, profileID: id)
+        }
+    }
+
+    func existingEditor(profileID: String) -> ProfileV3EditorModel? {
+        editors.existingSession(for: profileID)
+    }
+
+    func select(profileID: String) {
+        selectedProfileID = profileID
+    }
+
+    func removeSession(profileID: String) {
+        editors.remove(profileID: profileID)
+        if selectedProfileID == profileID {
+            selectedProfileID = nil
         }
     }
 }
@@ -244,19 +262,17 @@ private struct ProfileV3SettingsLandingView: View {
 private struct ProfileV3ProfileMenu: View {
     @EnvironmentObject private var library: ProfileLibraryModel
     @ObservedObject var workspace: ProfileV3Workspace
+    @State private var showingManager = false
 
     var body: some View {
         let profiles = library.profiles.filter { library.isProfileV3(profileID: $0.id) }
-        let scopedID = [workspace.selectedProfileID, library.activeProfileID]
-            .compactMap { $0 }
-            .first(where: { candidate in profiles.contains(where: { $0.id == candidate }) })
-            ?? profiles.first?.id
+        let scopedID = workspace.resolvedProfileID(library: library)
         let scopedName = profiles.first(where: { $0.id == scopedID })?.name
 
         Menu {
             ForEach(profiles) { profile in
                 Button {
-                    workspace.selectedProfileID = profile.id
+                    workspace.select(profileID: profile.id)
                 } label: {
                     if scopedID == profile.id {
                         Label(profile.name, systemImage: "checkmark")
@@ -265,10 +281,19 @@ private struct ProfileV3ProfileMenu: View {
                     }
                 }
             }
+
             Divider()
+
             Button {
-                library.createEmptyV3()
-                workspace.selectedProfileID = library.profiles.last?.id
+                showingManager = true
+            } label: {
+                Label("キーボードを管理", systemImage: "list.bullet")
+            }
+
+            Button {
+                if let id = library.createEmptyV3() {
+                    workspace.select(profileID: id)
+                }
             } label: {
                 Label("新しいキーボード", systemImage: "plus")
             }
@@ -276,6 +301,11 @@ private struct ProfileV3ProfileMenu: View {
             Label(scopedName ?? "キーボード", systemImage: "keyboard")
         }
         .accessibilityLabel("編集中のキーボード: " + (scopedName ?? "なし"))
+        .sheet(isPresented: $showingManager) {
+            NavigationStack {
+                ProfileLibraryView(workspace: workspace)
+            }
+        }
     }
 }
 

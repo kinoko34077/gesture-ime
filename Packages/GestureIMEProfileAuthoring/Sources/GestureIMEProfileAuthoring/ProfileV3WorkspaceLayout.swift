@@ -88,6 +88,125 @@ public enum ProfileV3WorkspaceLayout {
     }
 }
 
+
+public enum ProfileV3WorkspacePriority: String, CaseIterable, Sendable, Equatable {
+    case canvas
+    case inspector
+}
+
+public enum ProfileV3PriorityWorkspaceMode: String, Sendable, Equatable {
+    case stacked
+    case sideBySide
+}
+
+public struct ProfileV3PriorityWorkspaceSplit: Equatable, Sendable {
+    public let mode: ProfileV3PriorityWorkspaceMode
+    public let priority: ProfileV3WorkspacePriority
+    public let canvas: Double
+    public let inspector: Double
+
+    public init(
+        mode: ProfileV3PriorityWorkspaceMode,
+        priority: ProfileV3WorkspacePriority,
+        canvas: Double,
+        inspector: Double
+    ) {
+        self.mode = mode
+        self.priority = priority
+        self.canvas = canvas
+        self.inspector = inspector
+    }
+}
+
+/// #157 P13 / U2: Board/Edit workspace policy.
+///
+/// Phone/compact geometry has exactly two user states and no ratio input:
+/// Canvas priority and Inspector priority. Wide geometry is side-by-side only
+/// when both panes can retain their minimum working widths.
+public enum ProfileV3PriorityWorkspaceLayout {
+    public struct Tuning: Equatable, Sendable {
+        public var canvasPriorityInspectorFraction = 0.34
+        public var canvasPriorityInspectorRange = 176.0...240.0
+        public var inspectorPriorityCanvasFraction = 0.28
+        public var inspectorPriorityCanvasRange = 144.0...220.0
+
+        public var wideCanvasMin = 360.0
+        public var wideInspectorMin = 280.0
+        public var wideInspectorFraction = 0.34
+        public var wideInspectorRange = 300.0...360.0
+        public var wideSeparatorAllowance = 1.0
+
+        public init() {}
+    }
+
+    public static func resolve(
+        availableWidth: Double,
+        availableHeight: Double,
+        priority: ProfileV3WorkspacePriority,
+        tuning: Tuning = Tuning()
+    ) -> ProfileV3PriorityWorkspaceSplit {
+        let width = max(0, availableWidth)
+        let height = max(0, availableHeight)
+
+        let wideThreshold =
+            tuning.wideCanvasMin
+            + tuning.wideInspectorMin
+            + tuning.wideSeparatorAllowance
+
+        if width >= wideThreshold {
+            let desiredInspector = min(
+                max(
+                    tuning.wideInspectorFraction * width,
+                    tuning.wideInspectorRange.lowerBound
+                ),
+                tuning.wideInspectorRange.upperBound
+            )
+            let maximumInspector = max(0, width - tuning.wideCanvasMin)
+            let inspector = min(desiredInspector, maximumInspector)
+            return ProfileV3PriorityWorkspaceSplit(
+                mode: .sideBySide,
+                priority: priority,
+                canvas: width - inspector,
+                inspector: inspector
+            )
+        }
+
+        switch priority {
+        case .canvas:
+            let desiredInspector = min(
+                max(
+                    tuning.canvasPriorityInspectorFraction * height,
+                    tuning.canvasPriorityInspectorRange.lowerBound
+                ),
+                tuning.canvasPriorityInspectorRange.upperBound
+            )
+            let inspector = min(height, desiredInspector)
+            return ProfileV3PriorityWorkspaceSplit(
+                mode: .stacked,
+                priority: .canvas,
+                canvas: max(0, height - inspector),
+                inspector: inspector
+            )
+
+        case .inspector:
+            let desiredCanvas = min(
+                max(
+                    tuning.inspectorPriorityCanvasFraction * height,
+                    tuning.inspectorPriorityCanvasRange.lowerBound
+                ),
+                tuning.inspectorPriorityCanvasRange.upperBound
+            )
+            let canvas = min(height, desiredCanvas)
+            return ProfileV3PriorityWorkspaceSplit(
+                mode: .stacked,
+                priority: .inspector,
+                canvas: canvas,
+                inspector: max(0, height - canvas)
+            )
+        }
+    }
+}
+
 // MARK: - Canvas long-press (#95 §F2 context operations, §F5.2 timing)
 
 public enum ProfileV3LongPress {

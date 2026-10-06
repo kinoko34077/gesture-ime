@@ -2,9 +2,157 @@ import SwiftUI
 import UIKit
 import GestureIMEProfileAuthoring
 
-/// #100 / frozen #95 §F5: one shared workspace primitive for the Board editor
-/// and the Design editor. Layout comes only from actual usable geometry; the
-/// divider changes presentation state only (never Profile/Board/settings).
+
+struct ProfileV3PriorityWorkspace<Primary: View, Secondary: View>: View {
+    @ViewBuilder let primary: () -> Primary
+    @ViewBuilder let secondary: () -> Secondary
+
+    @SceneStorage("workspace.board.priority")
+    private var storedPriorityRaw = ProfileV3WorkspacePriority.canvas.rawValue
+    @State private var keyboardOverlap: CGFloat = 0
+
+    private var userPriority: ProfileV3WorkspacePriority {
+        ProfileV3WorkspacePriority(rawValue: storedPriorityRaw) ?? .canvas
+    }
+
+    private var effectivePriority: ProfileV3WorkspacePriority {
+        keyboardOverlap > 0 ? .inspector : userPriority
+    }
+
+    var body: some View {
+        GeometryReader { layout in
+            let available = CGSize(
+                width: layout.size.width,
+                height: max(0, layout.size.height - keyboardOverlap)
+            )
+            let split = ProfileV3PriorityWorkspaceLayout.resolve(
+                availableWidth: Double(available.width),
+                availableHeight: Double(available.height),
+                priority: effectivePriority
+            )
+
+            workspace(split: split, size: available)
+                .frame(
+                    width: available.width,
+                    height: available.height,
+                    alignment: .topLeading
+                )
+                .onReceive(
+                    NotificationCenter.default.publisher(
+                        for: UIResponder.keyboardWillChangeFrameNotification
+                    )
+                ) { note in
+                    guard let frame =
+                            note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+                    else { return }
+                    let containerBottom = layout.frame(in: .global).maxY
+                    keyboardOverlap = max(0, containerBottom - frame.minY)
+                }
+                .onReceive(
+                    NotificationCenter.default.publisher(
+                        for: UIResponder.keyboardWillHideNotification
+                    )
+                ) { _ in
+                    keyboardOverlap = 0
+                }
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
+    @ViewBuilder
+    private func workspace(
+        split: ProfileV3PriorityWorkspaceSplit,
+        size: CGSize
+    ) -> some View {
+        switch split.mode {
+        case .sideBySide:
+            ZStack(alignment: .topLeading) {
+                HStack(spacing: 0) {
+                    primary()
+                        .frame(
+                            width: CGFloat(split.canvas),
+                            height: size.height
+                        )
+                        .clipped()
+
+                    secondary()
+                        .frame(
+                            width: CGFloat(split.inspector),
+                            height: size.height
+                        )
+                }
+
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(width: 1, height: size.height)
+                    .offset(x: CGFloat(split.canvas))
+                    .accessibilityHidden(true)
+            }
+
+        case .stacked:
+            ZStack(alignment: .topLeading) {
+                VStack(spacing: 0) {
+                    primary()
+                        .frame(
+                            width: size.width,
+                            height: CGFloat(split.canvas)
+                        )
+                        .clipped()
+
+                    secondary()
+                        .frame(
+                            width: size.width,
+                            height: CGFloat(split.inspector)
+                        )
+                }
+
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(width: size.width, height: 1)
+                    .offset(y: CGFloat(split.canvas))
+                    .accessibilityHidden(true)
+
+                priorityToggle(size: size, boundaryY: CGFloat(split.canvas))
+            }
+        }
+    }
+
+    private func priorityToggle(size: CGSize, boundaryY: CGFloat) -> some View {
+        let next: ProfileV3WorkspacePriority =
+            userPriority == .canvas ? .inspector : .canvas
+        let label =
+            next == .inspector ? "インスペクタを広げる" : "キャンバスを広げる"
+        let icon =
+            next == .inspector ? "chevron.up" : "chevron.down"
+        let x = max(22, size.width - 26)
+        let y = min(
+            max(22, boundaryY),
+            max(22, size.height - 22)
+        )
+
+        return Button {
+            storedPriorityRaw = next.rawValue
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .frame(width: 32, height: 28)
+                .background(
+                    .thinMaterial,
+                    in: Capsule()
+                )
+        }
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
+        .position(x: x, y: y)
+        .accessibilityLabel(label)
+        .accessibilityValue(
+            userPriority == .canvas ? "キャンバス優先" : "インスペクタ優先"
+        )
+    }
+}
+
+/// Legacy free-split workspace retained for Design until U7 removes its
+/// divider. U2 no longer uses this primitive for the Board/Edit workspace.
 struct ProfileV3ResizableWorkspace<Primary: View, Secondary: View>: View {
     /// Distinguishes persisted split ratios ("board", "design").
     let storageKey: String

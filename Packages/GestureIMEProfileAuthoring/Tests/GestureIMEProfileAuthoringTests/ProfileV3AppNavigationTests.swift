@@ -52,6 +52,8 @@ func editorSessionCacheReusesOneMutableSessionPerProfile() {
 
     #expect(first === second)
     #expect(first !== other)
+    #expect(cache.existingSession(for: "profile.a") === first)
+    #expect(cache.existingSession(for: "missing") == nil)
 
     cache.remove(profileID: "profile.a")
     let replacement = cache.session(for: "profile.a") { ProfileV3SessionProbe() }

@@ -122,6 +122,12 @@ final class ProfileV3EditorModel: ObservableObject {
         library.exportURL(profileID: profileID)
     }
 
+    @discardableResult
+    func duplicateProfile() -> String? {
+        guard let document = history?.document else { return nil }
+        return library.clone(document: document)
+    }
+
     func encodedProfileJSON(pretty: Bool = true) -> String? {
         guard let document = history?.document,
               let data = try? document.encoded(pretty: pretty) else {
