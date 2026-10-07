@@ -522,8 +522,11 @@ struct ProfileV3ThemeEditorView: View {
             }
 
         case .failure(let error):
-            editor.errorMessage =
-                error.localizedDescription
+            if (error as? CocoaError)?.code
+                != .userCancelled {
+                editor.errorMessage =
+                    error.localizedDescription
+            }
         }
     }
 

@@ -133,7 +133,11 @@ struct ProfileLibraryView: View {
                 }
 
             case .failure(let error):
-                library.errorMessage = error.localizedDescription
+                if (error as? CocoaError)?.code
+                    != .userCancelled {
+                    library.errorMessage =
+                        error.localizedDescription
+                }
             }
         }
         .sheet(item: $renameTarget) { profile in

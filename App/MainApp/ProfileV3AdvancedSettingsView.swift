@@ -117,23 +117,54 @@ struct ProfileV3AdvancedSettingsView: View {
         case .resolver:
             ProfileV3AdvancedJSONEditor(
                 title: "条件 JSON",
-                initialJSON: editor.selectedResolverJSON() ?? "{}"
-            ) { editor.setSelectedResolverJSON($0) }
+                initialJSON:
+                    editor.selectedResolverJSON()
+                    ?? "{}",
+                errorMessage: $editor.errorMessage
+            ) {
+                editor.setSelectedResolverJSON($0)
+            }
         case .states:
             ProfileV3AdvancedJSONEditor(
                 title: "状態 JSON",
-                initialJSON: editor.semanticSectionJSON(.states) ?? "[]"
-            ) { editor.setSemanticSectionJSON(.states, text: $0) }
+                initialJSON:
+                    editor.semanticSectionJSON(.states)
+                    ?? "[]",
+                errorMessage: $editor.errorMessage
+            ) {
+                editor.setSemanticSectionJSON(
+                    .states,
+                    text: $0
+                )
+            }
         case .transformTables:
             ProfileV3AdvancedJSONEditor(
                 title: "変換表 JSON",
-                initialJSON: editor.semanticSectionJSON(.transformTables) ?? "[]"
-            ) { editor.setSemanticSectionJSON(.transformTables, text: $0) }
+                initialJSON:
+                    editor.semanticSectionJSON(
+                        .transformTables
+                    )
+                    ?? "[]",
+                errorMessage: $editor.errorMessage
+            ) {
+                editor.setSemanticSectionJSON(
+                    .transformTables,
+                    text: $0
+                )
+            }
         case .macros:
             ProfileV3AdvancedJSONEditor(
                 title: "マクロ JSON",
-                initialJSON: editor.semanticSectionJSON(.macros) ?? "[]"
-            ) { editor.setSemanticSectionJSON(.macros, text: $0) }
+                initialJSON:
+                    editor.semanticSectionJSON(.macros)
+                    ?? "[]",
+                errorMessage: $editor.errorMessage
+            ) {
+                editor.setSemanticSectionJSON(
+                    .macros,
+                    text: $0
+                )
+            }
         }
     }
 }
@@ -151,36 +182,71 @@ private struct ProfileV3AdvancedJSONEditor: View {
     @Environment(\.dismiss) private var dismiss
     let title: String
     let onSave: (String) -> Bool
+    @Binding var errorMessage: String?
     @State private var text: String
 
     init(
         title: String,
         initialJSON: String,
+        errorMessage: Binding<String?>,
         onSave: @escaping (String) -> Bool
     ) {
         self.title = title
         self.onSave = onSave
+        _errorMessage = errorMessage
         _text = State(initialValue: initialJSON)
     }
 
     var body: some View {
         NavigationStack {
             TextEditor(text: $text)
-                .font(.system(.body, design: .monospaced))
+                .font(
+                    .system(
+                        .body,
+                        design: .monospaced
+                    )
+                )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .padding(8)
                 .navigationTitle(title)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("キャンセル") { dismiss() }
+                    ToolbarItem(
+                        placement: .cancellationAction
+                    ) {
+                        Button("キャンセル") {
+                            errorMessage = nil
+                            dismiss()
+                        }
                     }
-                    ToolbarItem(placement: .confirmationAction) {
+
+                    ToolbarItem(
+                        placement: .confirmationAction
+                    ) {
                         Button("検証して適用") {
+                            errorMessage = nil
                             if onSave(text) {
                                 dismiss()
                             }
                         }
+                    }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    if let errorMessage {
+                        VStack(spacing: 0) {
+                            ProfileV3InlineAuthoringError(
+                                message: errorMessage,
+                                correctionHint:
+                                    "JSONの内容は保持されています。エラー箇所を修正して、もう一度適用してください。"
+                            )
+
+                            Button("閉じる") {
+                                self.errorMessage = nil
+                            }
+                            .font(.caption)
+                            .frame(minHeight: 44)
+                        }
+                        .background(.thinMaterial)
                     }
                 }
         }

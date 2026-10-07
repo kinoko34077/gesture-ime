@@ -446,6 +446,14 @@ private struct ProfileV3BoardCanvas: View {
                             Image(systemName: "doc.on.doc")
                                 .foregroundStyle(valid ? Color.accentColor : Color.red)
                         }
+                        .overlay(alignment: .topTrailing) {
+                            if !valid {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(.primary)
+                                    .padding(4)
+                            }
+                        }
                         .frame(width: frame.width, height: frame.height)
                         .position(x: frame.midX, y: frame.midY)
                         .allowsHitTesting(false)
@@ -454,13 +462,23 @@ private struct ProfileV3BoardCanvas: View {
 
                 if !pasteMode, let candidate, interaction?.targetEntryID == nil {
                     let frame = current.frame(for: candidate)
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(
-                            editor.canCreateEntry(candidate) ? Color.accentColor : Color.red,
-                            style: StrokeStyle(lineWidth: 2, dash: [5, 4])
-                        )
-                        .frame(width: frame.width, height: frame.height)
-                        .position(x: frame.midX, y: frame.midY)
+                    let valid = editor.canCreateEntry(candidate)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(
+                                valid ? Color.accentColor : Color.red,
+                                style: StrokeStyle(lineWidth: 2, dash: [5, 4])
+                            )
+
+                        if !valid {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                    .frame(width: frame.width, height: frame.height)
+                    .position(x: frame.midX, y: frame.midY)
+                    .accessibilityHidden(true)
                 }
 
             }
@@ -594,12 +612,29 @@ private struct ProfileV3BoardCanvas: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .padding(3)
             }
+
+            if !valid {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.primary)
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity,
+                        alignment: .topTrailing
+                    )
+                    .padding(4)
+            }
         }
         .frame(width: frame.width, height: frame.height)
         .position(x: frame.midX, y: frame.midY)
         .allowsHitTesting(false)
         .accessibilityElement()
-        .accessibilityLabel(entry.accessibilityLabel ?? entry.presentationText ?? Catalog.title(.conceptEntry))
+        .accessibilityLabel(
+            (entry.accessibilityLabel
+                ?? entry.presentationText
+                ?? Catalog.title(.conceptEntry))
+            + (valid ? "" : "、この位置には配置できません")
+        )
         .accessibilityAddTraits(selected ? .isSelected : [])
 
         if selected && !dragging {
