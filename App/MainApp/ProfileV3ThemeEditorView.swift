@@ -37,8 +37,12 @@ struct ProfileV3ThemeEditorView: View {
     var body: some View {
         GeometryReader { geometry in
             let theme = editor.keyboardTheme
-            let inset = Self.contentInset(
-                for: geometry.size.width
+            let inset = CGFloat(
+                ProfileV3DesignLayoutPolicy.contentInset(
+                    usableWidth: Double(
+                        geometry.size.width
+                    )
+                )
             )
 
             ScrollView {
@@ -65,7 +69,13 @@ struct ProfileV3ThemeEditorView: View {
                         typographySection(theme: theme)
                     }
                     .padding(.horizontal, inset)
-                    .padding(.vertical, 16)
+                    .padding(
+                        .vertical,
+                        CGFloat(
+                            ProfileV3DesignLayoutPolicy
+                                .sectionGap
+                        )
+                    )
                 }
             }
         }
@@ -80,7 +90,7 @@ struct ProfileV3ThemeEditorView: View {
                     editor.save()
                 }
                 .disabled(
-                    !isDirty
+                    !canSave
                         || !editor.validation.valid
                 )
 
@@ -184,7 +194,12 @@ struct ProfileV3ThemeEditorView: View {
                             )
                         }
                         .buttonStyle(.borderless)
-                        .frame(minHeight: 44)
+                        .frame(
+                            minHeight: CGFloat(
+                                ProfileV3DesignLayoutPolicy
+                                    .colorRowMinimumHeight
+                            )
+                        )
                     }
                 }
 
@@ -262,7 +277,12 @@ struct ProfileV3ThemeEditorView: View {
                 }
                 .labelsHidden()
             }
-            .frame(minHeight: 44)
+            .frame(
+                            minHeight: CGFloat(
+                                ProfileV3DesignLayoutPolicy
+                                    .colorRowMinimumHeight
+                            )
+                        )
 
             Divider()
 
@@ -296,7 +316,10 @@ struct ProfileV3ThemeEditorView: View {
         Text(title)
             .font(.headline)
             .frame(
-                minHeight: 28,
+                minHeight: CGFloat(
+                    ProfileV3DesignLayoutPolicy
+                        .sectionHeadingBaseHeight
+                ),
                 maxWidth: .infinity,
                 alignment: .leading
             )
@@ -314,33 +337,73 @@ struct ProfileV3ThemeEditorView: View {
             range.upperBound <= 1
             ? 0.1
             : 1.0
-        let displayed = value ?? fallback
+        let displayed =
+            min(
+                range.upperBound,
+                max(
+                    range.lowerBound,
+                    value ?? fallback
+                )
+            )
+        let valueText =
+            String(
+                format:
+                    step < 1
+                    ? "%.1f"
+                    : "%.0f",
+                displayed
+            )
+        let visibleValue =
+            value == nil
+            ? "自動 · " + valueText
+            : valueText
 
         return VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Text(title)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    Text(title)
 
-                Spacer(minLength: 8)
+                    Spacer(minLength: 8)
 
-                Text(
-                    value.map {
-                        String(
-                            format:
-                                step < 1
-                                ? "%.1f"
-                                : "%.0f",
-                            $0
-                        )
-                    } ?? "自動"
-                )
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
+                    Text(visibleValue)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+
+                VStack(
+                    alignment: .leading,
+                    spacing: 2
+                ) {
+                    Text(title)
+
+                    Text(visibleValue)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
             }
-            .frame(height: 28)
+            .frame(
+                minHeight: CGFloat(
+                    ProfileV3DesignLayoutPolicy
+                        .continuousLabelLineHeight
+                )
+            )
 
             Slider(
                 value: Binding(
-                    get: { displayed },
+                    get: {
+                        let current =
+                            editor.keyboardThemeValue(
+                                key: key
+                            )
+                            ?? fallback
+                        return min(
+                            range.upperBound,
+                            max(
+                                range.lowerBound,
+                                current
+                            )
+                        )
+                    },
                     set: { next in
                         editor.setThemeToken(
                             key,
@@ -351,21 +414,31 @@ struct ProfileV3ThemeEditorView: View {
                 in: range,
                 step: step
             )
-            .frame(minHeight: 44)
-            .accessibilityLabel(title)
-            .accessibilityValue(
-                value.map {
-                    String(
-                        format:
-                            step < 1
-                            ? "%.1f"
-                            : "%.0f",
-                        $0
-                    )
-                } ?? "自動"
+            .frame(
+                minHeight: CGFloat(
+                    ProfileV3DesignLayoutPolicy
+                        .continuousSliderAllocation
+                )
             )
+            .accessibilityLabel(title)
+            .accessibilityValue(visibleValue)
         }
-        .frame(minHeight: 72)
+        .frame(
+            minHeight: CGFloat(
+                ProfileV3DesignLayoutPolicy
+                    .continuousRowBaseHeight
+            )
+        )
+        .contextMenu {
+            if value != nil {
+                Button("自動に戻す") {
+                    editor.setThemeToken(
+                        key,
+                        value: nil
+                    )
+                }
+            }
+        }
     }
 
     private var previewHeight: CGFloat {
@@ -384,11 +457,15 @@ struct ProfileV3ThemeEditorView: View {
         return CGFloat(scaled)
     }
 
-    private var isDirty: Bool {
-        if case .dirty = editor.persistenceState {
-            return true
+    private var canSave: Bool {
+        switch editor.persistenceState {
+        case .dirty,
+             .savedLocallyDeliveryFailed:
+            true
+        case .savedLocally,
+             .savedLocallyAndDelivered:
+            false
         }
-        return false
     }
 
     private func importTheme(
@@ -421,18 +498,6 @@ struct ProfileV3ThemeEditorView: View {
             editor.errorMessage =
                 error.localizedDescription
         }
-    }
-
-    static func contentInset(
-        for width: CGFloat
-    ) -> CGFloat {
-        if width <= 359 {
-            return 12
-        }
-        if width < 600 {
-            return 16
-        }
-        return 20
     }
 
     static func hex(_ color: Color) -> String {
