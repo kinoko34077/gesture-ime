@@ -47,9 +47,6 @@ struct ProductKeyInspector: View {
         .onChange(of: entry) { _, _ in
             syncDrafts()
         }
-        .onDisappear {
-            commitBasicDrafts()
-        }
     }
 
     private var header: some View {
@@ -350,8 +347,16 @@ struct ProductKeyInspector: View {
                         get: { enabled },
                         set: { on in
                             if on {
+                                let inheritedDwell =
+                                    editor.policyValues?
+                                        .stageBacktrackDwellMs
+                                    ?? ProfileV3GesturePolicyValues
+                                        .defaultStageBacktrackDwellMs
                                 editor.setSelectedOverride(
-                                    ProfileV3GesturePolicyOverride()
+                                    ProfileV3GesturePolicyOverride(
+                                        stageBacktrackDwellMs:
+                                            inheritedDwell
+                                    )
                                 )
                             } else {
                                 editor.setSelectedOverride(nil)
@@ -541,11 +546,6 @@ private struct ProductFlickDirectionCell: View {
         .onChange(of: initial) { _, next in
             text = next
         }
-        .onDisappear {
-            if text != initial {
-                onCommit(text)
-            }
-        }
     }
 }
 
@@ -579,11 +579,6 @@ private struct ProductFlickCenterCell: View {
         }
         .onChange(of: initial) { _, next in
             text = next
-        }
-        .onDisappear {
-            if !text.isEmpty, text != initial {
-                onCommit(text)
-            }
         }
     }
 }

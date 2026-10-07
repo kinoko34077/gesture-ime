@@ -59,7 +59,7 @@ struct ProductBoardCanvas: View {
                         }
                         var next = base
                         next.zoom(
-                            by: value.magnification,
+                            by: Double(value.magnification),
                             anchorX: Double(proxy.size.width / 2),
                             anchorY: Double(proxy.size.height / 2)
                         )
