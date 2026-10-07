@@ -91,9 +91,13 @@ public struct IOSKeyboardKeyCap: View {
 
             Text(text)
                 .font(presentation.keyFont)
-                .foregroundStyle(presentation.swiftUIColor(.text))
+                .foregroundStyle(
+                    presentation.swiftUIColor(.text)
+                )
+                .lineLimit(1)
                 .minimumScaleFactor(0.45)
-                .lineLimit(2)
+                .allowsTightening(true)
+                .truncationMode(.tail)
                 .padding(2)
 
             // #69 §6.4: guide positions come from target entry geometry.
@@ -119,6 +123,7 @@ public struct IOSKeyboardKeyCap: View {
                 .accessibilityHidden(true)
             }
         }
+        .accessibilityLabel(text)
     }
 }
 
@@ -150,15 +155,29 @@ public struct IOSKeyboardOverlayCell: View {
                         .stroke(presentation.swiftUIColor(.border).opacity(0.9), lineWidth: isCandidate ? 2 : 1)
                 )
             Text(text)
-                .font(.system(
-                    size: 16,
-                    weight: isCandidate ? .bold : IOSKeyboardPresentation.weight(presentation.keyFontWeight)
-                ))
-                .foregroundStyle(presentation.swiftUIColor(.text))
+                .font(
+                    .system(
+                        size: 16,
+                        weight:
+                            isCandidate
+                            ? .bold
+                            : IOSKeyboardPresentation
+                                .weight(
+                                    presentation
+                                        .keyFontWeight
+                                )
+                    )
+                )
+                .foregroundStyle(
+                    presentation.swiftUIColor(.text)
+                )
+                .lineLimit(1)
                 .minimumScaleFactor(0.45)
-                .lineLimit(2)
+                .allowsTightening(true)
+                .truncationMode(.tail)
                 .padding(2)
         }
+        .accessibilityLabel(text)
     }
 }
 
@@ -185,19 +204,59 @@ public struct IOSKeyboardCandidateChip: View {
     }
 
     public var body: some View {
-        Button(text, action: action)
-            .buttonStyle(.plain)
-            .lineLimit(1)
-            .foregroundStyle(presentation.swiftUIColor(.candidateText))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .frame(maxWidth: expanded ? .infinity : nil, minHeight: expanded ? 44 : nil)
-            .background(
-                selected
-                    ? presentation.swiftUIColor(.candidateSelection)
-                    : (expanded ? presentation.swiftUIColor(.keyFill) : Color.clear),
-                in: RoundedRectangle(cornerRadius: 7)
+        Button(action: action) {
+            HStack(spacing: 4) {
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(
+                            .system(
+                                size: 10,
+                                weight: .bold
+                            )
+                        )
+                        .accessibilityHidden(true)
+                }
+
+                Text(text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.60)
+                    .allowsTightening(true)
+                    .truncationMode(.tail)
+            }
+            .padding(.horizontal, 8)
+            .frame(
+                maxWidth:
+                    expanded
+                    ? .infinity
+                    : 160,
+                minHeight: 44,
+                alignment: .leading
             )
-            .accessibilityAddTraits(selected ? .isSelected : [])
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(
+            presentation.swiftUIColor(.candidateText)
+        )
+        .fontWeight(selected ? .semibold : .regular)
+        .overlay(alignment: .bottom) {
+            if expanded {
+                Rectangle()
+                    .fill(
+                        presentation
+                            .swiftUIColor(.border)
+                            .opacity(0.32)
+                    )
+                    .frame(height: 1)
+                    .accessibilityHidden(true)
+            }
+        }
+        .accessibilityLabel(text)
+        .accessibilityValue(
+            selected ? "選択中" : ""
+        )
+        .accessibilityAddTraits(
+            selected ? .isSelected : []
+        )
     }
 }
