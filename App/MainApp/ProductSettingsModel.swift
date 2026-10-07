@@ -84,30 +84,6 @@ final class ProductSettingsModel: ObservableObject {
         )
     }
 
-    func incrementHaptic() {
-        setHapticStrength(
-            values.hapticStrength + 0.1
-        )
-    }
-
-    func decrementHaptic() {
-        setHapticStrength(
-            values.hapticStrength - 0.1
-        )
-    }
-
-    func incrementHeightScale() {
-        setKeyboardHeightScale(
-            values.keyboardHeightScale + 0.05
-        )
-    }
-
-    func decrementHeightScale() {
-        setKeyboardHeightScale(
-            values.keyboardHeightScale - 0.05
-        )
-    }
-
     func reset() {
         persist(
             hapticStrength: ProductSettingsValues.defaults.hapticStrength,
