@@ -262,7 +262,7 @@ private struct ProductTransformDetail: View {
                 }
             }
         }
-        .navigationTitle(currentDraft.displayTitle)
+        .navigationTitle(ordinaryTitle)
         .searchable(text: $searchText, prompt: "変換前・変換後を検索")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -335,6 +335,15 @@ private struct ProductTransformDetail: View {
             title: nil,
             rows: []
         )
+    }
+
+    private var ordinaryTitle: String {
+        guard let index = editor.transformRows.firstIndex(
+            where: { $0.id == tableID }
+        ) else {
+            return "変換表"
+        }
+        return currentDraft.ordinaryTitle(position: index)
     }
 
     private func updateDraft(
