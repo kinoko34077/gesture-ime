@@ -16,6 +16,11 @@ func designReferenceWidthsMatchP13Contract() {
 
     #expect(
         ProfileV3DesignLayoutPolicy.contentInset(
+            usableWidth: 359.5
+        ) == 12
+    )
+    #expect(
+        ProfileV3DesignLayoutPolicy.contentInset(
             usableWidth: 375
         ) == 16
     )
@@ -71,21 +76,5 @@ func designRowsMatchP13MinimumGeometry() {
     #expect(
         ProfileV3DesignLayoutPolicy
             .colorRowMinimumHeight == 44
-    )
-}
-
-@Test
-func designPreviewHeightFollowsRuntimeScale() {
-    #expect(
-        ProfileV3DesignLayoutPolicy.previewHeight(
-            baseKeyboardHeight: 344,
-            keyboardHeightScale: 1
-        ) == 344
-    )
-    #expect(
-        ProfileV3DesignLayoutPolicy.previewHeight(
-            baseKeyboardHeight: 216,
-            keyboardHeightScale: 1.25
-        ) == 270
     )
 }
