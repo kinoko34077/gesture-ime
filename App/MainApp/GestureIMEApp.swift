@@ -255,7 +255,7 @@ private struct ProfileV3SettingsLandingView: View {
                     ProfileV3EmptyWorkspace()
                 }
             } label: {
-                Label(ProfileV3AppCategory.advanced.title, systemImage: "hammer")
+                Label("開発者", systemImage: "hammer")
             }
         }
         .navigationTitle(ProfileV3AppTab.settings.title)
@@ -400,12 +400,6 @@ private struct SetupView: View {
                         alignment: .leading,
                         spacing: 0
                     ) {
-                        sectionHeading(
-                            ProfileV3DisplayCatalog.title(
-                                .sectionKeyboardSettings
-                            )
-                        )
-
                         hapticSliderRow
 
                         Divider()
@@ -441,34 +435,38 @@ private struct SetupView: View {
                         }
                     }
 
-                    Divider()
-
-                    Button(
-                        role: .destructive
-                    ) {
-                        confirmingReset = true
-                    } label: {
-                        Label(
-                            "キーボード設定を初期値に戻す",
-                            systemImage:
-                                "arrow.counterclockwise"
-                        )
-                        .frame(
-                            minHeight: CGFloat(
-                                ProfileV3SettingsLayoutPolicy
-                                    .ordinaryRowMinimumHeight
-                            ),
-                            maxWidth: .infinity,
-                            alignment: .leading
-                        )
-                    }
-                    .disabled(!productSettings.isEditable)
                 }
                 .padding(.horizontal, inset)
                 .padding(.vertical, 16)
             }
         }
         .navigationTitle("キーボード設定")
+        .toolbar {
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+                Menu {
+                    Button(
+                        "初期値に戻す",
+                        systemImage:
+                            "arrow.counterclockwise",
+                        role: .destructive
+                    ) {
+                        confirmingReset = true
+                    }
+                    .disabled(
+                        !productSettings.isEditable
+                    )
+                } label: {
+                    Image(
+                        systemName: "ellipsis.circle"
+                    )
+                }
+                .accessibilityLabel(
+                    "キーボード設定のその他の操作"
+                )
+            }
+        }
         .sheet(item: $helpTopic) { topic in
             KeyboardSettingsHelpSheet(topic: topic)
         }
@@ -695,17 +693,7 @@ private struct SetupView: View {
         )
     }
 
-    private func sectionHeading(
-        _ title: String
-    ) -> some View {
-        Text(title)
-            .font(.headline)
-            .frame(
-                minHeight: 28,
-                maxWidth: .infinity,
-                alignment: .leading
-            )
-    }
+
 }
 
 private enum KeyboardSettingsHelpTopic:
