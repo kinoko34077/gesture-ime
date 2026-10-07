@@ -537,9 +537,9 @@ private struct ProductFlickDirectionCell: View {
         }
         .frame(
             minWidth: 0,
-            maxWidth: .infinity,
-            height: 64
+            maxWidth: .infinity
         )
+        .frame(height: 64)
         .onAppear {
             text = initial
         }
@@ -571,9 +571,9 @@ private struct ProductFlickCenterCell: View {
         }
         .frame(
             minWidth: 0,
-            maxWidth: .infinity,
-            height: 64
+            maxWidth: .infinity
         )
+        .frame(height: 64)
         .onAppear {
             text = initial
         }
