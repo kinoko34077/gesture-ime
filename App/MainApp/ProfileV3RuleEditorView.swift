@@ -304,36 +304,20 @@ private struct ProfileV3RuleBranchEditor: View {
             }
 
             Section {
-                if ordinaryActionsEditable {
-                    if behavior.actions.isEmpty {
-                        Text("動作なし")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(behavior.actions.indices, id: \.self) { index in
-                        actionCard(index)
-                    }
-                    Menu {
-                        ForEach(CommonActionOption.ruleEditorOptions) { option in
-                            Button(option.displayTitle) {
-                                addAction(option)
-                            }
-                        }
-                    } label: {
-                        Label("動作を追加", systemImage: "plus.rectangle.on.rectangle")
-                    }
-                    .disabled(behavior.actions.count >= 16)
-                } else {
-                    Label("詳細設定の動作を保持しています", systemImage: "lock")
-                        .foregroundStyle(.secondary)
-                    Text("この動作列には通常画面で安全に表現できない項目があります。内容は変更せず保持します。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                ProfileV3CommonActionStackEditor(
+                    editor: editor,
+                    actions: $behavior.actions,
+                    sourceEditable:
+                        behavior.actionsEditable,
+                    maximumActions: 16
+                )
             } header: {
                 Text("すること")
             } footer: {
-                if ordinaryActionsEditable {
-                    Text("上から順に実行します。iOSショートカットのように、必要な機能を追加して並べ替えます。")
+                if behavior.actionsEditable {
+                    Text(
+                        "上から順に実行します。マクロと同じ動作編集を使います。"
+                    )
                 }
             }
 
@@ -441,177 +425,6 @@ private struct ProfileV3RuleBranchEditor: View {
             "「〜でない」にする",
             isOn: $condition.terms[index].negated
         )
-    }
-
-    @ViewBuilder
-    private func actionCard(_ index: Int) -> some View {
-        let action = behavior.actions[index]
-        if let option = CommonActionOption.exact(action.actionID) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("動作 \(index + 1)")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Menu {
-                        profileV3MoveMenuItems(
-                            canMoveUp: index > 0,
-                            canMoveDown: index + 1 < behavior.actions.count,
-                            onMoveUp: { moveAction(index, by: -1) },
-                            onMoveDown: { moveAction(index, by: 1) }
-                        )
-                        Divider()
-                        Button("削除", role: .destructive) {
-                            behavior.actions.remove(at: index)
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("動作の操作")
-                }
-
-                Menu {
-                    ForEach(CommonActionOption.ruleEditorOptions) { candidate in
-                        Button(candidate.displayTitle) {
-                            changeAction(index, to: candidate)
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Label(option.displayTitle, systemImage: "bolt.fill")
-                        Spacer()
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption)
-                    }
-                }
-
-                actionArgumentEditor(index: index, option: option)
-            }
-            .padding(10)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
-        }
-    }
-
-    @ViewBuilder
-    private func actionArgumentEditor(
-        index: Int,
-        option: CommonActionOption
-    ) -> some View {
-        if option == .layerSet || option == .layerPush {
-            Picker("キーボード面", selection: argumentBinding(index, option)) {
-                ForEach(editor.layers) { layer in
-                    Text(layer.name?.isEmpty == false ? layer.name! : layer.id)
-                        .tag(layer.id)
-                }
-            }
-        } else if option == .macroRun {
-            Picker("マクロ", selection: argumentBinding(index, option)) {
-                ForEach(editor.macros) { macro in
-                    Text(macro.id).tag(macro.id)
-                }
-            }
-        } else if option.argumentKey != nil {
-            TextField(argumentLabel(option), text: argumentBinding(index, option))
-                .keyboardType(
-                    option.integerArgument
-                        ? .numbersAndPunctuation
-                        : .default
-                )
-        }
-    }
-
-    private func argumentLabel(_ option: CommonActionOption) -> String {
-        switch option {
-        case .textInsert, .textDirectInsert: "入力する文字"
-        case .editDelete: "削除する文字数"
-        case .cursorMove: "移動量"
-        case .conversionSelectCandidate: "候補番号"
-        case .panelOpen: "パネル"
-        case .layerSet, .layerPush: "キーボード面"
-        case .macroRun: "マクロ"
-        default: "値"
-        }
-    }
-
-    private func argumentBinding(
-        _ index: Int,
-        _ option: CommonActionOption
-    ) -> Binding<String> {
-        Binding(
-            get: {
-                guard behavior.actions.indices.contains(index) else { return "" }
-                return option.ruleArgumentText(
-                    from: behavior.actions[index]
-                ) ?? ""
-            },
-            set: { text in
-                guard behavior.actions.indices.contains(index) else { return }
-                behavior.actions[index] = option.makeRuleDraft(
-                    argumentText: text,
-                    preserving: behavior.actions[index]
-                )
-            }
-        )
-    }
-
-    private var ordinaryActionsEditable: Bool {
-        guard behavior.actionsEditable else { return false }
-        return behavior.actions.allSatisfy { action in
-            guard let option = CommonActionOption.exact(action.actionID),
-                  option != .profileSwitch else {
-                return false
-            }
-            let allowedKeys = option.argumentKey.map { Set([$0]) } ?? Set<String>()
-            return Set(action.arguments.keys).isSubset(of: allowedKeys)
-        }
-    }
-
-    private func addAction(_ option: CommonActionOption) {
-        behavior.actions.append(
-            option.makeRuleDraft(
-                argumentText: defaultArgument(for: option),
-                preserving: nil
-            )
-        )
-    }
-
-    private func changeAction(
-        _ index: Int,
-        to option: CommonActionOption
-    ) {
-        guard behavior.actions.indices.contains(index) else { return }
-        behavior.actions[index] = option.makeRuleDraft(
-            argumentText: defaultArgument(for: option),
-            preserving: nil
-        )
-    }
-
-    private func moveAction(_ index: Int, by offset: Int) {
-        let destination = index + offset
-        guard behavior.actions.indices.contains(index),
-              behavior.actions.indices.contains(destination) else {
-            return
-        }
-        let action = behavior.actions.remove(at: index)
-        behavior.actions.insert(action, at: destination)
-    }
-
-    private func defaultArgument(
-        for option: CommonActionOption
-    ) -> String {
-        switch option {
-        case .layerSet, .layerPush:
-            editor.layers.first?.id ?? ""
-        case .macroRun:
-            editor.macros.first?.id ?? ""
-        case .editDelete, .cursorMove:
-            "1"
-        case .conversionSelectCandidate:
-            "0"
-        default:
-            ""
-        }
     }
 
     private func values(
