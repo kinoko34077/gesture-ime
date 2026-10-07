@@ -197,7 +197,7 @@ private struct ProfileV3MacroDetailView: View {
                     editor: editor,
                     actions: $actions,
                     sourceEditable:
-                        macro.actionsEditable,
+                        ordinaryEditable,
                     maximumActions: 32
                 )
             } header: {
@@ -228,15 +228,22 @@ private struct ProfileV3MacroDetailView: View {
                 Button("保存") {
                     save()
                 }
-                .disabled(!macro.actionsEditable)
+                .disabled(!ordinaryEditable)
             }
         }
+    }
+
+    private var ordinaryEditable: Bool {
+        macro.actionsEditable
+            && macro.actions.allSatisfy(
+                CommonActionOption.supportsOrdinaryEditing
+            )
     }
 
     private func save() {
         localError = nil
 
-        guard macro.actionsEditable else {
+        guard ordinaryEditable else {
             return
         }
 
