@@ -10,7 +10,7 @@ struct GestureIMEApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            ProductAppShell()
                 .environmentObject(library)
                 .environmentObject(productSettings)
         }
@@ -108,7 +108,7 @@ private struct RootView: View {
     }
 }
 
-private struct ProfileV3InputLandingView: View {
+struct ProfileV3InputLandingView: View {
     let editor: ProfileV3EditorModel?
 
     var body: some View {
@@ -224,7 +224,7 @@ private struct ProfileV3ConversionStatusView: View {
     }
 }
 
-private struct ProfileV3SettingsLandingView: View {
+struct ProfileV3SettingsLandingView: View {
     let editor: ProfileV3EditorModel?
 
     var body: some View {
