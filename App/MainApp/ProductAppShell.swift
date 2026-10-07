@@ -29,7 +29,7 @@ struct ProductAppShell: View {
             }
 
             NavigationStack {
-                ProfileV3InputLandingView(editor: editor)
+                ProductInputHome(editor: editor)
                     .toolbar {
                         scopeToolbar(editor: editor)
                     }

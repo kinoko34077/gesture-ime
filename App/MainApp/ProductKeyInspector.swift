@@ -208,18 +208,38 @@ struct ProductKeyInspector: View {
     }
 
     private var conditionSummary: some View {
-        HStack(spacing: 8) {
-            ProductSectionHeader(
-                "条件",
-                help:
+        HStack(spacing: 4) {
+            if let boardID = editor.currentBoardID {
+                NavigationLink {
+                    ProductRuleEditor(
+                        editor: editor,
+                        boardID: boardID,
+                        entryID: entry.id
+                    )
+                } label: {
+                    HStack {
+                        Text("条件")
+                            .font(.subheadline.bold())
+                        Spacer()
+                        Text(
+                            "\(editor.selectedRules?.branches.count ?? 0)件"
+                        )
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    }
+                    .frame(minHeight: 44)
+                }
+            } else {
+                Text("条件")
+                    .font(.subheadline.bold())
+                Spacer()
+            }
+
+            ProductInfoButton(
+                title: "条件",
+                message:
                     "入力欄や変換状態などに応じて、このキーの表示や動作を切り替えます。"
             )
-
-            Text(
-                "\(editor.selectedRules?.branches.count ?? 0)件"
-            )
-            .font(.subheadline.monospacedDigit())
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
     }
