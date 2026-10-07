@@ -642,6 +642,88 @@ final class ProfileV3EditorModel: ObservableObject {
         }
     }
 
+    // MARK: - #157 U6 Macro authoring
+
+    @discardableResult
+    func createMacro() -> String? {
+        do {
+            guard let document = history?.document else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Editor document is unavailable"
+                )
+            }
+            let id = try document.v3NewMacroID()
+            try mutateThrowing {
+                try $0.v3UpsertMacro(
+                    id: id,
+                    actions: []
+                )
+            }
+            errorMessage = nil
+            return id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func updateMacro(
+        id: String,
+        actions: [ProfileActionDraft]
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertMacro(
+                    id: id,
+                    actions: actions
+                )
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func duplicateMacro(id: String) -> String? {
+        do {
+            guard let document = history?.document else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Editor document is unavailable"
+                )
+            }
+            let newID = try document.v3NewMacroID()
+            try mutateThrowing {
+                try $0.v3DuplicateMacro(
+                    sourceID: id,
+                    newID: newID
+                )
+            }
+            errorMessage = nil
+            return newID
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func deleteMacro(id: String) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3DeleteMacro(id: id)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     // MARK: - #79 Transform authoring
 
     func newTransformTableID() throws -> String {

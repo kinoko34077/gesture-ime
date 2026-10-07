@@ -133,9 +133,12 @@ private struct ProfileV3InputLandingView: View {
                 }
 
                 NavigationLink {
-                    ProfileV3SemanticCollectionOverview(editor: editor, kind: .macros)
+                    ProfileV3MacroEditorView(editor: editor)
                 } label: {
-                    Label(ProfileV3AppCategory.macros.title, systemImage: "list.bullet.rectangle")
+                    Label(
+                        ProfileV3AppCategory.macros.title,
+                        systemImage: "list.bullet.rectangle"
+                    )
                 }
 
                 NavigationLink {

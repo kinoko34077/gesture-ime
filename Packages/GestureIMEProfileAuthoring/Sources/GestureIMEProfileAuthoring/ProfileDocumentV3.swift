@@ -168,9 +168,13 @@ extension ProfileDocument {
             else {
                 return nil
             }
+
+            let rawActions = object["actions"]?.arrayValue ?? []
+            let actions = rawActions.compactMap(Self.v3ActionDraft)
             return ProfileV3MacroSummary(
                 id: id,
-                actions: (object["actions"]?.arrayValue ?? []).compactMap(Self.v3ActionDraft)
+                actions: actions,
+                actionsEditable: actions.count == rawActions.count
             )
         }
     }
@@ -778,6 +782,47 @@ extension ProfileDocument {
         try v3DeleteTopLevelObject(arrayName: "transformTables", id: id)
     }
 
+    public func v3NewMacroID() throws -> String {
+        let ids = Set(
+            try v3Array(named: "macros").compactMap {
+                $0.objectValue?["id"]?.stringValue
+            }
+        )
+
+        var index = 1
+        while ids.contains("macro.macro-\(index)") {
+            index += 1
+        }
+        return "macro.macro-\(index)"
+    }
+
+    public mutating func v3DuplicateMacro(
+        sourceID: String,
+        newID: String
+    ) throws {
+        try Self.v3ValidateSemanticID(newID, field: "macro.id")
+
+        var top = try v3TopObject()
+        var macros = try v3MutableArray(in: top, named: "macros")
+
+        guard !macros.contains(where: {
+            $0.objectValue?["id"]?.stringValue == newID
+        }) else {
+            throw ProfileAuthoringError.duplicateProfile(newID)
+        }
+
+        guard var source = macros.first(where: {
+            $0.objectValue?["id"]?.stringValue == sourceID
+        })?.objectValue else {
+            throw ProfileAuthoringError.missingReference(sourceID)
+        }
+
+        source["id"] = .string(newID)
+        macros.append(.object(source))
+        top["macros"] = .array(macros)
+        root = .object(top)
+    }
+
     public mutating func v3UpsertMacro(
         id: String,
         actions: [ProfileActionDraft]
@@ -1139,20 +1184,28 @@ extension ProfileDocument {
 
     private static func v3ActionDraft(_ node: JSONNode) -> ProfileActionDraft? {
         guard
-            let object = node.objectValue,
-            let actionID = object["actionID"]?.stringValue,
-            let arguments = object["arguments"]?.objectValue
+            var object = node.objectValue,
+            let actionID = object.removeValue(
+                forKey: "actionID"
+            )?.stringValue,
+            let arguments = object.removeValue(
+                forKey: "arguments"
+            )?.objectValue
         else {
             return nil
         }
-        return ProfileActionDraft(actionID: actionID, arguments: arguments)
+        return ProfileActionDraft(
+            actionID: actionID,
+            arguments: arguments,
+            extra: object
+        )
     }
 
     static func v3ActionNode(_ action: ProfileActionDraft) -> JSONNode {
-        .object([
-            "actionID": .string(action.actionID),
-            "arguments": .object(action.arguments)
-        ])
+        var object = action.extra
+        object["actionID"] = .string(action.actionID)
+        object["arguments"] = .object(action.arguments)
+        return .object(object)
     }
 
     private static func v3TransitionDraft(_ node: JSONNode) -> ProfileV3TransitionDraft? {
