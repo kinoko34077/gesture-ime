@@ -186,11 +186,11 @@ struct ProfileV3ThemeEditorView: View {
                         )
                     )
                     .frame(
+                        maxWidth: .infinity,
                         minHeight: CGFloat(
                             ProfileV3DesignLayoutPolicy
                                 .colorRowMinimumHeight
                         ),
-                        maxWidth: .infinity,
                         alignment: .leading
                     )
 
@@ -324,11 +324,11 @@ struct ProfileV3ThemeEditorView: View {
         Text(title)
             .font(.headline)
             .frame(
+                maxWidth: .infinity,
                 minHeight: CGFloat(
                     ProfileV3DesignLayoutPolicy
                         .sectionHeadingBaseHeight
                 ),
-                maxWidth: .infinity,
                 alignment: .leading
             )
             .padding(.bottom, 4)
