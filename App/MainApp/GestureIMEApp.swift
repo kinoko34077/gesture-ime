@@ -255,7 +255,7 @@ private struct ProfileV3SettingsLandingView: View {
                     ProfileV3EmptyWorkspace()
                 }
             } label: {
-                Label(ProfileV3AppCategory.advanced.title, systemImage: "hammer")
+                Label("開発者", systemImage: "hammer")
             }
         }
         .navigationTitle(ProfileV3AppTab.settings.title)
@@ -369,86 +369,415 @@ private struct ProfileV3PrivacyView: View {
 }
 
 private struct SetupView: View {
-    @EnvironmentObject private var productSettings: ProductSettingsModel
-    @EnvironmentObject private var library: ProfileLibraryModel
+    @EnvironmentObject private var productSettings:
+        ProductSettingsModel
+
+    @State private var helpTopic:
+        KeyboardSettingsHelpTopic?
+    @State private var confirmingReset = false
 
     var body: some View {
-        List {
-                Section("キーボードの追加") {
-                    Text("Gesture IME はiPhoneのキーボードとして使えます。")
-                    Text("設定 → 一般 → キーボード → キーボード → 新しいキーボードを追加 から有効にします。")
-                    Text("入力欄で地球儀キーを押してキーボードを切り替えます。")
-                }
+        GeometryReader { geometry in
+            let inset = CGFloat(
+                ProfileV3SettingsLayoutPolicy
+                    .contentInset(
+                        usableWidth:
+                            Double(geometry.size.width)
+                    )
+            )
 
-                Section {
-                    Stepper(
-                        onIncrement: productSettings.incrementHaptic,
-                        onDecrement: productSettings.decrementHaptic
+            ScrollView {
+                VStack(
+                    alignment: .leading,
+                    spacing: CGFloat(
+                        ProfileV3SettingsLayoutPolicy
+                            .sectionGap
+                    )
+                ) {
+                    setupHelpRow
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: 0
                     ) {
-                        HStack {
-                            Text("触覚フィードバックの強さ")
-                            Spacer()
-                            Text(String(format: "%.1f", productSettings.values.hapticStrength))
-                                .monospacedDigit()
-                        }
-                    }
-                    .disabled(!productSettings.isEditable)
+                        hapticSliderRow
 
-                    Stepper(
-                        onIncrement: productSettings.incrementHeightScale,
-                        onDecrement: productSettings.decrementHeightScale
-                    ) {
-                        HStack {
-                            Text("キーボードの高さ")
-                            Spacer()
-                            Text(String(format: "%.2f倍", productSettings.values.keyboardHeightScale))
-                                .monospacedDigit()
-                        }
-                    }
-                    .disabled(!productSettings.isEditable)
+                        Divider()
 
-                    Toggle("キーを押したときの音", isOn: Binding(
-                        get: { productSettings.effectiveKeySoundEnabled },
-                        set: { productSettings.setKeySound($0) }
-                    ))
-                    .disabled(!productSettings.keySoundEditable)
+                        heightSliderRow
 
-                    Text(productSettings.keySoundStatus)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        Divider()
 
-                    Button("キーボード設定を初期値に戻す") {
-                        productSettings.reset()
-                    }
-                    .disabled(!productSettings.isEditable)
+                        keySoundRow
 
-                    if let errorMessage = productSettings.errorMessage {
-                        Text(errorMessage)
+                        if !productSettings.isEditable {
+                            Divider()
+
+                            Label(
+                                productSettings.deliveryStatus,
+                                systemImage: "lock"
+                            )
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.secondary)
+                            .frame(
+                                maxWidth: .infinity,
+                                minHeight: CGFloat(
+                                    ProfileV3SettingsLayoutPolicy
+                                        .ordinaryRowMinimumHeight
+                                ),
+                                alignment: .leading
+                            )
+                            .accessibilityLabel(
+                                "利用できません: "
+                                    + productSettings
+                                        .deliveryStatus
+                            )
+                        }
                     }
-                } header: {
-                    Text(ProfileV3DisplayCatalog.title(.sectionKeyboardSettings))
-                } footer: {
-                    if !productSettings.isEditable {
-                        Label(productSettings.deliveryStatus, systemImage: "lock")
-                            .accessibilityLabel("利用できません: " + productSettings.deliveryStatus)
-                    }
+
                 }
-
-                Section("設定の反映") {
-                    Text(productSettings.deliveryStatus)
-                    Text("触覚・高さはこの端末の設定で、キーボード配置データには保存されません。")
-                    Text(productSettings.keySoundStatus)
-                }
-
-                Section("キーボード配置の反映") {
-                    Text("このアプリでキーボード配置を編集・検証します。")
-                    Text(library.profileDeliveryStatus)
-                }
-
-
+                .padding(.horizontal, inset)
+                .padding(.vertical, 16)
             }
-            .navigationTitle("キーボード設定")
+        }
+        .navigationTitle("キーボード設定")
+        .toolbar {
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+                Menu {
+                    Button(
+                        role: .destructive
+                    ) {
+                        confirmingReset = true
+                    } label: {
+                        Label(
+                            "初期値に戻す",
+                            systemImage:
+                                "arrow.counterclockwise"
+                        )
+                    }
+                    .disabled(
+                        !productSettings.isEditable
+                    )
+                } label: {
+                    Image(
+                        systemName: "ellipsis.circle"
+                    )
+                }
+                .accessibilityLabel(
+                    "キーボード設定のその他の操作"
+                )
+            }
+        }
+        .sheet(item: $helpTopic) { topic in
+            KeyboardSettingsHelpSheet(topic: topic)
+        }
+        .alert(
+            "初期値に戻しますか？",
+            isPresented: $confirmingReset
+        ) {
+            Button("キャンセル", role: .cancel) {}
+            Button(
+                "初期値に戻す",
+                role: .destructive
+            ) {
+                productSettings.reset()
+            }
+        } message: {
+            Text(
+                "触覚の強さ、キーボードの高さ、キー音を初期値へ戻します。"
+            )
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let message =
+                    productSettings.errorMessage {
+                ProfileV3InlineAuthoringError(
+                    message: message,
+                    correctionHint:
+                        "設定の共有状態を確認して、もう一度操作してください。"
+                )
+            }
+        }
+    }
+
+    private var setupHelpRow: some View {
+        Button {
+            helpTopic = .setup
+        } label: {
+            HStack(spacing: 8) {
+                Label(
+                    "キーボードの追加方法",
+                    systemImage: "keyboard"
+                )
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "info.circle")
+                    .font(.system(size: 17))
+                    .accessibilityHidden(true)
+            }
+            .frame(
+                maxWidth: .infinity,
+                minHeight: CGFloat(
+                    ProfileV3SettingsLayoutPolicy
+                        .ordinaryRowMinimumHeight
+                ),
+                alignment: .leading
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(
+            "iPhoneでGesture IMEを有効にする方法を表示します"
+        )
+    }
+
+    private var hapticSliderRow: some View {
+        settingsSliderRow(
+            title: "触覚フィードバックの強さ",
+            valueText: String(
+                format: "%.1f",
+                productSettings.values.hapticStrength
+            ),
+            accessibilityValue: String(
+                format: "%.1f",
+                productSettings.values.hapticStrength
+            )
+        ) {
+            Slider(
+                value: Binding(
+                    get: {
+                        productSettings
+                            .values
+                            .hapticStrength
+                    },
+                    set: {
+                        productSettings
+                            .setHapticStrength($0)
+                    }
+                ),
+                in: 0...1
+            )
+            .disabled(!productSettings.isEditable)
+        }
+    }
+
+    private var heightSliderRow: some View {
+        settingsSliderRow(
+            title: "キーボードの高さ",
+            valueText: String(
+                format: "%.2f倍",
+                productSettings
+                    .values
+                    .keyboardHeightScale
+            ),
+            accessibilityValue: String(
+                format: "%.2f倍",
+                productSettings
+                    .values
+                    .keyboardHeightScale
+            )
+        ) {
+            Slider(
+                value: Binding(
+                    get: {
+                        ProfileV3SettingsLayoutPolicy
+                            .heightSliderPosition(
+                                scale:
+                                    productSettings
+                                        .values
+                                        .keyboardHeightScale
+                            )
+                    },
+                    set: { position in
+                        productSettings
+                            .setKeyboardHeightScale(
+                                ProfileV3SettingsLayoutPolicy
+                                    .heightScale(
+                                        sliderPosition:
+                                            position
+                                    )
+                            )
+                    }
+                ),
+                in: 0...1
+            )
+            .disabled(!productSettings.isEditable)
+            .accessibilityHint(
+                "中央が1.00倍です"
+            )
+        }
+    }
+
+    private var keySoundRow: some View {
+        VStack(
+            alignment: .leading,
+            spacing: 0
+        ) {
+            HStack(spacing: 4) {
+                Text("キーを押したときの音")
+
+                Button {
+                    helpTopic = .keySound
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 17))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    "キー音の説明"
+                )
+
+                Spacer(minLength: 8)
+
+                Toggle(
+                    "キー音",
+                    isOn: Binding(
+                        get: {
+                            productSettings
+                                .effectiveKeySoundEnabled
+                        },
+                        set: {
+                            productSettings
+                                .setKeySound($0)
+                        }
+                    )
+                )
+                .labelsHidden()
+                .disabled(
+                    !productSettings.keySoundEditable
+                )
+            }
+            .frame(
+                minHeight: CGFloat(
+                    ProfileV3SettingsLayoutPolicy
+                        .ordinaryRowMinimumHeight
+                )
+            )
+
+            if productSettings.isEditable
+                && !productSettings.keySoundEditable {
+                Text(productSettings.keySoundStatus)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: .leading
+                    )
+                    .accessibilityLabel(
+                        "キー音を利用できません: "
+                            + productSettings.keySoundStatus
+                    )
+            }
+        }
+    }
+
+    private func settingsSliderRow<Control: View>(
+        title: String,
+        valueText: String,
+        accessibilityValue: String,
+        @ViewBuilder control: () -> Control
+    ) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text(title)
+
+                Spacer(minLength: 8)
+
+                Text(valueText)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .frame(
+                minHeight: CGFloat(
+                    ProfileV3SettingsLayoutPolicy
+                        .sliderLabelLineHeight
+                )
+            )
+
+            control()
+                .frame(
+                    minHeight: CGFloat(
+                        ProfileV3SettingsLayoutPolicy
+                            .sliderAllocation
+                    )
+                )
+                .accessibilityLabel(title)
+                .accessibilityValue(
+                    accessibilityValue
+                )
+        }
+        .frame(
+            minHeight: CGFloat(
+                ProfileV3SettingsLayoutPolicy
+                    .sliderRowBaseHeight
+            )
+        )
+    }
+
+
+}
+
+private enum KeyboardSettingsHelpTopic:
+    String,
+    Identifiable {
+    case setup
+    case keySound
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .setup:
+            "キーボードの追加方法"
+        case .keySound:
+            "キー音"
+        }
+    }
+
+    var body: String {
+        switch self {
+        case .setup:
+            """
+            iPhoneの「設定」→「一般」→「キーボード」→「キーボード」→「新しいキーボードを追加」からGesture IMEを有効にします。
+
+            入力欄では地球儀キーからGesture IMEへ切り替えます。
+            """
+
+        case .keySound:
+            """
+            Gesture IMEのキー音を切り替えます。実際の音量・消音はiOSの「キーボードのクリック」設定に従います。
+            """
+        }
+    }
+}
+
+private struct KeyboardSettingsHelpSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let topic: KeyboardSettingsHelpTopic
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(topic.body)
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: .leading
+                    )
+                    .padding(16)
+            }
+            .navigationTitle(topic.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(
+                    placement: .confirmationAction
+                ) {
+                    Button("閉じる") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }

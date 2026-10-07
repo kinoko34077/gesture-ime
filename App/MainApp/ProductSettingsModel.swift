@@ -62,33 +62,25 @@ final class ProductSettingsModel: ObservableObject {
         }
     }
 
-    func incrementHaptic() {
+    func setHapticStrength(_ value: Double) {
+        guard isEditable else { return }
         persist(
-            hapticStrength: min(1.0, values.hapticStrength + 0.1),
-            keyboardHeightScale: values.keyboardHeightScale
+            hapticStrength: min(1, max(0, value)),
+            keyboardHeightScale:
+                values.keyboardHeightScale
         )
     }
 
-    func decrementHaptic() {
-        persist(
-            hapticStrength: max(0.0, values.hapticStrength - 0.1),
-            keyboardHeightScale: values.keyboardHeightScale
-        )
-    }
+    func setKeyboardHeightScale(_ value: Double) {
+        guard isEditable,
+              value.isFinite,
+              value > 0 else {
+            return
+        }
 
-    func incrementHeightScale() {
         persist(
             hapticStrength: values.hapticStrength,
-            keyboardHeightScale: values.keyboardHeightScale + 0.05
-        )
-    }
-
-    func decrementHeightScale() {
-        let next = values.keyboardHeightScale - 0.05
-        guard next > 0 else { return }
-        persist(
-            hapticStrength: values.hapticStrength,
-            keyboardHeightScale: next
+            keyboardHeightScale: value
         )
     }
 
