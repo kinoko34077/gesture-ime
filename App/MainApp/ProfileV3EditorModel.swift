@@ -328,21 +328,49 @@ final class ProfileV3EditorModel: ObservableObject {
 
     var selectedRules: ProfileV3RuleSet? {
         guard let boardID = currentBoardID, let entryID = selectedEntryID else { return nil }
-        return try? history?.document.v3EntryRules(boardID: boardID, entryID: entryID)
+        return rules(boardID: boardID, entryID: entryID)
+    }
+
+    func rules(
+        boardID: String,
+        entryID: String
+    ) -> ProfileV3RuleSet? {
+        try? history?.document.v3EntryRules(
+            boardID: boardID,
+            entryID: entryID
+        )
     }
 
     @discardableResult
-    func setSelectedRules(_ rules: ProfileV3RuleSet) -> Bool {
-        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return false }
+    func setRules(
+        boardID: String,
+        entryID: String,
+        rules: ProfileV3RuleSet
+    ) -> Bool {
         do {
             try mutateThrowing {
-                try $0.v3SetEntryRules(boardID: boardID, entryID: entryID, rules: rules)
+                try $0.v3SetEntryRules(
+                    boardID: boardID,
+                    entryID: entryID,
+                    rules: rules
+                )
             }
+            errorMessage = nil
             return true
         } catch {
             errorMessage = error.localizedDescription
             return false
         }
+    }
+
+    @discardableResult
+    func setSelectedRules(_ rules: ProfileV3RuleSet) -> Bool {
+        guard let boardID = currentBoardID, let entryID = selectedEntryID else { return false }
+        return setRules(
+            boardID: boardID,
+            entryID: entryID,
+            rules: rules
+        )
     }
 
     func updatePolicyValues(_ values: ProfileV3GesturePolicyValues) {
@@ -509,6 +537,26 @@ final class ProfileV3EditorModel: ObservableObject {
 
     // MARK: - #157 U4 State authoring
 
+    @discardableResult
+    func createBooleanState(
+        id: String,
+        defaultValue: Bool
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertBooleanState(
+                    id: id,
+                    defaultValue: defaultValue
+                )
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func createBooleanState(defaultValue: Bool) -> String? {
         do {
             guard let document = history?.document else {
@@ -517,23 +565,21 @@ final class ProfileV3EditorModel: ObservableObject {
                 )
             }
             let id = try document.v3NewStateID()
-            try mutateThrowing {
-                try $0.v3UpsertBooleanState(
-                    id: id,
-                    defaultValue: defaultValue
-                )
-            }
-            errorMessage = nil
-            return id
+            return createBooleanState(
+                id: id,
+                defaultValue: defaultValue
+            ) ? id : nil
         } catch {
             errorMessage = error.localizedDescription
             return nil
         }
     }
 
+    @discardableResult
     func createEnumState(
+        id: String,
         initialValue: String
-    ) -> String? {
+    ) -> Bool {
         do {
             if let error =
                 ProfileV3StateAuthoringPolicy.enumValidationError(
@@ -543,12 +589,6 @@ final class ProfileV3EditorModel: ObservableObject {
                 throw ProfileAuthoringError.invalidJSON(error)
             }
 
-            guard let document = history?.document else {
-                throw ProfileAuthoringError.invalidJSON(
-                    "Editor document is unavailable"
-                )
-            }
-            let id = try document.v3NewStateID()
             try mutateThrowing {
                 try $0.v3UpsertEnumState(
                     id: id,
@@ -557,7 +597,27 @@ final class ProfileV3EditorModel: ObservableObject {
                 )
             }
             errorMessage = nil
-            return id
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func createEnumState(
+        initialValue: String
+    ) -> String? {
+        do {
+            guard let document = history?.document else {
+                throw ProfileAuthoringError.invalidJSON(
+                    "Editor document is unavailable"
+                )
+            }
+            let id = try document.v3NewStateID()
+            return createEnumState(
+                id: id,
+                initialValue: initialValue
+            ) ? id : nil
         } catch {
             errorMessage = error.localizedDescription
             return nil
@@ -606,6 +666,26 @@ final class ProfileV3EditorModel: ObservableObject {
         }
     }
 
+    @discardableResult
+    func duplicateState(
+        id: String,
+        newID: String
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3DuplicateState(
+                    sourceID: id,
+                    newID: newID
+                )
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func duplicateState(id: String) -> String? {
         do {
             guard let document = history?.document else {
@@ -614,14 +694,10 @@ final class ProfileV3EditorModel: ObservableObject {
                 )
             }
             let newID = try document.v3NewStateID()
-            try mutateThrowing {
-                try $0.v3DuplicateState(
-                    sourceID: id,
-                    newID: newID
-                )
-            }
-            errorMessage = nil
-            return newID
+            return duplicateState(
+                id: id,
+                newID: newID
+            ) ? newID : nil
         } catch {
             errorMessage = error.localizedDescription
             return nil
@@ -645,6 +721,23 @@ final class ProfileV3EditorModel: ObservableObject {
     // MARK: - #157 U6 Macro authoring
 
     @discardableResult
+    func createMacro(id: String) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3UpsertMacro(
+                    id: id,
+                    actions: []
+                )
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
     func createMacro() -> String? {
         do {
             guard let document = history?.document else {
@@ -653,14 +746,7 @@ final class ProfileV3EditorModel: ObservableObject {
                 )
             }
             let id = try document.v3NewMacroID()
-            try mutateThrowing {
-                try $0.v3UpsertMacro(
-                    id: id,
-                    actions: []
-                )
-            }
-            errorMessage = nil
-            return id
+            return createMacro(id: id) ? id : nil
         } catch {
             errorMessage = error.localizedDescription
             return nil
@@ -688,6 +774,26 @@ final class ProfileV3EditorModel: ObservableObject {
     }
 
     @discardableResult
+    func duplicateMacro(
+        id: String,
+        newID: String
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3DuplicateMacro(
+                    sourceID: id,
+                    newID: newID
+                )
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
     func duplicateMacro(id: String) -> String? {
         do {
             guard let document = history?.document else {
@@ -696,14 +802,10 @@ final class ProfileV3EditorModel: ObservableObject {
                 )
             }
             let newID = try document.v3NewMacroID()
-            try mutateThrowing {
-                try $0.v3DuplicateMacro(
-                    sourceID: id,
-                    newID: newID
-                )
-            }
-            errorMessage = nil
-            return newID
+            return duplicateMacro(
+                id: id,
+                newID: newID
+            ) ? newID : nil
         } catch {
             errorMessage = error.localizedDescription
             return nil
@@ -731,6 +833,76 @@ final class ProfileV3EditorModel: ObservableObject {
             throw ProfileAuthoringError.invalidJSON("Editor document is unavailable")
         }
         return try document.v3NewTransformTableID()
+    }
+
+    func createTransformTable(
+        title: String
+    ) -> String? {
+        do {
+            let id = try newTransformTableID()
+            let cleanTitle = title.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            let table = ProfileV3TransformTableRows(
+                id: id,
+                title: cleanTitle.isEmpty ? nil : cleanTitle,
+                rows: []
+            )
+            guard setTransformTable(table) else { return nil }
+            return id
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func duplicateTransformTable(
+        id: String
+    ) -> String? {
+        do {
+            guard let source = transformRows.first(
+                where: { $0.id == id }
+            ) else {
+                throw ProfileAuthoringError.missingReference(id)
+            }
+            let newID = try newTransformTableID()
+            let rows = source.rows.map {
+                ProfileV3TransformRow(
+                    from: $0.from,
+                    to: $0.to,
+                    groupPath: $0.groupPath,
+                    reverse: $0.reverse
+                )
+            }
+            let copy = ProfileV3TransformTableRows(
+                id: newID,
+                title: source.displayTitle + " のコピー",
+                reverseAll: source.reverseAll,
+                groups: source.groups,
+                rows: rows
+            )
+            guard setTransformTable(copy) else { return nil }
+            return newID
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func deleteTransformTable(
+        id: String
+    ) -> Bool {
+        do {
+            try mutateThrowing {
+                try $0.v3DeleteTransformTable(id: id)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     @discardableResult
