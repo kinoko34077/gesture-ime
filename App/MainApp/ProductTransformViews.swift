@@ -139,6 +139,7 @@ private struct ProductTransformDetail: View {
     let tableID: String
 
     @State private var draft: ProfileV3TransformTableRows?
+    @State private var persistedBaseline: ProfileV3TransformTableRows?
     @State private var searchText = ""
     @State private var addingGroup = false
     @State private var renamingGroup: [String]?
@@ -273,9 +274,11 @@ private struct ProductTransformDetail: View {
         }
         .onAppear {
             if draft == nil {
-                draft = editor.transformRows.first {
+                let current = editor.transformRows.first {
                     $0.id == tableID
                 }
+                draft = current
+                persistedBaseline = current
             }
         }
         .sheet(isPresented: $addingGroup) {
@@ -351,8 +354,23 @@ private struct ProductTransformDetail: View {
     }
 
     private func apply() {
-        guard let draft else { return }
-        if editor.setTransformTable(draft) {
+        guard let draft,
+              let persistedBaseline
+        else {
+            return
+        }
+
+        let candidate =
+            ProfileV3TransformEditPolicy.tablePersistenceCandidate(
+                draft: draft,
+                persisted: persistedBaseline
+            )
+
+        if editor.setTransformTable(candidate) {
+            self.persistedBaseline =
+                editor.transformRows.first {
+                    $0.id == tableID
+                }
             localError = nil
         }
     }

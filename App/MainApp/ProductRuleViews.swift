@@ -562,6 +562,9 @@ private struct ProductNewRuleSheet: View {
                         Text(state.id).tag(state.id)
                     }
                 }
+                .onChange(of: stateID) { _, _ in
+                    syncStateValue()
+                }
                 stateValueEditor
 
             case .transform:
@@ -772,7 +775,8 @@ struct ProductRuleBehaviorEditor: View {
         }
         .navigationTitle(branchIndex == nil ? "その他" : "条件")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                EditButton()
                 Button("適用") {
                     apply()
                 }

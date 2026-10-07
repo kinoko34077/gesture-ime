@@ -329,3 +329,99 @@ func draftPromotionProducesCandidateButRejectedCandidateDoesNotMutateDocument() 
     #expect(try doc.encoded(pretty: false) == before)
     #expect(draft.from == "あ" && draft.to == "x")
 }
+
+
+@Test
+func tablePersistenceCandidateKeepsIncompleteExistingAndOmitsNewDraft() {
+    let existingID = UUID()
+    let persisted = ProfileV3TransformTableRows(
+        id: "t",
+        title: "Before",
+        groups: [["old"]],
+        rows: [
+            .init(
+                from: "a",
+                to: "A",
+                groupPath: ["old"],
+                reverse: false,
+                editorID: existingID
+            )
+        ]
+    )
+
+    let draft = ProfileV3TransformTableRows(
+        id: "t",
+        title: "After",
+        reverseAll: true,
+        groups: [["new"]],
+        rows: [
+            .init(
+                from: "",
+                to: "AA",
+                groupPath: ["new"],
+                reverse: true,
+                editorID: existingID
+            ),
+            .init(from: "", to: "new")
+        ]
+    )
+
+    let candidate =
+        ProfileV3TransformEditPolicy.tablePersistenceCandidate(
+            draft: draft,
+            persisted: persisted
+        )
+
+    #expect(candidate.id == "t")
+    #expect(candidate.title == "After")
+    #expect(candidate.reverseAll)
+    #expect(candidate.groups == [["new"]])
+    #expect(candidate.rows.count == 1)
+    #expect(candidate.rows[0].from == "a")
+    #expect(candidate.rows[0].to == "A")
+    #expect(candidate.rows[0].groupPath == ["old"])
+    #expect(!candidate.rows[0].reverse)
+    #expect(candidate.rows[0].editorID == existingID)
+}
+
+@Test
+func tablePersistenceCandidatePersistsCompleteRowsAndHonorsDeletion() {
+    let removedID = UUID()
+    let editedID = UUID()
+    let persisted = ProfileV3TransformTableRows(
+        id: "t",
+        rows: [
+            .init(from: "remove", to: "R", editorID: removedID),
+            .init(from: "a", to: "A", editorID: editedID)
+        ]
+    )
+
+    let newID = UUID()
+    let draft = ProfileV3TransformTableRows(
+        id: "t",
+        rows: [
+            .init(
+                from: "aa",
+                to: "AA",
+                reverse: true,
+                editorID: editedID
+            ),
+            .init(
+                from: "b",
+                to: "B",
+                editorID: newID
+            )
+        ]
+    )
+
+    let candidate =
+        ProfileV3TransformEditPolicy.tablePersistenceCandidate(
+            draft: draft,
+            persisted: persisted
+        )
+
+    #expect(candidate.rows.map(\.from) == ["aa", "b"])
+    #expect(candidate.rows.map(\.to) == ["AA", "B"])
+    #expect(candidate.rows[0].reverse)
+    #expect(!candidate.rows.contains { $0.editorID == removedID })
+}

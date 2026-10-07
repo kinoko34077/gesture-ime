@@ -284,6 +284,38 @@ public enum ProfileV3TransformEditPolicy {
         updated.rows.append(row)
         return updated
     }
+
+    /// Builds the semantic table written by an explicit Apply operation while
+    /// keeping incomplete editor drafts transient.
+    ///
+    /// - A persisted row edited into an incomplete state keeps its last
+    ///   persisted mapping unchanged.
+    /// - A new incomplete row is omitted.
+    /// - A row removed from the draft remains removed.
+    /// - Table-level authoring metadata comes from the current draft.
+    public static func tablePersistenceCandidate(
+        draft: ProfileV3TransformTableRows,
+        persisted: ProfileV3TransformTableRows
+    ) -> ProfileV3TransformTableRows {
+        let previousByID = Dictionary(
+            uniqueKeysWithValues: persisted.rows.map {
+                ($0.editorID, $0)
+            }
+        )
+
+        let rows = draft.rows.compactMap { row in
+            guard row.isDraft else { return row }
+            return previousByID[row.editorID]
+        }
+
+        return ProfileV3TransformTableRows(
+            id: draft.id,
+            title: draft.title,
+            reverseAll: draft.reverseAll,
+            groups: draft.groups,
+            rows: rows
+        )
+    }
 }
 
 /// Disclosure tree node: a table, a group, or a leaf mapping.
