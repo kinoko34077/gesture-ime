@@ -292,7 +292,9 @@ public enum ProfileV3TransformEditPolicy {
     ///   persisted mapping unchanged.
     /// - A new incomplete row is omitted.
     /// - A row removed from the draft remains removed.
-    /// - Table-level authoring metadata comes from the current draft.
+    /// - Table-level authoring metadata starts from the current draft; the
+    ///   table initializer then repairs any group paths required by restored
+    ///   persisted rows.
     public static func tablePersistenceCandidate(
         draft: ProfileV3TransformTableRows,
         persisted: ProfileV3TransformTableRows
