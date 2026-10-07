@@ -57,9 +57,6 @@ struct ProductAppShell: View {
 
             NavigationStack {
                 ProductSettingsHome(editor: editor)
-                    .toolbar {
-                        scopeToolbar(editor: editor)
-                    }
             }
             .tabItem {
                 Label(ProfileV3AppTab.settings.title, systemImage: "gearshape")
