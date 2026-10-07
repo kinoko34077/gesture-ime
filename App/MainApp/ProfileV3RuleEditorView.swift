@@ -85,7 +85,7 @@ struct ProfileV3RuleSection: View {
                         )
                     } label: {
                         VStack(alignment: .leading) {
-                            Text("もし " + Self.describe(condition))
+                            Text("もし " + describe(condition))
                                 .font(.caption)
                             Text(Self.describe(ProfileV3BranchBehavior(behavior)))
                                 .font(.caption2)
@@ -134,25 +134,65 @@ struct ProfileV3RuleSection: View {
         editor.setSelectedRules(updated)
     }
 
-    static func describe(_ condition: ProfileV3RuleCondition) -> String {
+    private func describe(
+        _ condition: ProfileV3RuleCondition
+    ) -> String {
         let parts = condition.terms.map(describe)
         switch condition.combine {
-        case .single: return parts.first ?? ""
-        case .all: return "すべて: " + parts.joined(separator: "・")
-        case .any: return "いずれか: " + parts.joined(separator: "・")
+        case .single:
+            return parts.first ?? ""
+        case .all:
+            return "すべて: " + parts.joined(separator: "・")
+        case .any:
+            return "いずれか: " + parts.joined(separator: "・")
         }
     }
 
-    static func describe(_ term: ProfileV3RuleTerm) -> String {
+    private func describe(
+        _ term: ProfileV3RuleTerm
+    ) -> String {
         let base: String
         switch term.test {
-        case .flag(let flag): base = ProfileV3RuleKind.flag(flag).title
+        case .flag(let flag):
+            base = ProfileV3RuleKind.flag(flag).title
+
         case .factEquals(let fact, let value):
-            base = "\(ProfileV3RuleKind.fact(fact).title)が「\(ProfileV3RuleKind.valueLabel(fact, value))」"
-        case .stateEquals(let state, let value): base = "状態 \(state) が「\(Self.literalText(value))」"
-        case .transformMatch(let table): base = "直前の文字が変換表 \(table) に含まれる"
+            base =
+                "\(ProfileV3RuleKind.fact(fact).title)が「"
+                + ProfileV3RuleKind.valueLabel(fact, value)
+                + "」"
+
+        case .stateEquals(let state, let value):
+            base =
+                "状態 \(state) が「"
+                + Self.literalText(value)
+                + "」"
+
+        case .transformMatch(let tableID):
+            base =
+                "直前の文字が変換表「"
+                + transformTitle(tableID)
+                + "」に含まれる"
         }
-        return term.negated ? "「\(base)」でない" : base
+
+        return term.negated
+            ? "「\(base)」でない"
+            : base
+    }
+
+    private func transformTitle(
+        _ tableID: String
+    ) -> String {
+        guard
+            let index = editor.transformRows.firstIndex(
+                where: { $0.id == tableID }
+            )
+        else {
+            return "変換表"
+        }
+
+        return editor.transformRows[index]
+            .ordinaryTitle(position: index)
     }
 
     static func describe(_ behavior: ProfileV3BranchBehavior) -> String {
@@ -378,8 +418,16 @@ private struct ProfileV3RuleBranchEditor: View {
                 get: { tableID },
                 set: { condition.terms[index].test = .transformMatch(tableID: $0) }
             )) {
-                ForEach(editor.transformRows) {
-                    Text($0.displayTitle).tag($0.id)
+                ForEach(
+                    Array(editor.transformRows.enumerated()),
+                    id: \.element.id
+                ) { position, table in
+                    Text(
+                        table.ordinaryTitle(
+                            position: position
+                        )
+                    )
+                    .tag(table.id)
                 }
             }
             if let table = editor.transformRows.first(where: { $0.id == tableID }) {
@@ -390,7 +438,7 @@ private struct ProfileV3RuleBranchEditor: View {
                     )
                 } label: {
                     Label(
-                        "「\(table.displayTitle)」を変換表で見る",
+                        "「\(transformTitle(tableID))」を変換表で見る",
                         systemImage: "tablecells"
                     )
                 }
