@@ -63,7 +63,10 @@ struct ProfileV3ThemeEditorView: View {
 
                     VStack(
                         alignment: .leading,
-                        spacing: 16
+                        spacing: CGFloat(
+                            ProfileV3DesignLayoutPolicy
+                                .sectionGap
+                        )
                     ) {
                         colorSection(theme: theme)
                         typographySection(theme: theme)
@@ -183,7 +186,10 @@ struct ProfileV3ThemeEditorView: View {
                         )
                     )
                     .frame(
-                        minHeight: 44,
+                        minHeight: CGFloat(
+                            ProfileV3DesignLayoutPolicy
+                                .colorRowMinimumHeight
+                        ),
                         maxWidth: .infinity,
                         alignment: .leading
                     )
@@ -394,8 +400,8 @@ struct ProfileV3ThemeEditorView: View {
                 value: Binding(
                     get: {
                         let current =
-                            editor.keyboardThemeValue(
-                                key: key
+                            themeNumericValue(
+                                for: key
                             )
                             ?? fallback
                         return min(
@@ -440,6 +446,25 @@ struct ProfileV3ThemeEditorView: View {
                     )
                 }
             }
+        }
+    }
+
+    private func themeNumericValue(
+        for key: String
+    ) -> Double? {
+        let theme = editor.keyboardTheme
+
+        switch key {
+        case "cornerRadius":
+            return theme.cornerRadius
+        case "keyFontSize":
+            return theme.keyFontSize
+        case "guideFontSize":
+            return theme.guideFontSize
+        case "guideOpacity":
+            return theme.guideOpacity
+        default:
+            return nil
         }
     }
 
