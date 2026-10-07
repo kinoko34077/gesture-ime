@@ -150,9 +150,11 @@ struct ProfileV3ThemeEditorView: View {
             sectionHeading("色")
 
             ForEach(
-                Array(Self.colorLabels.enumerated()),
-                id: \.element.0
-            ) { position, item in
+                Self.colorLabels.indices,
+                id: \.self
+            ) { position in
+                let item =
+                    Self.colorLabels[position]
                 let token = item.0
                 let label = item.1
 
