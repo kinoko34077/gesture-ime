@@ -2,11 +2,14 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import GestureIMEProfileAuthoring
+import GestureIMEProductSettings
 
-/// #74 / #91 / #95 §F9: Theme editor whose preview is the shared keyboard
-/// renderer drawing the edited Profile's actual initial Board. Theme edits are
-/// presentation-only and never touch Board geometry or Actions.
+/// #157 U7: mobile-first Design editor. The Preview is the shared product
+/// renderer over the edited Profile; settings remain presentation-only.
 struct ProfileV3ThemeEditorView: View {
+    @EnvironmentObject private var productSettings: ProductSettingsModel
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     @ObservedObject var editor: ProfileV3EditorModel
     @State private var importingTheme = false
 
@@ -24,182 +27,535 @@ struct ProfileV3ThemeEditorView: View {
     ]
 
     static let weightLabels: [(String, String)] = [
-        ("light", "細い"), ("regular", "標準"), ("medium", "中"), ("semibold", "やや太い"), ("bold", "太い")
+        ("light", "細い"),
+        ("regular", "標準"),
+        ("medium", "中"),
+        ("semibold", "やや太い"),
+        ("bold", "太い")
     ]
 
     var body: some View {
-        let theme = editor.keyboardTheme
-        ProfileV3ResizableWorkspace(storageKey: "design") {
-            ProfileV3ProductPreview(
-                presentation: IOSKeyboardPresentation(theme: theme),
-                surface: editor.previewSurface(),
-                composition: .product
+        GeometryReader { geometry in
+            let theme = editor.keyboardTheme
+            let inset = CGFloat(
+                ProfileV3DesignLayoutPolicy.contentInset(
+                    usableWidth: Double(
+                        geometry.size.width
+                    )
+                )
             )
-        } secondary: {
-        VStack(spacing: 0) {
-            persistenceHeader
-            Divider()
-            Form {
-            Section("色") {
-                ForEach(Self.colorLabels, id: \.0) { item in
-                    let token = item.0
-                    let label = item.1
-                    HStack {
-                        ColorPicker(
-                            label,
-                            selection: Binding(
-                                get: { IOSKeyboardPresentation(theme: theme).swiftUIColor(IOSKeyboardColorRole(rawValue: token) ?? .keyFill) },
-                                set: { editor.setThemeToken(token, value: .string(Self.hex($0))) }
-                            )
+
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ProfileV3ProductPreview(
+                        presentation:
+                            IOSKeyboardPresentation(theme: theme),
+                        surface: editor.previewSurface(),
+                        composition: .product
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: previewHeight)
+                    .accessibilityHint(
+                        "現在のデザイン変更を即時に反映します"
+                    )
+
+                    Divider()
+
+                    VStack(
+                        alignment: .leading,
+                        spacing: CGFloat(
+                            ProfileV3DesignLayoutPolicy
+                                .sectionGap
                         )
-                        if theme.colors[token] != nil {
-                            Button("自動") { editor.setThemeToken(token, value: nil) }
-                                .buttonStyle(.borderless)
-                                .font(.caption)
+                    ) {
+                        colorSection(theme: theme)
+                        typographySection(theme: theme)
+                    }
+                    .padding(.horizontal, inset)
+                    .padding(
+                        .vertical,
+                        CGFloat(
+                            ProfileV3DesignLayoutPolicy
+                                .sectionGap
+                        )
+                    )
+                }
+            }
+        }
+        .navigationTitle(
+            ProfileV3DisplayCatalog.title(.sectionDesign)
+        )
+        .toolbar {
+            ToolbarItemGroup(
+                placement: .topBarTrailing
+            ) {
+                Button("保存") {
+                    editor.save()
+                }
+                .disabled(
+                    !canSave
+                        || !editor.validation.valid
+                )
+
+                Menu {
+                    if let url = editor.exportThemeURL() {
+                        ShareLink(item: url) {
+                            Label(
+                                "デザインを書き出し",
+                                systemImage:
+                                    "square.and.arrow.up"
+                            )
                         }
                     }
-                }
-            }
-            Section("形・文字") {
-                numberRow("角の丸み", key: "cornerRadius", value: theme.cornerRadius, range: 0...24, fallback: 6)
-                numberRow("キー文字の大きさ", key: "keyFontSize", value: theme.keyFontSize, range: 8...40, fallback: 23)
-                Picker("キー文字の太さ", selection: Binding(
-                    get: { theme.keyFontWeight ?? "" },
-                    set: { editor.setThemeToken("keyFontWeight", value: $0.isEmpty ? nil : .string($0)) }
-                )) {
-                    Text("自動").tag("")
-                    ForEach(Self.weightLabels, id: \.0) { Text($0.1).tag($0.0) }
-                }
-                numberRow("補助表示の大きさ", key: "guideFontSize", value: theme.guideFontSize, range: 6...24, fallback: 9)
-                numberRow("補助表示の濃さ", key: "guideOpacity", value: theme.guideOpacity, range: 0...1, fallback: 0.6)
-            }
-            }
-        }
-        }
-        .navigationTitle(ProfileV3DisplayCatalog.title(.sectionDesign))
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                if let url = editor.exportThemeURL() {
-                    ShareLink(item: url) {
-                        Label("デザインを書き出し", systemImage: "square.and.arrow.up")
+
+                    Button {
+                        importingTheme = true
+                    } label: {
+                        Label(
+                            "デザインを読み込み",
+                            systemImage:
+                                "square.and.arrow.down"
+                        )
                     }
-                }
-                Button {
-                    importingTheme = true
                 } label: {
-                    Label("デザインを読み込み", systemImage: "square.and.arrow.down")
+                    Image(systemName: "ellipsis.circle")
                 }
+                .accessibilityLabel(
+                    "デザインのその他の操作"
+                )
             }
         }
         .fileImporter(
             isPresented: $importingTheme,
             allowedContentTypes: [.json],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                guard let url = urls.first else { return }
-                let scoped = url.startAccessingSecurityScopedResource()
-                defer {
-                    if scoped {
-                        url.stopAccessingSecurityScopedResource()
-                    }
-                }
-                do {
-                    editor.applyThemeTransfer(try Data(contentsOf: url))
-                } catch {
-                    editor.errorMessage = error.localizedDescription
-                }
-            case .failure(let error):
-                editor.errorMessage = error.localizedDescription
+            allowsMultipleSelection: false,
+            onCompletion: importTheme
+        )
+        .safeAreaInset(edge: .bottom) {
+            if let message = editor.errorMessage {
+                ProfileV3InlineAuthoringError(
+                    message: message,
+                    correctionHint:
+                        "現在のデザインは保持されています。内容または共有状態を確認して、もう一度操作してください。"
+                )
             }
         }
-        .alert(
-            "デザインを読み込めません",
-            isPresented: Binding(
-                get: { editor.errorMessage != nil },
-                set: { if !$0 { editor.errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(editor.errorMessage ?? "")
-        }
-    }
-
-    private var persistenceHeader: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                persistenceStatus
-                Spacer(minLength: 8)
-                Button("保存") {
-                    editor.save()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!editor.validation.valid)
-            }
-
-            if case .savedLocallyDeliveryFailed(let detail) = editor.persistenceState {
-                Text(detail)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.thinMaterial)
     }
 
     @ViewBuilder
-    private var persistenceStatus: some View {
-        switch editor.persistenceState {
-        case .dirty:
-            Label("未保存の変更", systemImage: "circle.fill")
-                .foregroundStyle(.orange)
-        case .savedLocally:
-            Label("アプリ内に保存済み", systemImage: "checkmark.circle")
-                .foregroundStyle(.secondary)
-        case .savedLocallyAndDelivered:
-            Label("保存済み・キーボードへ反映済み", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-        case .savedLocallyDeliveryFailed:
-            Label("アプリ内に保存済み・キーボード反映失敗", systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
+    private func colorSection(
+        theme: IOSKeyboardTheme
+    ) -> some View {
+        VStack(
+            alignment: .leading,
+            spacing: 0
+        ) {
+            sectionHeading("色")
+
+            ForEach(
+                Self.colorLabels.indices,
+                id: \.self
+            ) { position in
+                let item =
+                    Self.colorLabels[position]
+                let token = item.0
+                let label = item.1
+
+                HStack(spacing: 8) {
+                    ColorPicker(
+                        label,
+                        selection: Binding(
+                            get: {
+                                IOSKeyboardPresentation(
+                                    theme: theme
+                                )
+                                .swiftUIColor(
+                                    IOSKeyboardColorRole(
+                                        rawValue: token
+                                    ) ?? .keyFill
+                                )
+                            },
+                            set: {
+                                editor.setThemeToken(
+                                    token,
+                                    value: .string(
+                                        Self.hex($0)
+                                    )
+                                )
+                            }
+                        )
+                    )
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: CGFloat(
+                            ProfileV3DesignLayoutPolicy
+                                .colorRowMinimumHeight
+                        ),
+                        alignment: .leading
+                    )
+
+                    if theme.colors[token] != nil {
+                        Button("自動") {
+                            editor.setThemeToken(
+                                token,
+                                value: nil
+                            )
+                        }
+                        .buttonStyle(.borderless)
+                        .frame(
+                            minHeight: CGFloat(
+                                ProfileV3DesignLayoutPolicy
+                                    .colorRowMinimumHeight
+                            )
+                        )
+                    }
+                }
+
+                if position
+                    < Self.colorLabels.count - 1 {
+                    Divider()
+                }
+            }
         }
     }
 
-    private func numberRow(
+    @ViewBuilder
+    private func typographySection(
+        theme: IOSKeyboardTheme
+    ) -> some View {
+        VStack(
+            alignment: .leading,
+            spacing: 0
+        ) {
+            sectionHeading("形・文字")
+
+            sliderRow(
+                "角の丸み",
+                key: "cornerRadius",
+                value: theme.cornerRadius,
+                range: 0...24,
+                fallback:
+                    IOSKeyboardPresentation
+                        .defaultCornerRadius
+            )
+
+            Divider()
+
+            sliderRow(
+                "キー文字の大きさ",
+                key: "keyFontSize",
+                value: theme.keyFontSize,
+                range: 8...40,
+                fallback:
+                    IOSKeyboardPresentation
+                        .defaultKeyFontSize
+            )
+
+            Divider()
+
+            HStack(spacing: 8) {
+                Text("キー文字の太さ")
+
+                Spacer(minLength: 8)
+
+                Picker(
+                    "キー文字の太さ",
+                    selection: Binding(
+                        get: {
+                            theme.keyFontWeight ?? ""
+                        },
+                        set: {
+                            editor.setThemeToken(
+                                "keyFontWeight",
+                                value:
+                                    $0.isEmpty
+                                    ? nil
+                                    : .string($0)
+                            )
+                        }
+                    )
+                ) {
+                    Text("自動").tag("")
+                    ForEach(
+                        Self.weightLabels,
+                        id: \.0
+                    ) {
+                        Text($0.1).tag($0.0)
+                    }
+                }
+                .labelsHidden()
+            }
+            .frame(
+                            minHeight: CGFloat(
+                                ProfileV3DesignLayoutPolicy
+                                    .colorRowMinimumHeight
+                            )
+                        )
+
+            Divider()
+
+            sliderRow(
+                "補助表示の大きさ",
+                key: "guideFontSize",
+                value: theme.guideFontSize,
+                range: 6...24,
+                fallback:
+                    IOSKeyboardPresentation
+                        .defaultGuideFontSize
+            )
+
+            Divider()
+
+            sliderRow(
+                "補助表示の濃さ",
+                key: "guideOpacity",
+                value: theme.guideOpacity,
+                range: 0...1,
+                fallback:
+                    IOSKeyboardPresentation
+                        .defaultGuideOpacity
+            )
+        }
+    }
+
+    private func sectionHeading(
+        _ title: String
+    ) -> some View {
+        Text(title)
+            .font(.headline)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: CGFloat(
+                    ProfileV3DesignLayoutPolicy
+                        .sectionHeadingBaseHeight
+                ),
+                alignment: .leading
+            )
+            .padding(.bottom, 4)
+    }
+
+    private func sliderRow(
         _ title: String,
         key: String,
         value: Double?,
         range: ClosedRange<Double>,
         fallback: Double
     ) -> some View {
-        let step = range.upperBound <= 1 ? 0.1 : 1
-        return Stepper(
-            onIncrement: {
-                editor.setThemeToken(key, value: .decimal(min(range.upperBound, (value ?? fallback) + step)))
-            },
-            onDecrement: {
-                editor.setThemeToken(key, value: .decimal(max(range.lowerBound, (value ?? fallback) - step)))
+        let step =
+            range.upperBound <= 1
+            ? 0.1
+            : 1.0
+        let displayed =
+            min(
+                range.upperBound,
+                max(
+                    range.lowerBound,
+                    value ?? fallback
+                )
+            )
+        let valueText =
+            String(
+                format:
+                    step < 1
+                    ? "%.1f"
+                    : "%.0f",
+                displayed
+            )
+        let visibleValue =
+            value == nil
+            ? "自動 · " + valueText
+            : valueText
+
+        return VStack(spacing: 0) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    Text(title)
+
+                    Spacer(minLength: 8)
+
+                    Text(visibleValue)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+
+                VStack(
+                    alignment: .leading,
+                    spacing: 2
+                ) {
+                    Text(title)
+
+                    Text(visibleValue)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
             }
-        ) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(value.map { String(format: step < 1 ? "%.1f" : "%.0f", $0) } ?? "自動")
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+            .frame(
+                minHeight: CGFloat(
+                    ProfileV3DesignLayoutPolicy
+                        .continuousLabelLineHeight
+                )
+            )
+
+            Slider(
+                value: Binding(
+                    get: {
+                        let current =
+                            themeNumericValue(
+                                for: key
+                            )
+                            ?? fallback
+                        return min(
+                            range.upperBound,
+                            max(
+                                range.lowerBound,
+                                current
+                            )
+                        )
+                    },
+                    set: { next in
+                        editor.setThemeToken(
+                            key,
+                            value: .decimal(next)
+                        )
+                    }
+                ),
+                in: range,
+                step: step
+            )
+            .frame(
+                minHeight: CGFloat(
+                    ProfileV3DesignLayoutPolicy
+                        .continuousSliderAllocation
+                )
+            )
+            .accessibilityLabel(title)
+            .accessibilityValue(visibleValue)
+        }
+        .frame(
+            minHeight: CGFloat(
+                ProfileV3DesignLayoutPolicy
+                    .continuousRowBaseHeight
+            )
+        )
+        .contextMenu {
+            if value != nil {
+                Button("自動に戻す") {
+                    editor.setThemeToken(
+                        key,
+                        value: nil
+                    )
+                }
             }
         }
     }
 
+    private func themeNumericValue(
+        for key: String
+    ) -> Double? {
+        let theme = editor.keyboardTheme
+
+        switch key {
+        case "cornerRadius":
+            return theme.cornerRadius
+        case "keyFontSize":
+            return theme.keyFontSize
+        case "guideFontSize":
+            return theme.guideFontSize
+        case "guideOpacity":
+            return theme.guideOpacity
+        default:
+            return nil
+        }
+    }
+
+    private var previewHeight: CGFloat {
+        let base =
+            IOSKeyboardLayoutPolicy.baseHeight(
+                compactVertical:
+                    verticalSizeClass == .compact
+            )
+        let scaled =
+            (
+                try? productSettings.values
+                    .scaledKeyboardHeight(
+                        baseHeight: base
+                    )
+            ) ?? base
+        return CGFloat(scaled)
+    }
+
+    private var canSave: Bool {
+        switch editor.persistenceState {
+        case .dirty,
+             .savedLocallyDeliveryFailed:
+            true
+        case .savedLocally,
+             .savedLocallyAndDelivered:
+            false
+        }
+    }
+
+    private func importTheme(
+        _ result: Result<[URL], Error>
+    ) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else {
+                return
+            }
+
+            let scoped =
+                url.startAccessingSecurityScopedResource()
+            defer {
+                if scoped {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                editor.applyThemeTransfer(
+                    try Data(contentsOf: url)
+                )
+            } catch {
+                editor.errorMessage =
+                    error.localizedDescription
+            }
+
+        case .failure(let error):
+            editor.errorMessage =
+                error.localizedDescription
+        }
+    }
+
     static func hex(_ color: Color) -> String {
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
-        func byte(_ v: CGFloat) -> Int { Int((min(max(v, 0), 1) * 255).rounded()) }
-        return String(format: "#%02X%02X%02X%02X", byte(r), byte(g), byte(b), byte(a))
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+
+        UIColor(color).getRed(
+            &r,
+            green: &g,
+            blue: &b,
+            alpha: &a
+        )
+
+        func byte(_ value: CGFloat) -> Int {
+            Int(
+                (
+                    min(max(value, 0), 1)
+                    * 255
+                ).rounded()
+            )
+        }
+
+        return String(
+            format: "#%02X%02X%02X%02X",
+            byte(r),
+            byte(g),
+            byte(b),
+            byte(a)
+        )
     }
 }
 
@@ -261,7 +617,8 @@ struct ProfileV3ProductPreview: View {
                 }
             }
         }
-        .padding(4)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 4)
         .background(presentation.swiftUIColor(.keyboardBackground))
         .accessibilityLabel("キーボードのプレビュー（実際のキーボード表示）")
     }
