@@ -37,7 +37,7 @@ struct ProfileV3MacroEditorView: View {
                             Text(macro.id)
 
                             Text(
-                                macro.actionsEditable
+                                macroIsOrdinaryEditable(macro)
                                     ? "\(macro.actions.count)個の動作"
                                     : "詳細設定の動作を保持"
                             )
@@ -122,6 +122,15 @@ struct ProfileV3MacroEditorView: View {
                 )
             }
         }
+    }
+
+    private func macroIsOrdinaryEditable(
+        _ macro: ProfileV3MacroSummary
+    ) -> Bool {
+        macro.actionsEditable
+            && macro.actions.allSatisfy(
+                CommonActionOption.supportsOrdinaryEditing
+            )
     }
 
     private func createMacro() {
