@@ -420,11 +420,11 @@ private struct SetupView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(
+                                maxWidth: .infinity,
                                 minHeight: CGFloat(
                                     ProfileV3SettingsLayoutPolicy
                                         .ordinaryRowMinimumHeight
                                 ),
-                                maxWidth: .infinity,
                                 alignment: .leading
                             )
                             .accessibilityLabel(
@@ -518,11 +518,11 @@ private struct SetupView: View {
                     .accessibilityHidden(true)
             }
             .frame(
+                maxWidth: .infinity,
                 minHeight: CGFloat(
                     ProfileV3SettingsLayoutPolicy
                         .ordinaryRowMinimumHeight
                 ),
-                maxWidth: .infinity,
                 alignment: .leading
             )
         }
