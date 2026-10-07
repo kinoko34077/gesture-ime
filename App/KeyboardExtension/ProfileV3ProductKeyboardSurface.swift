@@ -931,7 +931,7 @@ private struct ProfileV3PanelCompatibilityView: View {
                 utilityTextRows([
                     "(・ω・)",
                     "(｀・ω・´)",
-                    "\(^o^)/",
+                    "＼(^o^)／",
                     "( ˘ω˘ )",
                     "m(_ _)m"
                 ])
@@ -976,9 +976,10 @@ private struct ProfileV3PanelCompatibilityView: View {
     ) -> some View {
         VStack(spacing: 0) {
             ForEach(
-                Array(values.enumerated()),
-                id: \.offset
-            ) { index, value in
+                values.indices,
+                id: \.self
+            ) { index in
+                let value = values[index]
                 Button {
                     onInsert(value)
                 } label: {
