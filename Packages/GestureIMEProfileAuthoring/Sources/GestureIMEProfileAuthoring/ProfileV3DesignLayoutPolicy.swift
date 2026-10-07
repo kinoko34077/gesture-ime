@@ -15,7 +15,7 @@ public enum ProfileV3DesignLayoutPolicy {
     public static func contentInset(
         usableWidth: Double
     ) -> Double {
-        if usableWidth <= 359 {
+        if usableWidth < 360 {
             return 12
         }
         if usableWidth < 600 {
@@ -36,20 +36,4 @@ public enum ProfileV3DesignLayoutPolicy {
         )
     }
 
-    public static func previewHeight(
-        baseKeyboardHeight: Double,
-        keyboardHeightScale: Double
-    ) -> Double {
-        guard
-            baseKeyboardHeight.isFinite,
-            baseKeyboardHeight > 0,
-            keyboardHeightScale.isFinite,
-            keyboardHeightScale > 0
-        else {
-            return max(0, baseKeyboardHeight)
-        }
-
-        return baseKeyboardHeight
-            * keyboardHeightScale
-    }
 }
