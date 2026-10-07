@@ -346,33 +346,66 @@ struct ProfileV3ProductKeyboardRoot: View {
         ZStack(alignment: .topTrailing) {
             ScrollView {
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 64), spacing: 6)],
-                    spacing: 6
+                    columns: [
+                        GridItem(
+                            .adaptive(minimum: 88),
+                            spacing: 0
+                        )
+                    ],
+                    spacing: 0
                 ) {
-                    ForEach(model.candidates, id: \.index) { candidate in
+                    ForEach(
+                        model.candidates,
+                        id: \.index
+                    ) { candidate in
                         IOSKeyboardCandidateChip(
                             text: candidate.text,
-                            selected: candidate.selected,
+                            selected:
+                                candidate.selected,
                             expanded: true,
                             presentation: look
                         ) {
-                            model.selectCandidate(candidate.index)
+                            model.selectCandidate(
+                                candidate.index
+                            )
                         }
                     }
                 }
                 .padding(.top, 44)
-                .padding(6)
+                .padding(.horizontal, 4)
             }
-            Button(action: model.closeCandidatePanel) {
+
+            Button(
+                action:
+                    model.closeCandidatePanel
+            ) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 44)
+                    .font(
+                        .system(
+                            size: 15,
+                            weight: .semibold
+                        )
+                    )
+                    .frame(
+                        width: 44,
+                        height: 44
+                    )
             }
             .buttonStyle(.plain)
-            .foregroundStyle(look.swiftUIColor(.candidateText))
-            .accessibilityLabel("変換候補を閉じる")
+            .foregroundStyle(
+                look.swiftUIColor(
+                    .candidateText
+                )
+            )
+            .accessibilityLabel(
+                "変換候補を閉じる"
+            )
         }
-        .background(look.swiftUIColor(.candidateBackground))
+        .background(
+            look.swiftUIColor(
+                .candidateBackground
+            )
+        )
     }
 
     private var productBar: some View {
@@ -405,18 +438,30 @@ struct ProfileV3ProductKeyboardRoot: View {
                 }
             }
 
-            Button(action: model.toggleCandidatePanel) {
-                Image(systemName: model.candidatePanel.expanded ? "chevron.up" : "chevron.down")
-                    .frame(width: 30, height: 30)
+            Button(
+                action: model.toggleCandidatePanel
+            ) {
+                Image(
+                    systemName:
+                        model.candidatePanel.expanded
+                        ? "chevron.up"
+                        : "chevron.down"
+                )
+                .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .disabled(model.candidates.isEmpty)
             .accessibilityLabel(model.candidatePanel.expanded ? "変換候補を閉じる" : "変換候補を広げる")
 
             if model.hostFacts.needsInputModeSwitchKey {
-                Button(action: model.nextKeyboard) {
+                Button(
+                    action: model.nextKeyboard
+                ) {
                     Image(systemName: "globe")
-                        .frame(width: 30, height: 30)
+                        .frame(
+                            width: 44,
+                            height: 44
+                        )
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("次のキーボード")
@@ -809,76 +854,187 @@ private struct ProfileV3PanelCompatibilityView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            HStack {
+            HStack(spacing: 8) {
                 Text(title)
                     .font(.headline)
+                    .lineLimit(1)
+
                 Spacer()
-                Button("閉じる", action: onClose)
+
+                Button(
+                    "閉じる",
+                    action: onClose
+                )
+                .frame(
+                    minWidth: 44,
+                    minHeight: 44
+                )
             }
 
             switch panel {
             case .tuning:
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(
+                    alignment: .leading,
+                    spacing: 4
+                ) {
                     Text("Profile gesture policy")
-                    Text(String(format: "Dead zone %.2f", policy.deadZone))
-                    Text(String(
-                        format: "Initial %.2f / Subsequent %.2f",
-                        policy.initialCellCommitDistance,
-                        policy.subsequentCellCommitDistance
-                    ))
-                    Text(String(
-                        format: "Hysteresis %.2f°",
-                        policy.angularHysteresisDegrees
-                    ))
+                    Text(
+                        String(
+                            format: "Dead zone %.2f",
+                            policy.deadZone
+                        )
+                    )
+                    Text(
+                        String(
+                            format:
+                                "Initial %.2f / Subsequent %.2f",
+                            policy
+                                .initialCellCommitDistance,
+                            policy
+                                .subsequentCellCommitDistance
+                        )
+                    )
+                    Text(
+                        String(
+                            format: "Hysteresis %.2f°",
+                            policy
+                                .angularHysteresisDegrees
+                        )
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
 
             case .phrase:
-                utilityButtons(["ありがとう", "よろしくお願いします", "了解", "お疲れさま"])
+                utilityTextRows([
+                    "ありがとう",
+                    "よろしくお願いします",
+                    "了解",
+                    "お疲れさま"
+                ])
 
             case .emoji:
-                utilityButtons(["😀", "😂", "🥺", "👍", "🙏", "❤️", "✨", "🎉"])
+                emojiGrid([
+                    "😀",
+                    "😂",
+                    "🥺",
+                    "👍",
+                    "🙏",
+                    "❤️",
+                    "✨",
+                    "🎉"
+                ])
 
             case .emoticon:
-                utilityButtons(["(・ω・)", "(｀・ω・´)", "＼(^o^)／", "( ˘ω˘ )", "m(_ _)m"])
+                utilityTextRows([
+                    "(・ω・)",
+                    "(｀・ω・´)",
+                    "\(^o^)/",
+                    "( ˘ω˘ )",
+                    "m(_ _)m"
+                ])
             }
         }
         .padding(12)
-        .foregroundStyle(look.swiftUIColor(.text))
-        .background(look.swiftUIColor(.keyboardBackground))
+        .foregroundStyle(
+            look.swiftUIColor(.text)
+        )
+        .background(
+            look.swiftUIColor(
+                .keyboardBackground
+            )
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(look.swiftUIColor(.border), lineWidth: 1)
+            RoundedRectangle(
+                cornerRadius: 12
+            )
+            .stroke(
+                look.swiftUIColor(.border),
+                lineWidth: 1
+            )
         )
         .padding(8)
     }
 
     private var title: String {
         switch panel {
-        case .tuning: "Gesture tuning"
-        case .phrase: "定型文"
-        case .emoji: "絵文字"
-        case .emoticon: "顔文字"
+        case .tuning:
+            "Gesture tuning"
+        case .phrase:
+            "定型文"
+        case .emoji:
+            "絵文字"
+        case .emoticon:
+            "顔文字"
         }
     }
 
-    private func utilityButtons(_ values: [String]) -> some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 74))],
-            spacing: 8
-        ) {
-            ForEach(values, id: \.self) { value in
-                Button(value) {
+    private func utilityTextRows(
+        _ values: [String]
+    ) -> some View {
+        VStack(spacing: 0) {
+            ForEach(
+                Array(values.enumerated()),
+                id: \.offset
+            ) { index, value in
+                Button {
                     onInsert(value)
+                } label: {
+                    Text(value)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.60)
+                        .allowsTightening(true)
+                        .truncationMode(.tail)
+                        .frame(
+                            maxWidth: .infinity,
+                            minHeight: 44,
+                            alignment: .leading
+                        )
+                        .contentShape(
+                            Rectangle()
+                        )
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 9)
-                .frame(maxWidth: .infinity)
-                .background(
-                    look.swiftUIColor(.keyFill),
-                    in: RoundedRectangle(cornerRadius: 7)
+                .accessibilityLabel(value)
+
+                if index < values.count - 1 {
+                    Divider()
+                }
+            }
+        }
+    }
+
+    private func emojiGrid(
+        _ values: [String]
+    ) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(
+                    .adaptive(minimum: 44),
+                    spacing: 4
                 )
+            ],
+            spacing: 4
+        ) {
+            ForEach(values, id: \.self) {
+                value in
+                Button {
+                    onInsert(value)
+                } label: {
+                    Text(value)
+                        .font(.title3)
+                        .frame(
+                            minWidth: 44,
+                            minHeight: 44
+                        )
+                        .contentShape(
+                            Rectangle()
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(value)
             }
         }
     }
