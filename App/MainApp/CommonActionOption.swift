@@ -72,12 +72,6 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Compatibility alias for the existing Rule editor call sites while U6
-    /// moves Rule and Macro onto one ordinary Action grammar.
-    static var ruleEditorOptions: [CommonActionOption] {
-        ordinaryEditorOptions
-    }
-
     var purpose: CommonActionPurpose {
         switch self {
         case .textInsert, .textDirectInsert:
@@ -182,20 +176,6 @@ enum CommonActionOption: String, CaseIterable, Identifiable {
             integerArgument: integerArgument,
             defaultInteger: defaultInteger,
             resolvedStringArgument: resolvedStringArgument,
-            preserving: previous
-        )
-    }
-
-    func ruleArgumentText(from action: ProfileActionDraft) -> String? {
-        ordinaryArgumentText(from: action)
-    }
-
-    func makeRuleDraft(
-        argumentText: String,
-        preserving previous: ProfileActionDraft?
-    ) -> ProfileActionDraft {
-        makeOrdinaryDraft(
-            argumentText: argumentText,
             preserving: previous
         )
     }
