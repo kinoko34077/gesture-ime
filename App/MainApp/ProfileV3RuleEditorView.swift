@@ -443,9 +443,11 @@ private struct ProfileV3RuleBranchEditor: View {
                 set: { condition.terms[index].test = .transformMatch(tableID: $0) }
             )) {
                 ForEach(
-                    Array(editor.transformRows.enumerated()),
-                    id: \.element.id
-                ) { position, table in
+                    editor.transformRows.indices,
+                    id: \.self
+                ) { position in
+                    let table =
+                        editor.transformRows[position]
                     Text(
                         table.ordinaryTitle(
                             position: position
