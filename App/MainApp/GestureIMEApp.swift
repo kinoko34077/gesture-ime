@@ -447,12 +447,15 @@ private struct SetupView: View {
             ) {
                 Menu {
                     Button(
-                        "初期値に戻す",
-                        systemImage:
-                            "arrow.counterclockwise",
                         role: .destructive
                     ) {
                         confirmingReset = true
+                    } label: {
+                        Label(
+                            "初期値に戻す",
+                            systemImage:
+                                "arrow.counterclockwise"
+                        )
                     }
                     .disabled(
                         !productSettings.isEditable
@@ -607,47 +610,67 @@ private struct SetupView: View {
     }
 
     private var keySoundRow: some View {
-        HStack(spacing: 4) {
-            Text("キーを押したときの音")
+        VStack(
+            alignment: .leading,
+            spacing: 0
+        ) {
+            HStack(spacing: 4) {
+                Text("キーを押したときの音")
 
-            Button {
-                helpTopic = .keySound
-            } label: {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 17))
-                    .frame(width: 44, height: 44)
+                Button {
+                    helpTopic = .keySound
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 17))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    "キー音の説明"
+                )
+
+                Spacer(minLength: 8)
+
+                Toggle(
+                    "キー音",
+                    isOn: Binding(
+                        get: {
+                            productSettings
+                                .effectiveKeySoundEnabled
+                        },
+                        set: {
+                            productSettings
+                                .setKeySound($0)
+                        }
+                    )
+                )
+                .labelsHidden()
+                .disabled(
+                    !productSettings.keySoundEditable
+                )
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(
-                "キー音の説明"
-            )
-
-            Spacer(minLength: 8)
-
-            Toggle(
-                "キー音",
-                isOn: Binding(
-                    get: {
-                        productSettings
-                            .effectiveKeySoundEnabled
-                    },
-                    set: {
-                        productSettings
-                            .setKeySound($0)
-                    }
+            .frame(
+                minHeight: CGFloat(
+                    ProfileV3SettingsLayoutPolicy
+                        .ordinaryRowMinimumHeight
                 )
             )
-            .labelsHidden()
-            .disabled(
-                !productSettings.keySoundEditable
-            )
+
+            if productSettings.isEditable
+                && !productSettings.keySoundEditable {
+                Text(productSettings.keySoundStatus)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: .leading
+                    )
+                    .accessibilityLabel(
+                        "キー音を利用できません: "
+                            + productSettings.keySoundStatus
+                    )
+            }
         }
-        .frame(
-            minHeight: CGFloat(
-                ProfileV3SettingsLayoutPolicy
-                    .ordinaryRowMinimumHeight
-            )
-        )
     }
 
     private func settingsSliderRow<Control: View>(
