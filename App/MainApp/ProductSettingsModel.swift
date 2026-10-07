@@ -64,6 +64,7 @@ final class ProductSettingsModel: ObservableObject {
 
     func setHapticStrength(_ value: Double) {
         guard isEditable else { return }
+        hapticTestStatus = nil
         persist(
             hapticStrength: min(1, max(0, value)),
             keyboardHeightScale:
@@ -85,6 +86,7 @@ final class ProductSettingsModel: ObservableObject {
     }
 
     func reset() {
+        hapticTestStatus = nil
         persist(
             hapticStrength: ProductSettingsValues.defaults.hapticStrength,
             keyboardHeightScale: ProductSettingsValues.defaults.keyboardHeightScale,

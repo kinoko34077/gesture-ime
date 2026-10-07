@@ -41,7 +41,7 @@ struct ProductAppShell: View {
             NavigationStack {
                 Group {
                     if let editor {
-                        ProfileV3ThemeEditorView(editor: editor)
+                        ProductDesignView(editor: editor)
                             .id(editor.profileID)
                     } else {
                         ProductEmptyWorkspace()
@@ -56,7 +56,7 @@ struct ProductAppShell: View {
             }
 
             NavigationStack {
-                ProfileV3SettingsLandingView(editor: editor)
+                ProductSettingsHome(editor: editor)
                     .toolbar {
                         scopeToolbar(editor: editor)
                     }
