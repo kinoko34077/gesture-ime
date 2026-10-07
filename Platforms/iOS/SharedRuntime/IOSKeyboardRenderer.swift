@@ -123,6 +123,7 @@ public struct IOSKeyboardKeyCap: View {
                 .accessibilityHidden(true)
             }
         }
+        .accessibilityLabel(text)
     }
 }
 
@@ -176,6 +177,7 @@ public struct IOSKeyboardOverlayCell: View {
                 .truncationMode(.tail)
                 .padding(2)
         }
+        .accessibilityLabel(text)
     }
 }
 
