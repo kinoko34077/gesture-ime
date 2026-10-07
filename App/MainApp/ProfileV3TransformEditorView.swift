@@ -138,14 +138,44 @@ struct ProfileV3TransformEditorView: View {
             allowedContentTypes: [.commaSeparatedText, .plainText],
             allowsMultipleSelection: false
         ) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            if let data = try? Data(contentsOf: url),
-               let text = String(data: data, encoding: .utf8) {
-                editor.applyTransformCSV(text)
-            } else {
-                editor.errorMessage = "CSVはUTF-8で保存してください"
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else {
+                    return
+                }
+
+                let scoped =
+                    url.startAccessingSecurityScopedResource()
+                defer {
+                    if scoped {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+
+                do {
+                    let data = try Data(contentsOf: url)
+                    guard let text =
+                            String(
+                                data: data,
+                                encoding: .utf8
+                            ) else {
+                        editor.errorMessage =
+                            "CSVを読み込めません。UTF-8で保存したファイルを選んでください。"
+                        return
+                    }
+
+                    editor.applyTransformCSV(text)
+                } catch {
+                    editor.errorMessage =
+                        "CSVを読み込めません。\(error.localizedDescription)"
+                }
+
+            case .failure(let error):
+                if (error as? CocoaError)?.code
+                    != .userCancelled {
+                    editor.errorMessage =
+                        "CSVを選択できません。\(error.localizedDescription)"
+                }
             }
         }
         .alert(
