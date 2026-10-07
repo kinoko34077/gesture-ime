@@ -360,7 +360,7 @@ struct ProductSaveControls: View {
 
     private var canSave: Bool {
         guard editor.validation.valid else { return false }
-        switch editor.persistenceState {
+        return switch editor.persistenceState {
         case .dirty, .savedLocallyDeliveryFailed:
             true
         case .savedLocally, .savedLocallyAndDelivered:
