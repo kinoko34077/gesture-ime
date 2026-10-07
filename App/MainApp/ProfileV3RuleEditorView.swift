@@ -197,17 +197,41 @@ struct ProfileV3RuleSection: View {
 
     static func describe(_ behavior: ProfileV3BranchBehavior) -> String {
         var parts: [String] = []
-        if let text = behavior.displayText { parts.append("表示「\(text)」") }
-        if !behavior.actionsEditable {
+        if let text = behavior.displayText {
+            parts.append("表示「\(text)」")
+        }
+
+        let ordinaryActions =
+            behavior.actionsEditable
+            && behavior.actions.allSatisfy(
+                CommonActionOption.supportsOrdinaryEditing
+            )
+
+        if !ordinaryActions && !behavior.actions.isEmpty {
             parts.append("詳細設定の動作")
         } else if !behavior.actions.isEmpty {
-            let titles = behavior.actions.map { action in
-                CommonActionOption.exact(action.actionID)?.displayTitle ?? action.actionID
+            let titles = behavior.actions.compactMap {
+                CommonActionOption.exact(
+                    $0.actionID
+                )?.displayTitle
             }
-            parts.append("動作 " + titles.joined(separator: " → "))
+            parts.append(
+                "動作 "
+                    + titles.joined(separator: " → ")
+            )
         }
-        if let target = behavior.transition?.targetBoardID { parts.append("次の段階 \(target)") }
-        return "→ " + (parts.isEmpty ? "何もしない" : parts.joined(separator: "・"))
+
+        if let target =
+                behavior.transition?.targetBoardID {
+            parts.append("次の段階 \(target)")
+        }
+
+        return "→ "
+            + (
+                parts.isEmpty
+                    ? "何もしない"
+                    : parts.joined(separator: "・")
+            )
     }
 
     static func literalText(_ value: JSONNode) -> String {
@@ -532,6 +556,21 @@ private struct ProfileV3RuleBranchEditor: View {
                 true
             }
         }
+    }
+
+    private func transformTitle(
+        _ tableID: String
+    ) -> String {
+        guard
+            let index = editor.transformRows.firstIndex(
+                where: { $0.id == tableID }
+            )
+        else {
+            return "変換表"
+        }
+
+        return editor.transformRows[index]
+            .ordinaryTitle(position: index)
     }
 
     private func defaultValue(for stateID: String) -> JSONNode {
