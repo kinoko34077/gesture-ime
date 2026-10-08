@@ -112,3 +112,36 @@ func positiveHeightScaleUsesUnboundedSemanticSliderMapping() {
             .heightSliderPosition(scale: 2)
     )
 }
+
+
+@Test
+func ordinaryKeyboardHeightRangeIsBoundedAndClampsPresentationOnly() {
+    #expect(
+        ProfileV3SettingsLayoutPolicy
+            .ordinaryHeightScaleRange == 0.80...1.25
+    )
+    #expect(
+        ProfileV3SettingsLayoutPolicy
+            .ordinaryHeightScaleStep == 0.05
+    )
+    #expect(
+        ProfileV3SettingsLayoutPolicy
+            .ordinaryHeightScaleValue(storedScale: 0.1) == 0.80
+    )
+    #expect(
+        ProfileV3SettingsLayoutPolicy
+            .ordinaryHeightScaleValue(storedScale: 1.0) == 1.0
+    )
+    #expect(
+        ProfileV3SettingsLayoutPolicy
+            .ordinaryHeightScaleValue(storedScale: 8.0) == 1.25
+    )
+    #expect(
+        ProfileV3SettingsLayoutPolicy
+            .isOutsideOrdinaryHeightScaleRange(0.79)
+    )
+    #expect(
+        !ProfileV3SettingsLayoutPolicy
+            .isOutsideOrdinaryHeightScaleRange(1.0)
+    )
+}
