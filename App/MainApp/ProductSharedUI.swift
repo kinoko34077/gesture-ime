@@ -147,16 +147,16 @@ struct ProductProfileScopeButton: View {
         Menu {
             Section("編集中") {
                 ForEach(profiles) { profile in
-                Button {
-                    workspace.select(profileID: profile.id)
-                } label: {
-                    if selectedID == profile.id {
-                        Label(profile.name, systemImage: "checkmark")
-                    } else {
-                        Text(profile.name)
+                    Button {
+                        workspace.select(profileID: profile.id)
+                    } label: {
+                        if selectedID == profile.id {
+                            Label(profile.name, systemImage: "checkmark")
+                        } else {
+                            Text(profile.name)
+                        }
                     }
                 }
-            }
             }
 
             Section("使用中") {
