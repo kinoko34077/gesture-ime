@@ -459,13 +459,20 @@ final class ProfileV3EditorModel: ObservableObject {
         mutate { document in
             let target = try document.v3UniqueBoardID(base: "\(entry.id).flick")
             try document.v3CreateBoard(id: target)
-            let center = (entry.presentationText?.isEmpty == false ? entry.presentationText : nil) ?? "・"
             try document.v3CreateEntry(
                 boardID: target,
                 id: "\(target).center",
                 rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
             )
-            try document.v3SetSimpleTextOutput(boardID: target, entryID: "\(target).center", text: center)
+            // An empty source must create a truly blank new stage.
+            // Never inject a visible "・" just to fill an editor slot.
+            if let center = entry.presentationText, !center.isEmpty {
+                try document.v3SetSimpleTextOutput(
+                    boardID: target,
+                    entryID: "\(target).center",
+                    text: center
+                )
+            }
 
             // Make all eight directions editable from the first visit.
             // Unconfigured entries contain no output or transition.
