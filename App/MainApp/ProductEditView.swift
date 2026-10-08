@@ -265,6 +265,7 @@ struct ProductEditView: View {
             destinationBoardID: target
         )
         editor.navigate(to: target)
+        selectStageOrigin()
     }
 
     private func openHoldStage() {
@@ -280,6 +281,13 @@ struct ProductEditView: View {
             destinationBoardID: target
         )
         editor.navigate(to: target)
+        selectStageOrigin()
+    }
+
+    private func selectStageOrigin() {
+        if let center = editor.entries.first(where: { $0.rect.containsOrigin }) {
+            editor.selectEntry(center.id)
+        }
     }
 
     private func goBackOneStage() {
