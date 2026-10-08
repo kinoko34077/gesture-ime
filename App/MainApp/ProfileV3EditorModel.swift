@@ -324,6 +324,18 @@ final class ProfileV3EditorModel: ObservableObject {
         selectedEntry?.transition?.targetBoardID
     }
 
+    /// An immediately flickable root key enters its relative Board at touch-down.
+    /// Its Hold must therefore belong to the relative origin entry, not the root.
+    var selectedHoldStageBoardID: String? {
+        guard let entry = selectedEntry else { return nil }
+        if let flickBoard = entry.transition?.targetBoardID {
+            return (try? history?.document.v3BoardEntries(boardID: flickBoard))?
+                .first(where: { $0.rect.containsOrigin })?
+                .hold?.transition?.targetBoardID
+        }
+        return entry.hold?.transition?.targetBoardID
+    }
+
     // MARK: - #102 IF/ELSE rules (#95 §F4)
 
     var selectedRules: ProfileV3RuleSet? {
