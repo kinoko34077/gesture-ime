@@ -140,7 +140,7 @@ struct ProductProfileScopeButton: View {
         }
         let selectedID = workspace.resolvedProfileID(library: library)
         let selectedName = profiles.first(where: { $0.id == selectedID })?.name
-        let activeName = profiles.first {
+        let activeName = library.profiles.first {
             $0.id == library.activeProfileID
         }?.name
 
