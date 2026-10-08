@@ -464,6 +464,116 @@ final class ProfileV3EditorModel: ObservableObject {
         }
     }
 
+    /// A missing direction is a visible editor slot, never a runtime hit
+    /// target. Users can explicitly create a real next stage from that slot.
+    func nextStageForDirection(_ direction: ProfileV3Direction) -> String? {
+        guard let boardID = selectedFlickEditBoardID,
+              let document = history?.document else { return nil }
+        return (try? document.v3ImmediateDirectionSlots(boardID: boardID))?
+            .first(where: { $0.direction == direction })?
+            .entry?.transition?.targetBoardID
+    }
+
+    func directionHasExistingOutput(_ direction: ProfileV3Direction) -> Bool {
+        guard let boardID = selectedFlickEditBoardID,
+              let document = history?.document,
+              let entry = (try? document.v3ImmediateDirectionSlots(boardID: boardID))?
+                .first(where: { $0.direction == direction })?.entry else {
+            return false
+        }
+        return !entry.onRelease.isEmpty
+            || entry.caseCount > 0
+            || entry.hold != nil
+    }
+
+    /// Only an intentional user action turns an empty direction into a
+    /// transition. Existing release text requires an explicit confirmation;
+    /// conditional and Hold behaviors are never overwritten by this shortcut.
+    func openOrCreateDirectionStage(
+        _ direction: ProfileV3Direction,
+        replacingOutput: Bool
+    ) -> String? {
+        if let existing = nextStageForDirection(direction) { return existing }
+        if selectedFlickEditBoardID == nil {
+            createNextStageForSelected()
+        }
+        guard let parentBoardID = selectedFlickEditBoardID,
+              let document = history?.document else { return nil }
+
+        let existingEntry = (try? document.v3ImmediateDirectionSlots(
+            boardID: parentBoardID
+        ))?.first(where: { $0.direction == direction })?.entry
+
+        if let existingEntry {
+            guard existingEntry.caseCount == 0, existingEntry.hold == nil else {
+                errorMessage = "この方向には条件や長押しがあります。高度な設定で編集してください。"
+                return nil
+            }
+            if !existingEntry.onRelease.isEmpty && !replacingOutput {
+                errorMessage = "元の入力を変更する前に確認してください。"
+                return nil
+            }
+        }
+
+        let key = String(describing: direction).lowercased()
+        let rect: ProfileV3Rect
+        switch direction {
+        case .northWest: rect = ProfileV3Rect(x: -3, y: -3, width: 2, height: 2)
+        case .north: rect = ProfileV3Rect(x: -1, y: -3, width: 2, height: 2)
+        case .northEast: rect = ProfileV3Rect(x: 1, y: -3, width: 2, height: 2)
+        case .west: rect = ProfileV3Rect(x: -3, y: -1, width: 2, height: 2)
+        case .east: rect = ProfileV3Rect(x: 1, y: -1, width: 2, height: 2)
+        case .southWest: rect = ProfileV3Rect(x: -3, y: 1, width: 2, height: 2)
+        case .south: rect = ProfileV3Rect(x: -1, y: 1, width: 2, height: 2)
+        case .southEast: rect = ProfileV3Rect(x: 1, y: 1, width: 2, height: 2)
+        }
+
+        guard let target = try? document.v3UniqueBoardID(
+            base: "\(parentBoardID).\(key).next"
+        ) else { return nil }
+        let entryID: String
+        if let existingEntry {
+            entryID = existingEntry.id
+        } else {
+            guard let id = try? document.v3UniqueEntryID(
+                boardID: parentBoardID,
+                base: "\(parentBoardID).\(key)"
+            ) else { return nil }
+            entryID = id
+        }
+
+        mutate { working in
+            try working.v3CreateBoard(id: target)
+            try working.v3CreateEntry(
+                boardID: target,
+                id: "\(target).center",
+                rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
+            )
+            if existingEntry == nil {
+                try working.v3CreateEntry(
+                    boardID: parentBoardID,
+                    id: entryID,
+                    rect: rect
+                )
+            } else {
+                try working.v3SetEntryDefaultActions(
+                    boardID: parentBoardID,
+                    entryID: entryID,
+                    actions: []
+                )
+            }
+            try working.v3SetEntryDefaultTransition(
+                boardID: parentBoardID,
+                entryID: entryID,
+                transition: ProfileV3TransitionDraft(
+                    targetBoardID: target,
+                    lifetime: .transient
+                )
+            )
+        }
+        return boards.contains(where: { $0.id == target }) ? target : nil
+    }
+
     /// Creates a new flick Board with a center key and makes it the selected
     /// entry's 次の段階.
     func createNextStageForSelected() {
