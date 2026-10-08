@@ -6,6 +6,7 @@ struct ProductKeyInspector: View {
     let entry: ProfileV3BoardEntrySummary
     let stageDepth: Int
     let onOpenNextStage: () -> Void
+    let onOpenHoldStage: () -> Void
 
     @State private var displayText = ""
     @State private var tapText = ""
@@ -196,11 +197,16 @@ struct ProductKeyInspector: View {
 
             HStack {
                 Label(
-                    holdSummary,
+                    editor.selectedHoldStageBoardID == nil
+                        ? holdSummary
+                        : "長押しの入力面",
                     systemImage: "hand.tap"
                 )
                 .font(.subheadline)
                 Spacer()
+                if editor.selectedHoldStageBoardID != nil {
+                    Button("編集", action: onOpenHoldStage)
+                }
             }
             .frame(minHeight: 44)
         }
