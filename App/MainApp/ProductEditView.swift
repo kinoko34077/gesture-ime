@@ -111,7 +111,8 @@ struct ProductEditView: View {
                     editor: editor,
                     entry: entry,
                     stageDepth: stageNavigation.depth,
-                    onOpenNextStage: openNextStage
+                    onOpenNextStage: openNextStage,
+                    onOpenHoldStage: openHoldStage
                 )
                 .id(entry.id + "@" + (editor.currentBoardID ?? ""))
             } else {
@@ -257,6 +258,21 @@ struct ProductEditView: View {
         guard let target = editor.selectedNextStageBoardID else {
             return
         }
+
+        stageNavigation.push(
+            sourceBoardID: sourceBoardID,
+            sourceEntryID: sourceEntryID,
+            destinationBoardID: target
+        )
+        editor.navigate(to: target)
+    }
+
+    private func openHoldStage() {
+        guard
+            let sourceBoardID = editor.currentBoardID,
+            let sourceEntryID = editor.selectedEntryID,
+            let target = editor.selectedHoldStageBoardID
+        else { return }
 
         stageNavigation.push(
             sourceBoardID: sourceBoardID,
