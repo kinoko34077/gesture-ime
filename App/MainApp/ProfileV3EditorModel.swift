@@ -118,6 +118,38 @@ final class ProfileV3EditorModel: ObservableObject {
         library.setActive(profileID: profileID)
     }
 
+    /// Activate only after a user explicitly chooses to use this Profile.
+    /// A dirty in-memory Profile must be saved successfully before publishing;
+    /// selection for editing alone must never alter the active keyboard.
+    @discardableResult
+    func saveAndActivateForKeyboard() -> Bool {
+        if case .dirty = persistenceState {
+            save()
+            if case .dirty = persistenceState {
+                return false
+            }
+        }
+
+        guard validation.valid else {
+            errorMessage = "入力内容を確認してからキーボードを切り替えてください。"
+            return false
+        }
+
+        library.setActive(profileID: profileID)
+        guard library.activeProfileID == profileID else {
+            errorMessage = library.errorMessage
+                ?? "キーボード本体への反映を確認できませんでした。"
+            return false
+        }
+
+        // setActive publishes the saved document before setting the active ID.
+        lastPersistedState = .savedLocallyAndDelivered
+        refreshPersistenceState()
+        errorMessage = nil
+        return true
+    }
+
+
     func exportURL() -> URL? {
         library.exportURL(profileID: profileID)
     }
@@ -324,6 +356,30 @@ final class ProfileV3EditorModel: ObservableObject {
         selectedEntry?.transition?.targetBoardID
     }
 
+    /// The Board whose directional values the selected key edits.
+    /// After navigating into a stage, its origin key edits that *same* Board;
+    /// editing its directions must not silently create a further stage.
+    var selectedFlickEditBoardID: String? {
+        if let target = selectedNextStageBoardID { return target }
+        if boardPath.count > 1, selectedEntry?.rect.containsOrigin == true {
+            return currentBoardID
+        }
+        return nil
+    }
+
+
+    /// An immediately flickable root key enters its relative Board at touch-down.
+    /// Its Hold must therefore belong to the relative origin entry, not the root.
+    var selectedHoldStageBoardID: String? {
+        guard let entry = selectedEntry else { return nil }
+        if let flickBoard = entry.transition?.targetBoardID {
+            return (try? history?.document.v3BoardEntries(boardID: flickBoard))?
+                .first(where: { $0.rect.containsOrigin })?
+                .hold?.transition?.targetBoardID
+        }
+        return entry.hold?.transition?.targetBoardID
+    }
+
     // MARK: - #102 IF/ELSE rules (#95 §F4)
 
     var selectedRules: ProfileV3RuleSet? {
@@ -429,7 +485,7 @@ final class ProfileV3EditorModel: ObservableObject {
     }
 
     func setDirectionText(_ direction: ProfileV3Direction, text: String) {
-        guard let target = selectedNextStageBoardID else { return }
+        guard let target = selectedFlickEditBoardID else { return }
         let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
         mutate {
             try $0.v3SetDirectionText(
@@ -440,6 +496,116 @@ final class ProfileV3EditorModel: ObservableObject {
         }
     }
 
+    /// A missing direction is a visible editor slot, never a runtime hit
+    /// target. Users can explicitly create a real next stage from that slot.
+    func nextStageForDirection(_ direction: ProfileV3Direction) -> String? {
+        guard let boardID = selectedFlickEditBoardID,
+              let document = history?.document else { return nil }
+        return (try? document.v3ImmediateDirectionSlots(boardID: boardID))?
+            .first(where: { $0.direction == direction })?
+            .entry?.transition?.targetBoardID
+    }
+
+    func directionHasExistingOutput(_ direction: ProfileV3Direction) -> Bool {
+        guard let boardID = selectedFlickEditBoardID,
+              let document = history?.document,
+              let entry = (try? document.v3ImmediateDirectionSlots(boardID: boardID))?
+                .first(where: { $0.direction == direction })?.entry else {
+            return false
+        }
+        return !entry.onRelease.isEmpty
+            || entry.caseCount > 0
+            || entry.hold != nil
+    }
+
+    /// Only an intentional user action turns an empty direction into a
+    /// transition. Existing release text requires an explicit confirmation;
+    /// conditional and Hold behaviors are never overwritten by this shortcut.
+    func openOrCreateDirectionStage(
+        _ direction: ProfileV3Direction,
+        replacingOutput: Bool
+    ) -> String? {
+        if let existing = nextStageForDirection(direction) { return existing }
+        if selectedFlickEditBoardID == nil {
+            createNextStageForSelected()
+        }
+        guard let parentBoardID = selectedFlickEditBoardID,
+              let document = history?.document else { return nil }
+
+        let existingEntry = (try? document.v3ImmediateDirectionSlots(
+            boardID: parentBoardID
+        ))?.first(where: { $0.direction == direction })?.entry
+
+        if let existingEntry {
+            guard existingEntry.caseCount == 0, existingEntry.hold == nil else {
+                errorMessage = "この方向には条件や長押しがあります。高度な設定で編集してください。"
+                return nil
+            }
+            if !existingEntry.onRelease.isEmpty && !replacingOutput {
+                errorMessage = "元の入力を変更する前に確認してください。"
+                return nil
+            }
+        }
+
+        let key = String(describing: direction).lowercased()
+        let rect: ProfileV3Rect
+        switch direction {
+        case .northWest: rect = ProfileV3Rect(x: -3, y: -3, width: 2, height: 2)
+        case .north: rect = ProfileV3Rect(x: -1, y: -3, width: 2, height: 2)
+        case .northEast: rect = ProfileV3Rect(x: 1, y: -3, width: 2, height: 2)
+        case .west: rect = ProfileV3Rect(x: -3, y: -1, width: 2, height: 2)
+        case .east: rect = ProfileV3Rect(x: 1, y: -1, width: 2, height: 2)
+        case .southWest: rect = ProfileV3Rect(x: -3, y: 1, width: 2, height: 2)
+        case .south: rect = ProfileV3Rect(x: -1, y: 1, width: 2, height: 2)
+        case .southEast: rect = ProfileV3Rect(x: 1, y: 1, width: 2, height: 2)
+        }
+
+        guard let target = try? document.v3UniqueBoardID(
+            base: "\(parentBoardID).\(key).next"
+        ) else { return nil }
+        let entryID: String
+        if let existingEntry {
+            entryID = existingEntry.id
+        } else {
+            guard let id = try? document.v3UniqueEntryID(
+                boardID: parentBoardID,
+                base: "\(parentBoardID).\(key)"
+            ) else { return nil }
+            entryID = id
+        }
+
+        mutate { working in
+            try working.v3CreateBoard(id: target)
+            try working.v3CreateEntry(
+                boardID: target,
+                id: "\(target).center",
+                rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
+            )
+            if existingEntry == nil {
+                try working.v3CreateEntry(
+                    boardID: parentBoardID,
+                    id: entryID,
+                    rect: rect
+                )
+            } else {
+                try working.v3SetEntryDefaultActions(
+                    boardID: parentBoardID,
+                    entryID: entryID,
+                    actions: []
+                )
+            }
+            try working.v3SetEntryDefaultTransition(
+                boardID: parentBoardID,
+                entryID: entryID,
+                transition: ProfileV3TransitionDraft(
+                    targetBoardID: target,
+                    lifetime: .transient
+                )
+            )
+        }
+        return boards.contains(where: { $0.id == target }) ? target : nil
+    }
+
     /// Creates a new flick Board with a center key and makes it the selected
     /// entry's 次の段階.
     func createNextStageForSelected() {
@@ -447,13 +613,24 @@ final class ProfileV3EditorModel: ObservableObject {
         mutate { document in
             let target = try document.v3UniqueBoardID(base: "\(entry.id).flick")
             try document.v3CreateBoard(id: target)
-            let center = (entry.presentationText?.isEmpty == false ? entry.presentationText : nil) ?? "・"
             try document.v3CreateEntry(
                 boardID: target,
                 id: "\(target).center",
                 rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
             )
-            try document.v3SetSimpleTextOutput(boardID: target, entryID: "\(target).center", text: center)
+            // An empty source must create a truly blank new stage.
+            // Never inject a visible "・" just to fill an editor slot.
+            if let center = entry.presentationText, !center.isEmpty {
+                try document.v3SetSimpleTextOutput(
+                    boardID: target,
+                    entryID: "\(target).center",
+                    text: center
+                )
+            }
+
+            // All eight empty direction fields are supplied by the fixed
+            // editor grid. Their entries are created only when authored;
+            // absent directions must remain unassigned for runtime rollback.
             try document.v3SetEntryDefaultActions(boardID: boardID, entryID: entry.id, actions: [])
             try document.v3SetEntryDefaultTransition(
                 boardID: boardID,
@@ -525,6 +702,62 @@ final class ProfileV3EditorModel: ObservableObject {
 
     var keyboardTheme: IOSKeyboardTheme {
         IOSKeyboardTheme(themeObject: themeTokens.mapValues(\.foundationValue))
+    }
+
+    var persistedKeyboardTheme: IOSKeyboardTheme? {
+        guard
+            let persistedDocumentData,
+            let document = try? ProfileDocument(data: persistedDocumentData),
+            let tokens = try? document.v3ThemeTokens()
+        else {
+            return nil
+        }
+        return IOSKeyboardTheme(
+            themeObject: tokens.mapValues(\.foundationValue)
+        )
+    }
+
+    func currentDesignPreviewSurface() -> FfiProfileV3BoardSurface? {
+        guard let json = encodedProfileJSON(pretty: false) else {
+            return nil
+        }
+        return designPreviewSurface(profileJSON: json)
+    }
+
+    func persistedDesignPreviewSurface() -> FfiProfileV3BoardSurface? {
+        guard
+            let persistedDocumentData,
+            let json = String(
+                data: persistedDocumentData,
+                encoding: .utf8
+            )
+        else {
+            return nil
+        }
+        return designPreviewSurface(profileJSON: json)
+    }
+
+    private func designPreviewSurface(
+        profileJSON: String
+    ) -> FfiProfileV3BoardSurface? {
+        guard let runtime = try? IOSProfileV3RuntimeAdapter(
+            profileJSON: profileJSON
+        ) else {
+            return nil
+        }
+
+        if !selectedLayerID.isEmpty,
+           let active = try? runtime.activeLayerID(),
+           active != selectedLayerID {
+            _ = try? runtime.setLayer(selectedLayerID)
+        }
+
+        if let currentBoardID {
+            return try? runtime.previewSurface(
+                boardID: currentBoardID
+            )
+        }
+        return try? runtime.directSurface()
     }
 
     /// #91: the actual initial Board as the shared runtime compiles it from
@@ -985,7 +1218,7 @@ final class ProfileV3EditorModel: ObservableObject {
         selectedOverride = try? document.v3EntryPolicyOverride(boardID: boardID, entryID: entry.id)
         selectedGuideOverrides = (try? document.v3GuideLabelOverrides(boardID: boardID, entryID: entry.id)) ?? [:]
         selectedSimpleText = try? document.v3SimpleTextOutput(boardID: boardID, entryID: entry.id)
-        if let target = entry.transition?.targetBoardID {
+        if let target = selectedFlickEditBoardID {
             selectedDirectionSlots = (try? document.v3ImmediateDirectionSlots(boardID: target)) ?? []
             if let origin = try? document.v3BoardEntries(boardID: target)
                 .first(where: { $0.rect.containsOrigin }) {

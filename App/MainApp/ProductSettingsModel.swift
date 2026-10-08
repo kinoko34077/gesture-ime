@@ -1,5 +1,7 @@
 import Foundation
 import Combine
+import CoreHaptics
+import UIKit
 import GestureIMEProductSettings
 
 @MainActor
@@ -7,6 +9,7 @@ final class ProductSettingsModel: ObservableObject {
     @Published private(set) var values: ProductSettingsValues = .defaults
     @Published private(set) var deliveryCapability: ProductSettingsDeliveryCapability = .appLocalOnly
     @Published var errorMessage: String?
+    @Published private(set) var hapticTestStatus: String?
     @Published private(set) var probe: ProductSettingsCapabilityProbe.Result =
         .unavailable(.appGroupNotConfigured)
 
@@ -62,8 +65,37 @@ final class ProductSettingsModel: ObservableObject {
         }
     }
 
+    /// Test the Main App's feedback path only. A successful request does not
+    /// prove output from the separate Keyboard Extension process.
+    func testHaptic() {
+        guard values.hapticStrength > 0 else {
+            hapticTestStatus = "触覚はオフです。強さを上げてから試してください。"
+            return
+        }
+
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
+            hapticTestStatus = "この端末は触覚フィードバックに対応していません。"
+            return
+        }
+
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.prepare()
+        generator.impactOccurred(
+            intensity: CGFloat(values.hapticStrength)
+        )
+
+        hapticTestStatus = isEditable
+            ? "アプリから触覚の発生を要求しました。キーボード本体での振動は別に確認してください。"
+            : "アプリから触覚の発生を要求しました。キーボード本体への設定反映は利用できません。"
+    }
+
+    func clearHapticTestStatus() {
+        hapticTestStatus = nil
+    }
+
     func setHapticStrength(_ value: Double) {
         guard isEditable else { return }
+        hapticTestStatus = nil
         persist(
             hapticStrength: min(1, max(0, value)),
             keyboardHeightScale:
@@ -85,6 +117,7 @@ final class ProductSettingsModel: ObservableObject {
     }
 
     func reset() {
+        hapticTestStatus = nil
         persist(
             hapticStrength: ProductSettingsValues.defaults.hapticStrength,
             keyboardHeightScale: ProductSettingsValues.defaults.keyboardHeightScale,
