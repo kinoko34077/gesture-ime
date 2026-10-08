@@ -7,6 +7,7 @@ struct ProductKeyInspector: View {
     let stageDepth: Int
     let onOpenNextStage: () -> Void
     let onOpenHoldStage: () -> Void
+    let onOpenDirectionStage: (ProfileV3Direction, Bool) -> Void
 
     @State private var displayText = ""
     @State private var tapText = ""
@@ -156,7 +157,10 @@ struct ProductKeyInspector: View {
                     "8方向の入力を同じ位置関係で編集します。空欄の方向は入力先なしです。"
             )
 
-            ProductFlickGrid(editor: editor)
+            ProductFlickGrid(
+                editor: editor,
+                onOpenDirectionStage: onOpenDirectionStage
+            )
         }
         .padding(.vertical, 8)
     }
@@ -461,6 +465,10 @@ struct ProductKeyInspector: View {
 
 private struct ProductFlickGrid: View {
     @ObservedObject var editor: ProfileV3EditorModel
+    let onOpenDirectionStage: (ProfileV3Direction, Bool) -> Void
+
+    @State private var selectedDirection: ProfileV3Direction?
+    @State private var confirmingReplacement = false
 
     private let layout: [[ProfileV3Direction?]] = [
         [.northWest, .north, .northEast],
@@ -486,7 +494,10 @@ private struct ProductFlickGrid: View {
                                         }?
                                         .entry?
                                         .presentationText
-                                    ?? ""
+                                    ?? "",
+                                onSelected: {
+                                    selectedDirection = direction
+                                }
                             ) { text in
                                 ensureFlickBoard(
                                     for: text
@@ -512,6 +523,36 @@ private struct ProductFlickGrid: View {
                     }
                 }
             }
+
+            if let direction = selectedDirection {
+                Button {
+                    if editor.directionHasExistingOutput(direction),
+                       editor.nextStageForDirection(direction) == nil {
+                        confirmingReplacement = true
+                    } else {
+                        onOpenDirectionStage(direction, false)
+                    }
+                } label: {
+                    Label(
+                        "「\(ProfileV3DisplayCatalog.title(direction.displayKey))」の続き",
+                        systemImage: "arrow.turn.down.right"
+                    )
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .confirmationDialog(
+            "この方向の文字入力を、次の段階に置き換えますか？",
+            isPresented: $confirmingReplacement
+        ) {
+            if let direction = selectedDirection {
+                Button("置き換えて続ける", role: .destructive) {
+                    onOpenDirectionStage(direction, true)
+                }
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("この方向の今までの入力はそのまま出なくなります。")
         }
     }
 
@@ -535,9 +576,11 @@ private struct ProductFlickGrid: View {
 private struct ProductFlickDirectionCell: View {
     let direction: ProfileV3Direction
     let initial: String
+    let onSelected: () -> Void
     let onCommit: (String) -> Void
 
     @State private var text = ""
+    @FocusState private var focused: Bool
 
     var body: some View {
         VStack(spacing: 2) {
@@ -553,6 +596,10 @@ private struct ProductFlickDirectionCell: View {
                 .multilineTextAlignment(.center)
                 .textFieldStyle(.roundedBorder)
                 .frame(height: 44)
+                .focused($focused)
+                .onChange(of: focused) { _, nowFocused in
+                    if nowFocused { onSelected() }
+                }
                 .onSubmit {
                     onCommit(text)
                 }
