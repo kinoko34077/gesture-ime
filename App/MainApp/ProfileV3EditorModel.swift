@@ -324,6 +324,18 @@ final class ProfileV3EditorModel: ObservableObject {
         selectedEntry?.transition?.targetBoardID
     }
 
+    /// The Board whose directional values the selected key edits.
+    /// After navigating into a stage, its origin key edits that *same* Board;
+    /// editing its directions must not silently create a further stage.
+    var selectedFlickEditBoardID: String? {
+        if let target = selectedNextStageBoardID { return target }
+        if boardPath.count > 1, selectedEntry?.rect.containsOrigin == true {
+            return currentBoardID
+        }
+        return nil
+    }
+
+
     /// An immediately flickable root key enters its relative Board at touch-down.
     /// Its Hold must therefore belong to the relative origin entry, not the root.
     var selectedHoldStageBoardID: String? {
@@ -441,7 +453,7 @@ final class ProfileV3EditorModel: ObservableObject {
     }
 
     func setDirectionText(_ direction: ProfileV3Direction, text: String) {
-        guard let target = selectedNextStageBoardID else { return }
+        guard let target = selectedFlickEditBoardID else { return }
         let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
         mutate {
             try $0.v3SetDirectionText(
@@ -474,20 +486,9 @@ final class ProfileV3EditorModel: ObservableObject {
                 )
             }
 
-            // Make all eight directions editable from the first visit.
-            // Unconfigured entries contain no output or transition.
-            let emptyDirections: [(String, Int, Int)] = [
-                ("nw", -3, -3), ("n", -1, -3), ("ne", 1, -3),
-                ("w", -3, -1), ("e", 1, -1),
-                ("sw", -3, 1), ("s", -1, 1), ("se", 1, 1)
-            ]
-            for (direction, x, y) in emptyDirections {
-                try document.v3CreateEntry(
-                    boardID: target,
-                    id: "\(target).\(direction).empty",
-                    rect: ProfileV3Rect(x: x, y: y, width: 2, height: 2)
-                )
-            }
+            // All eight empty direction fields are supplied by the fixed
+            // editor grid. Their entries are created only when authored;
+            // absent directions must remain unassigned for runtime rollback.
             try document.v3SetEntryDefaultActions(boardID: boardID, entryID: entry.id, actions: [])
             try document.v3SetEntryDefaultTransition(
                 boardID: boardID,
@@ -1019,7 +1020,7 @@ final class ProfileV3EditorModel: ObservableObject {
         selectedOverride = try? document.v3EntryPolicyOverride(boardID: boardID, entryID: entry.id)
         selectedGuideOverrides = (try? document.v3GuideLabelOverrides(boardID: boardID, entryID: entry.id)) ?? [:]
         selectedSimpleText = try? document.v3SimpleTextOutput(boardID: boardID, entryID: entry.id)
-        if let target = entry.transition?.targetBoardID {
+        if let target = selectedFlickEditBoardID {
             selectedDirectionSlots = (try? document.v3ImmediateDirectionSlots(boardID: target)) ?? []
             if let origin = try? document.v3BoardEntries(boardID: target)
                 .first(where: { $0.rect.containsOrigin }) {
