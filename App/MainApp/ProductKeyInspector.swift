@@ -603,6 +603,11 @@ private struct ProductFlickDirectionCell: View {
                 .onSubmit {
                     onCommit(text)
                 }
+                // Keep direction changes in the shared editor draft even when
+                // the user taps another key or opens the next stage directly.
+                .onChange(of: text) { _, next in
+                    if next != initial { onCommit(next) }
+                }
                 .accessibilityLabel(
                     ProfileV3DisplayCatalog
                         .title(direction.displayKey)
