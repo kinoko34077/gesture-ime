@@ -466,6 +466,21 @@ final class ProfileV3EditorModel: ObservableObject {
                 rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
             )
             try document.v3SetSimpleTextOutput(boardID: target, entryID: "\(target).center", text: center)
+
+            // Make all eight directions editable from the first visit.
+            // Unconfigured entries contain no output or transition.
+            let emptyDirections: [(String, Int, Int)] = [
+                ("nw", -3, -3), ("n", -1, -3), ("ne", 1, -3),
+                ("w", -3, -1), ("e", 1, -1),
+                ("sw", -3, 1), ("s", -1, 1), ("se", 1, 1)
+            ]
+            for (direction, x, y) in emptyDirections {
+                try document.v3CreateEntry(
+                    boardID: target,
+                    id: "\(target).\(direction).empty",
+                    rect: ProfileV3Rect(x: x, y: y, width: 2, height: 2)
+                )
+            }
             try document.v3SetEntryDefaultActions(boardID: boardID, entryID: entry.id, actions: [])
             try document.v3SetEntryDefaultTransition(
                 boardID: boardID,
