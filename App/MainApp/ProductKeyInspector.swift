@@ -524,7 +524,7 @@ private struct ProductFlickGrid: View {
                     in: .whitespacesAndNewlines
                 )
                 .isEmpty,
-            editor.selectedNextStageBoardID == nil
+            editor.selectedFlickEditBoardID == nil
         else {
             return
         }
