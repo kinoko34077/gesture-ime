@@ -1,7 +1,7 @@
 import {readDraft, writeDraft} from './host-browser.js';
 // Shared editor-shell foundation. Input semantics come exclusively from Rust Wasm.
 const $ = (id) => document.getElementById(id);
-const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null, editor: null, savedJSON: null, baselineJSON: null };
+const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null, editor: null, savedJSON: null, baselineJSON: null, viewLayerId: null, viewBoardId: null };
 const MAX_LOCAL_FILE_BYTES = 2_000_000;
 const MAX_POINTER_EVENTS = 120;
 
@@ -23,7 +23,7 @@ function setSelected(entry) {
   document.querySelectorAll('.key').forEach(key => key.classList.toggle('selected', key.dataset.entryId === entry?.id));
   $('entry-text').disabled = !entry;
   $('apply-key-text').disabled = !entry;
-  $('entry-text').value = entry ? authoredBaseText(state.inspected.profile.initialBoardId, entry.id) : '';
+  $('entry-text').value = entry ? authoredBaseText(state.inspected.profile.boardId, entry.id) : '';
 }
 function editorSnapshot() {
   if (!state.editor) throw new Error('編集エンジンを読み込んでいません');
@@ -38,9 +38,81 @@ function hasUnsavedEdits() {
   return editorSnapshot().profileJSON !== comparison;
 }
 
+function canReplayCurrentBoard() {
+  const profile = state.inspected?.profile;
+  return !!profile && state.viewLayerId === profile.initialLayerId
+    && state.viewBoardId === profile.initialBoardId;
+}
+
+function renderBoardPickers() {
+  const profile = state.inspected.profile;
+  const layers = $('layer-picker');
+  const boards = $('board-picker');
+  layers.replaceChildren();
+  boards.replaceChildren();
+  for (const layer of profile.layers) {
+    const option = document.createElement('option');
+    option.value = layer.id;
+    option.textContent = (layer.name || layer.id) + ' · ' + layer.id;
+    layers.append(option);
+  }
+  for (const board of profile.boards) {
+    const option = document.createElement('option');
+    option.value = board.id;
+    option.textContent = board.id + '（' + board.entryCount + 'キー）';
+    boards.append(option);
+  }
+  layers.value = state.viewLayerId;
+  boards.value = state.viewBoardId;
+  layers.disabled = false;
+  boards.disabled = false;
+  $('board-preview-state').textContent = canReplayCurrentBoard()
+    ? '初期Board · タップ／フリックを共通Rustで検証'
+    : '編集専用プレビュー · 内部Boardからの操作再生は未対応';
+  $('board-preview-state').dataset.mode = canReplayCurrentBoard() ? 'replay' : 'edit';
+}
+
+function inspectSelectedBoard(profileJSON) {
+  if (!state.viewLayerId || !state.viewBoardId) {
+    const first = JSON.parse(state.core.inspect_profile(profileJSON));
+    if (!first.ok) throw new Error(first.error || '初期Boardの検証に失敗');
+    state.viewLayerId = first.profile.initialLayerId;
+    state.viewBoardId = first.profile.initialBoardId;
+    return first;
+  }
+  const inspected = JSON.parse(state.core.inspect_board(
+    profileJSON, state.viewLayerId, state.viewBoardId
+  ));
+  if (!inspected.ok) throw new Error(inspected.error || '選択Boardの検証に失敗');
+  return inspected;
+}
+
+function chooseBoard(layerId, boardId) {
+  if (!state.editor) return;
+  const oldLayer = state.viewLayerId;
+  const oldBoard = state.viewBoardId;
+  try {
+    state.viewLayerId = layerId;
+    state.viewBoardId = boardId;
+    const next = inspectSelectedBoard(state.profileJSON);
+    state.inspected = next;
+    setSelected(null);
+    renderBoardPickers();
+    renderBoard();
+    $('trace-state').textContent = canReplayCurrentBoard()
+      ? 'キーを操作してRustの判定を確認できます。'
+      : 'このBoardはキー編集・表示のみ対応しています。';
+    $('trace-actions').textContent = '—';
+  } catch (error) {
+    state.viewLayerId = oldLayer;
+    state.viewBoardId = oldBoard;
+    status('Boardを表示できません: ' + String(error), true);
+    renderBoardPickers();
+  }
+}
+
 function refreshEditor(snapshot, selectedId = state.selected?.id) {
-  const inspected = JSON.parse(state.core.inspect_profile(snapshot.profileJSON));
-  if (!inspected.ok) throw new Error(inspected.error || '編集中Profileが不正です');
+  const inspected = inspectSelectedBoard(snapshot.profileJSON);
   state.profileJSON = snapshot.profileJSON;
   state.document = JSON.parse(snapshot.profileJSON);
   state.inspected = inspected;
@@ -57,6 +129,7 @@ function refreshEditor(snapshot, selectedId = state.selected?.id) {
     : state.baselineJSON === snapshot.profileJSON
       ? '未変更・端末未保存 · iOS／Androidには未反映'
       : '未保存の編集 · iOS／Androidには未反映';
+  renderBoardPickers();
   renderBoard();
   setSelected(inspected.profile.entries.find(e => e.id === selectedId) || null);
 }
@@ -69,6 +142,8 @@ function loadEditor(profileJSON, source, saved = false) {
   state.source = source;
   state.baselineJSON = result.snapshot.profileJSON;
   state.savedJSON = saved ? result.snapshot.profileJSON : null;
+  state.viewLayerId = null;
+  state.viewBoardId = null;
   $('trace-state').textContent = 'キーを押すと結果が表示されます。';
   $('trace-actions').textContent = '—';
   refreshEditor(result.snapshot, null);
@@ -118,7 +193,7 @@ function renderBoard() {
     btn.dataset.entryId = entry.id;
     btn.style.gridColumn = (entry.rect.x - minX + 1) + ' / span ' + entry.rect.width;
     btn.style.gridRow = (entry.rect.y - minY + 1) + ' / span ' + entry.rect.height;
-    const text = entry.text ?? authoredBaseText(profile.initialBoardId, entry.id) ?? entry.id;
+    const text = entry.text ?? authoredBaseText(profile.boardId, entry.id) ?? entry.id;
     const label = document.createElement('span');
     label.className = 'key-label';
     label.textContent = text || entry.id;
@@ -143,10 +218,14 @@ function renderBoard() {
     }
     btn.setAttribute('aria-label', 'キー ' + (text || entry.id) + '、ID ' + entry.id
       + (guides.length ? '、フリック候補 ' + guides.map(g => g.label).join('、') : ''));
-    btn.addEventListener('pointerdown', event => startPointer(event, btn, entry, cols, rows));
-    btn.addEventListener('pointermove', updatePointer);
-    btn.addEventListener('pointerup', event => finishPointer(event, false));
-    btn.addEventListener('pointercancel', event => finishPointer(event, true));
+    if (canReplayCurrentBoard()) {
+      btn.addEventListener('pointerdown', event => startPointer(event, btn, entry, cols, rows));
+      btn.addEventListener('pointermove', updatePointer);
+      btn.addEventListener('pointerup', event => finishPointer(event, false));
+      btn.addEventListener('pointercancel', event => finishPointer(event, true));
+    } else {
+      btn.addEventListener('click', () => setSelected(entry));
+    }
     boardEl.append(btn);
   }
 }
@@ -282,8 +361,16 @@ $('rename-profile').addEventListener('click', () => {
 $('apply-key-text').addEventListener('click', () => {
   if (!state.selected) return;
   try {
-    applyCommand({type: 'setEntryDefaultText', boardId: state.inspected.profile.initialBoardId, entryId: state.selected.id, text: $('entry-text').value}, 'キー文字を変更');
+    applyCommand({type: 'setEntryDefaultText', boardId: state.inspected.profile.boardId, entryId: state.selected.id, text: $('entry-text').value}, 'キー文字を変更');
   } catch(error) { status('キー編集失敗: ' + String(error), true); }
+});
+$('layer-picker').addEventListener('change', event => {
+  const id = event.target.value;
+  const layer = state.inspected.profile.layers.find(item => item.id === id);
+  if (layer) chooseBoard(id, layer.rootBoardId);
+});
+$('board-picker').addEventListener('change', event => {
+  chooseBoard(state.viewLayerId, event.target.value);
 });
 $('build-id').textContent = 'Profile v3 · Rust/Wasm';
 boot();

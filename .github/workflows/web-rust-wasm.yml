@@ -53,6 +53,26 @@ jobs:
           assert.equal(invalid.ok, false);
           console.log('M1 actual built-in Profile/native-Wasm parity PASS');
           NODE
+      - name: Verify nonroot Board preview native-versus-Wasm parity
+        run: |
+          cargo run --quiet --manifest-path Shared/GestureIMECoreWeb/Cargo.toml \
+            --example inspect_profile -- App/KeyboardExtension/Resources/default-ja.json \
+            layer.ja board.base.kana.a.flick > "$RUNNER_TEMP/native-nonroot.json"
+          node - "$RUNNER_TEMP/native-nonroot.json" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const api = require('./Shared/GestureIMECoreWeb/pkg-node/gesture_ime_core_web.js');
+          const profile = fs.readFileSync('App/KeyboardExtension/Resources/default-ja.json','utf8');
+          const native = JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const wasm = JSON.parse(api.inspect_board(profile,'layer.ja','board.base.kana.a.flick'));
+          assert.deepStrictEqual(wasm,native);
+          assert.equal(wasm.ok,true, JSON.stringify(wasm));
+          assert.equal(wasm.profile.boardId,'board.base.kana.a.flick');
+          assert.equal(wasm.profile.initialBoardId,'board.ja.root');
+          assert.ok(wasm.profile.entries.length > 1);
+          assert.equal(JSON.parse(api.inspect_board(profile,'layer.ja','missing')).ok,false);
+          console.log('M3d selected internal Board/native-Wasm preview parity PASS');
+          NODE
       - name: Real BoardSession gesture trace parity on actual Profile
         run: |
           set -euo pipefail
