@@ -1,6 +1,6 @@
 //! Browser-facing *binding*, not a second source of Profile or gesture semantics.
 //! JSON wire responses keep Web UI independent of Rust/UniFFI type layouts.
-use gesture_ime_core::{ProfileV3BoardRuntime, ProfileV3Codec};
+use gesture_ime_core::{ProfileV3BoardRuntime, ProfileV3Codec, ProfileV3Editor};
 use serde_json::{Value, json};
 use wasm_bindgen::prelude::*;
 
@@ -93,4 +93,44 @@ mod tests {
 #[wasm_bindgen]
 pub fn trace_profile(profile_json: &str, event_trace_json: &str) -> String {
     trace_profile_json(profile_json, event_trace_json)
+}
+
+/// Shared editor session runs identically in Web/PWA and future native bridges.
+/// JavaScript owns the UI, not validation, mutation or Undo meaning.
+#[wasm_bindgen]
+pub struct WebProfileEditor {
+    inner: ProfileV3Editor,
+}
+
+#[wasm_bindgen]
+impl WebProfileEditor {
+    #[wasm_bindgen(constructor)]
+    pub fn new(profile_json: &str) -> Result<WebProfileEditor, JsValue> {
+        ProfileV3Editor::open(profile_json)
+            .map(|inner| Self { inner })
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
+
+    pub fn set_entry_default_text(
+        &mut self,
+        board_id: &str,
+        entry_id: &str,
+        text: String,
+    ) -> Result<bool, JsValue> {
+        self.inner.set_entry_default_text(board_id, entry_id, text)
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
+
+    pub fn undo(&mut self) -> bool { self.inner.undo() }
+    pub fn redo(&mut self) -> bool { self.inner.redo() }
+
+    pub fn state_json(&self) -> Result<String, JsValue> {
+        self.inner.state_json()
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
+
+    pub fn export_json(&self) -> Result<String, JsValue> {
+        self.inner.export_json()
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
 }
