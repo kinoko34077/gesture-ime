@@ -15,3 +15,12 @@
 .key.has-flick-guides .flick-guide{position:absolute;pointer-events:none;user-select:none;top:50%;left:50%;transform:translate(-50%,-50%);max-width:31%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:clamp(.53rem,1.45vw,.76rem);line-height:1.05;color:#53668e}
 .key.has-flick-guides.pressed .flick-guide{color:#1d4489}
 @media(max-width:380px){.key.has-flick-guides .flick-guide{font-size:.57rem}.key.has-flick-guides .key-label{font-size:.84rem}}
+
+
+/* Layer/Board selection operates only on validated Rust preview metadata. */
+.board-picker{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:10px;margin:0 0 8px}
+.board-picker select{width:100%;min-width:0;padding:10px;border:1px solid #bac7e0;border-radius:10px;background:#fff;color:#233150;font:inherit;font-size:.83rem}
+.board-picker select:focus-visible{outline:3px solid #a0b6ff;outline-offset:1px}
+.board-preview-state{margin:4px 0 10px;padding:7px 10px;background:#e9f4eb;color:#27523b;border-radius:8px;font-size:.77rem}
+.board-preview-state[data-mode="edit"]{background:#fff4df;color:#6b4a22}
+@media(max-width:540px){.board-picker{grid-template-columns:1fr;gap:3px}}
