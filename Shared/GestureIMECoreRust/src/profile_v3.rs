@@ -308,6 +308,8 @@ pub struct TransformTableV3 {
 #[serde(rename_all = "camelCase")]
 pub struct MacroV3 {
     pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub actions: Vec<ActionInvocationV3>,
     #[serde(flatten)]
     pub extra: V3Extra,
