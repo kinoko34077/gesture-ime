@@ -17,6 +17,37 @@ function authoredBaseText(boardId, entryId) {
   const entry = board?.entries?.find(e => e.id === entryId);
   return entry?.resolver?.default?.presentation?.text?.base || '';
 }
+function authoredDefaultTransition(boardId, entryId) {
+  // Read-only initial value for editor widgets. The Rust editor alone validates
+  // and mutates default transition semantics.
+  const board = state.document?.boards?.find(item => item.id === boardId);
+  const key = board?.entries?.find(item => item.id === entryId);
+  return key?.resolver?.default?.transition ?? null;
+}
+function updateTransitionControls(entry) {
+  const target = $('entry-transition-board');
+  const lifetime = $('entry-transition-lifetime');
+  const apply = $('apply-entry-transition');
+  target.replaceChildren();
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = 'なし（遷移を解除）';
+  target.append(none);
+  for (const board of state.inspected?.profile?.boards ?? []) {
+    const option = document.createElement('option');
+    option.value = board.id;
+    option.textContent = board.id;
+    target.append(option);
+  }
+  const authored = entry
+    ? authoredDefaultTransition(state.inspected.profile.boardId, entry.id)
+    : null;
+  target.value = authored?.targetBoardRef ?? '';
+  lifetime.value = authored?.lifetime ?? 'transient';
+  target.disabled = !entry;
+  lifetime.disabled = !entry || !target.value;
+  apply.disabled = !entry;
+}
 function setSelected(entry) {
   state.selected = entry;
   $('selected-key').textContent = entry ? entry.id : 'なし';
@@ -24,6 +55,7 @@ function setSelected(entry) {
   $('entry-text').disabled = !entry;
   $('apply-key-text').disabled = !entry;
   $('entry-text').value = entry ? authoredBaseText(state.inspected.profile.boardId, entry.id) : '';
+  updateTransitionControls(entry);
 }
 function editorSnapshot() {
   if (!state.editor) throw new Error('編集エンジンを読み込んでいません');
@@ -363,6 +395,25 @@ $('apply-key-text').addEventListener('click', () => {
   try {
     applyCommand({type: 'setEntryDefaultText', boardId: state.inspected.profile.boardId, entryId: state.selected.id, text: $('entry-text').value}, 'キー文字を変更');
   } catch(error) { status('キー編集失敗: ' + String(error), true); }
+});
+$('entry-transition-board').addEventListener('change', event => {
+  $('entry-transition-lifetime').disabled = !state.selected || !event.target.value;
+});
+$('apply-entry-transition').addEventListener('click', () => {
+  if (!state.selected) return;
+  const target = $('entry-transition-board').value;
+  const lifetime = target ? $('entry-transition-lifetime').value : null;
+  try {
+    applyCommand({
+      type: 'setEntryDefaultTransition',
+      boardId: state.inspected.profile.boardId,
+      entryId: state.selected.id,
+      targetBoardId: target || null,
+      lifetime
+    }, '標準遷移を変更');
+  } catch (error) {
+    status('遷移変更失敗: ' + String(error), true);
+  }
 });
 $('layer-picker').addEventListener('change', event => {
   const id = event.target.value;
