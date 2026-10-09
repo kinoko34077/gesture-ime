@@ -1,0 +1,11 @@
+{
+  "entryId": "kana.a",
+  "cellWidth": 50,
+  "cellHeight": 50,
+  "touchDown": {"x": 0, "y": 0},
+  "startMs": 0,
+  "events": [
+    {"kind": "move", "x": 65, "y": 0, "atMs": 90},
+    {"kind": "up", "atMs": 120}
+  ]
+}
