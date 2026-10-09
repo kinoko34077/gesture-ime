@@ -41,13 +41,24 @@
         <div class="pane-header">
           <div>
             <h2>キーボード</h2>
-            <p>キーをタップ／フリックしてRust側の判定を確認</p>
+            <p>初期Boardでは操作検証、その他のBoardではキー表示と編集</p>
           </div>
           <span id="board-count" class="small-pill">—</span>
         </div>
+        <div class="board-picker" aria-label="LayerとBoardの選択">
+          <div>
+            <label class="section-label" for="layer-picker">Layer</label>
+            <select id="layer-picker" disabled></select>
+          </div>
+          <div>
+            <label class="section-label" for="board-picker">Board（Stage／Holdを含む）</label>
+            <select id="board-picker" disabled></select>
+          </div>
+        </div>
+        <p class="board-preview-state" id="board-preview-state" role="status">初期Boardの入力検証</p>
         <div class="candidate-preview" aria-label="候補欄のプレースホルダー">候補欄 · 実際の変換候補は未接続</div>
         <div id="board" class="keyboard-board" role="group" aria-label="入力プレビュー"></div>
-        <p class="hint">文字は入力欄へ送信しません。フリック・Hold判定は同じRustランタイムで記録します。キーの表示文字・フリックガイドはRustの既定入力文脈で解決します。iOS・Android実機の入力欄条件は未反映です。</p>
+        <p class="hint">文字は入力欄へ送信しません。操作再生は初期Layerの初期Boardのみ対応します。それ以外のBoardは編集用プレビューです。キーの表示文字・フリックガイドはRustの既定入力文脈で解決します。iOS・Android実機の入力欄条件は未反映です。</p>
       </div>
       <div class="pane inspector-pane">
         <div class="pane-header">
