@@ -1,6 +1,6 @@
 //! Canonical Profile v3 authoring state shared by Web, iOS and Android.
 //! Platform persistence and UI state are deliberately outside this module.
-use crate::profile_v3::{PresentationV3, ProfileBundleV3, ResolvedStringV3, V3Extra};
+use crate::profile_v3::{ProfileBundleV3, ResolvedStringV3, V3Extra};
 use crate::profile_v3_validation::ProfileV3Codec;
 use serde::Deserialize;
 use serde_json::json;
@@ -106,8 +106,9 @@ impl ProfileEditorV3 {
                     .ok_or_else(|| format!("Key not found: {board_id}/{entry_id}"))?;
                 let behavior = &mut entry.resolver.default;
                 let mut presentation = behavior.presentation.take().unwrap_or_default();
+                let existing_text = presentation.text.take();
                 presentation.text = text.map(|value| {
-                    let mut resolved = presentation.text.take().unwrap_or_else(|| {
+                    let mut resolved = existing_text.unwrap_or_else(|| {
                         ResolvedStringV3 {
                             base: String::new(),
                             transforms: Vec::new(),
