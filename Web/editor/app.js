@@ -353,8 +353,10 @@ async function boot() {
   try {
     state.core = await import('./wasm/gesture_ime_core_web.js');
     await state.core.default(new URL('./wasm/gesture_ime_core_web_bg.wasm', import.meta.url));
-    $('rust-status').textContent = 'Rust稼働中';
     await loadBuiltIn();
+    // Do not signal ready until the validated Profile and saved local draft
+    // have actually hydrated. Wasm initialization alone is not UI readiness.
+    $('rust-status').textContent = 'Rust稼働中';
   } catch (error) {
     $('rust-status').textContent = '初期化失敗';
     status('Rustモジュールを読み込めません: ' + String(error?.message || error), true);
