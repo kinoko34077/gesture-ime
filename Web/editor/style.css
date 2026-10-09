@@ -32,3 +32,17 @@
 .transition-editor select:disabled{background:#f3f5fa;color:#76849a}
 .transition-editor select:focus-visible{outline:3px solid #a0b6ff;outline-offset:1px}
 .transition-editor .action{align-self:flex-start;margin-top:7px}
+
+/* M3h: user-facing Macro edit controls, not a browser Macro runtime. */
+.macro-editor{background:#fbfcff;border:1px solid #dfe5f0;border-radius:12px;padding:12px;margin:0 0 16px;min-width:0}
+.macro-editor h3{font-size:1.02rem;margin:0}
+.macro-editor .pane-header{margin-bottom:4px}
+.macro-editor select,.macro-editor input[type=text]{width:100%;min-width:0;padding:9px;border:1px solid #bac7e0;border-radius:10px;color:#233150;background:white;font:inherit;font-size:.85rem}
+.macro-editor select:focus-visible,.macro-editor input:focus-visible{outline:3px solid #a0b6ff;outline-offset:1px}
+.macro-editor select:disabled,.macro-editor input:disabled{background:#f3f5fa;color:#76849a}
+.macro-editor #macro-actions{min-height:82px;max-width:100%;overflow:auto}
+.macro-editor #macro-selected-meta{overflow-wrap:anywhere}
+.sample-action{margin-top:9px}
+.macro-actions-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.macro-actions-row .action{font-size:.79rem;padding:8px 10px}
+@media(max-width:380px){.macro-actions-row .action{flex:1 1 42%}}
