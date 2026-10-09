@@ -83,6 +83,32 @@ jobs:
           const invalid = JSON.stringify({entryId:'kana.a',cellWidth:50,cellHeight:50,touchDown:{x:0,y:0},startMs:100,events:[{kind:'up',atMs:90}]});
           assert.equal(JSON.parse(ffi.trace_profile(profile, invalid)).ok, false);
           NODE
+      - name: Shared Rust authoring unit tests
+        run: cargo test --manifest-path Shared/GestureIMECoreRust/Cargo.toml --test profile_v3_editor
+      - name: Verify native-versus-Wasm shared Profile v3 editor and Undo
+        run: |
+          cargo run --quiet --manifest-path Shared/GestureIMECoreWeb/Cargo.toml --example edit_profile -- App/KeyboardExtension/Resources/default-ja.json > "$RUNNER_TEMP/native-editor.json"
+          node - "$RUNNER_TEMP/native-editor.json" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const {WebProfileEditor} = require('./Shared/GestureIMECoreWeb/pkg-node/gesture_ime_core_web.js');
+          const profile = fs.readFileSync('App/KeyboardExtension/Resources/default-ja.json', 'utf8');
+          const editor = new WebProfileEditor(profile);
+          const before = JSON.parse(editor.state_json());
+          const changed = editor.set_entry_default_text('board.ja.root', 'text.enter', '共有編集テスト');
+          const after = JSON.parse(editor.state_json());
+          const undone = editor.undo();
+          const undoState = JSON.parse(editor.state_json());
+          const redone = editor.redo();
+          const redoState = JSON.parse(editor.state_json());
+          const native = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          assert.deepStrictEqual({before, changed, after, undone, undoState, redone, redoState}, native);
+          assert.equal(after.canUndo, true);
+          assert.equal(redoState.canRedo, false);
+          const reloaded = new WebProfileEditor(editor.export_json());
+          assert.equal(JSON.parse(reloaded.state_json()).profile.id, 'builtin.ja.product');
+          console.log('M2a shared Rust editor + native/Wasm Undo parity PASS');
+          NODE
       - name: Upload Web binding proof (not a published website)
         uses: actions/upload-artifact@v4
         with:
