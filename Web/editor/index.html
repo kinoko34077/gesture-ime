@@ -97,6 +97,11 @@
           <label class="section-label" for="macro-select">作成済みのマクロ</label>
           <select id="macro-select" disabled aria-label="編集するマクロを選択"></select>
           <p class="subtle" id="macro-selected-meta">マクロ未読込</p>
+          <details class="macro-advanced" id="macro-advanced">
+            <summary>技術情報を表示</summary>
+            <p class="subtle">内部ID: <code id="macro-internal-id"></code></p>
+          </details>
+          <p id="macro-feedback" class="macro-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
           <label class="section-label" for="macro-create-name">新しいマクロ名</label>
           <div class="edit-row">
             <input id="macro-create-name" type="text" maxlength="100" placeholder="例：あいさつ" autocomplete="off">
