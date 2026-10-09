@@ -1,6 +1,6 @@
 // Only public, versioned static assets are cached; imported user JSON never hits fetch.
 const CACHE = 'gesture-ime-preview-__BUILD_SHA__';
-const ASSETS = ['./', './index.html', './app.js', './style.css',
+const ASSETS = ['./', './index.html', './app.js', './host-browser.js', './style.css',
   './manifest.webmanifest', './icon.svg', './default-ja.json',
   './wasm/gesture_ime_core_web.js', './wasm/gesture_ime_core_web_bg.wasm'];
 self.addEventListener('install', event => {
