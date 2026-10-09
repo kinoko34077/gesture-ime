@@ -55,9 +55,9 @@ jobs:
           NODE
       - name: Verify actual native-versus-Wasm gesture replay
         run: |
-          cargo run --quiet --manifest-path Shared/GestureIMECoreWeb/Cargo.toml \\
-            --example trace_gesture -- App/KeyboardExtension/Resources/default-ja.json \\
-            Shared/GestureIMECoreWeb/fixtures/kana-transform-up.json \\
+          cargo run --quiet --manifest-path Shared/GestureIMECoreWeb/Cargo.toml \
+            --example trace_gesture -- App/KeyboardExtension/Resources/default-ja.json \
+            Shared/GestureIMECoreWeb/fixtures/kana-transform-up.json \
             > "$RUNNER_TEMP/native-trace.json"
           node - "$RUNNER_TEMP/native-trace.json" <<'NODE'
           const assert = require('node:assert/strict');
