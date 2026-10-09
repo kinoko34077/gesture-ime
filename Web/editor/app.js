@@ -1,7 +1,7 @@
 import {readDraft, writeDraft} from './host-browser.js';
 // Shared editor-shell foundation. Input semantics come exclusively from Rust Wasm.
 const $ = (id) => document.getElementById(id);
-const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null, editor: null, savedJSON: null, baselineJSON: null, viewLayerId: null, viewBoardId: null };
+const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null, editor: null, savedJSON: null, baselineJSON: null, viewLayerId: null, viewBoardId: null, macroId: null, macroActionIndex: -1 };
 const MAX_LOCAL_FILE_BYTES = 2_000_000;
 const MAX_POINTER_EVENTS = 120;
 
@@ -164,6 +164,7 @@ function refreshEditor(snapshot, selectedId = state.selected?.id) {
   renderBoardPickers();
   renderBoard();
   setSelected(inspected.profile.entries.find(e => e.id === selectedId) || null);
+  renderMacroEditor();
 }
 
 function loadEditor(profileJSON, source, saved = false) {
@@ -176,6 +177,8 @@ function loadEditor(profileJSON, source, saved = false) {
   state.savedJSON = saved ? result.snapshot.profileJSON : null;
   state.viewLayerId = null;
   state.viewBoardId = null;
+  state.macroId = null;
+  state.macroActionIndex = -1;
   $('trace-state').textContent = 'キーを押すと結果が表示されます。';
   $('trace-actions').textContent = '—';
   refreshEditor(result.snapshot, null);
@@ -187,11 +190,113 @@ function applyEditorResult(resultText, action) {
   if (!output.ok) throw new Error(output.error || action + 'に失敗しました');
   refreshEditor(output.snapshot);
   status(action + (output.changed ? 'しました。' : '（変更なし）。'));
+  return output;
 }
 function applyCommand(command, action) {
   const revision = editorSnapshot().revision;
-  applyEditorResult(state.editor.apply_command(JSON.stringify(command), revision), action);
+  return applyEditorResult(state.editor.apply_command(JSON.stringify(command), revision), action);
 }
+
+/* Browser controls reflect validated Rust Profile data. JavaScript assembles only
+ * revisioned command payloads; it never runs/interprets Macro semantics. */
+function selectedMacro() {
+  return state.document?.macros?.find(m => m.id === state.macroId) ?? null;
+}
+function macroActionLabel(a, i) {
+  if (a.actionID === 'text.insert') return (i + 1) + '. 文字入力: ' + String(a.arguments?.text?.base ?? '').slice(0, 35);
+  if (a.actionID === 'noop') return (i + 1) + '. 何もしない';
+  return (i + 1) + '. 詳細編集未対応: ' + a.actionID;
+}
+function renderMacroActionControls() {
+  const m = selectedMacro();
+  const a = state.macroActionIndex >= 0 ? m?.actions[state.macroActionIndex] : null;
+  const selected = Boolean(a);
+  const supported = !a || a.actionID === 'text.insert' || a.actionID === 'noop';
+  $('macro-actions').value = selected ? String(state.macroActionIndex) : '';
+  const type = $('macro-action-type');
+  type.value = selected && supported ? a.actionID : 'text.insert';
+  type.disabled = !m || !supported;
+  $('macro-action-text').value = selected && a.actionID === 'text.insert'
+    ? String(a.arguments?.text?.base ?? '') : '';
+  $('macro-action-text').disabled = !m || !supported || type.value !== 'text.insert';
+  $('macro-new-action').disabled = !m;
+  $('macro-add-action').disabled = !m || !supported;
+  $('macro-edit-action').disabled = !m || !selected || !supported;
+  $('macro-remove-action').disabled = !m || !selected || !supported;
+  $('macro-action-hint').textContent = selected && !supported
+    ? 'この既存アクションは読み取り専用です。別の編集でも保持されます。'
+    : !m ? 'まずマクロを作成または選択してください。'
+      : selected ? '選択アクションを編集できます。文字入力の変換指定等は保持します。'
+        : '新しいアクションを末尾に追加できます。';
+}
+function renderMacroEditor() {
+  const macros = state.document?.macros ?? [];
+  const previousId = state.macroId;
+  const select = $('macro-select');
+  select.replaceChildren();
+  for (const m of macros) {
+    const option = document.createElement('option');
+    option.value = m.id;
+    option.textContent = m.name || '(名前未設定のMacro)';
+    select.append(option);
+  }
+  if (!macros.some(m => m.id === state.macroId)) {
+    state.macroId = macros[0]?.id ?? null;
+    state.macroActionIndex = -1;
+  }
+  select.disabled = !macros.length;
+  select.value = state.macroId ?? '';
+  const m = selectedMacro();
+  const list = $('macro-actions');
+  list.replaceChildren();
+  for (const [i, a] of (m?.actions ?? []).entries()) {
+    const option = document.createElement('option');
+    option.value = String(i);
+    option.textContent = macroActionLabel(a, i);
+    list.append(option);
+  }
+  if (state.macroActionIndex >= (m?.actions?.length ?? 0)) state.macroActionIndex = -1;
+  if (previousId !== state.macroId) state.macroActionIndex = -1;
+  list.disabled = !m || !m.actions.length;
+  $('macro-name').value = m?.name ?? '';
+  $('macro-name').disabled = !m;
+  $('macro-rename').disabled = !m;
+  $('macro-selected-meta').textContent = m
+    ? '内部ID: ' + m.id + ' / アクション ' + m.actions.length + ' 件'
+    : 'マクロがありません。名前を入力して新規作成できます。';
+  renderMacroActionControls();
+}
+function actionFromForm(previous = null) {
+  const type = $('macro-action-type').value;
+  if (type === 'noop') return previous?.actionID === 'noop'
+    ? JSON.parse(JSON.stringify(previous)) : {actionID: 'noop', arguments: {}};
+  if (type !== 'text.insert') throw new Error('このアクションは編集できません');
+  const text = $('macro-action-text').value;
+  if (previous?.actionID === 'text.insert') {
+    const copy = JSON.parse(JSON.stringify(previous));
+    copy.arguments.text.base = text; // Preserve conditional transforms/unknown extra metadata.
+    return copy;
+  }
+  return {actionID: 'text.insert', arguments: {text: {base: text, transforms: []}}};
+}
+function createMacro(name, actions, description) {
+  const before = new Set((state.document?.macros ?? []).map(m => m.id));
+  applyCommand({type: 'createMacro', name, actions}, description);
+  const newItem = state.document.macros.find(m => !before.has(m.id));
+  if (!newItem) throw new Error('Rust作成後のMacroがありません');
+  state.macroId = newItem.id;
+  state.macroActionIndex = newItem.actions.length ? 0 : -1;
+  renderMacroEditor();
+}
+function updateMacroActions(update, label) {
+  const m = selectedMacro();
+  if (!m) throw new Error('マクロを選択してください');
+  const actions = JSON.parse(JSON.stringify(m.actions)); // payload copy, NOT persisted semantics
+  update(actions);
+  applyCommand({type: 'setMacroActions', macroId: m.id, actions}, label);
+  renderMacroEditor();
+}
+
 async function saveCurrentDraft() {
   const snapshot = editorSnapshot();
   await writeDraft(snapshot.profileId, snapshot.profileJSON);
@@ -417,6 +522,66 @@ $('apply-entry-transition').addEventListener('click', () => {
     status('遷移変更失敗: ' + String(error), true);
   }
 });
+
+$('macro-select').addEventListener('change', event => {
+  state.macroId = event.target.value;
+  state.macroActionIndex = -1;
+  renderMacroEditor();
+});
+$('macro-create').addEventListener('click', () => {
+  try { createMacro($('macro-create-name').value, [], 'マクロを作成'); }
+  catch (e) { status('Macro作成失敗: ' + String(e), true); }
+});
+$('macro-create-sample').addEventListener('click', () => {
+  try {
+    createMacro('サンプル：あいさつ', [{
+      actionID: 'text.insert', arguments: {text: {base: 'こんにちは！', transforms: []}}
+    }], 'サンプルMacroを作成');
+  } catch (e) { status('サンプル作成失敗: ' + String(e), true); }
+});
+$('macro-rename').addEventListener('click', () => {
+  const m = selectedMacro();
+  if (!m) return;
+  try { applyCommand({type: 'renameMacro', macroId: m.id, name: $('macro-name').value}, 'マクロ名を変更'); }
+  catch (e) { status('Macro改名失敗: ' + String(e), true); }
+});
+$('macro-actions').addEventListener('change', event => {
+  state.macroActionIndex = Number(event.target.value);
+  renderMacroActionControls();
+});
+$('macro-new-action').addEventListener('click', () => {
+  state.macroActionIndex = -1;
+  renderMacroActionControls();
+  $('macro-action-type').focus();
+});
+$('macro-action-type').addEventListener('change', () => {
+  $('macro-action-text').disabled = $('macro-action-type').value !== 'text.insert';
+});
+$('macro-add-action').addEventListener('click', () => {
+  const m = selectedMacro(); if (!m) return;
+  try {
+    const old = state.macroActionIndex >= 0 ? m.actions[state.macroActionIndex] : null;
+    updateMacroActions(actions => actions.push(actionFromForm(old)), 'アクションを追加');
+    state.macroActionIndex = m.actions.length;
+    renderMacroEditor();
+  } catch (e) { status('アクション追加失敗: ' + String(e), true); }
+});
+$('macro-edit-action').addEventListener('click', () => {
+  const m = selectedMacro(), i = state.macroActionIndex;
+  if (!m || i < 0 || i >= m.actions.length) return;
+  try { updateMacroActions(actions => { actions[i] = actionFromForm(m.actions[i]); }, 'アクションを編集'); }
+  catch (e) { status('アクション編集失敗: ' + String(e), true); }
+});
+$('macro-remove-action').addEventListener('click', () => {
+  const m = selectedMacro(), i = state.macroActionIndex;
+  if (!m || i < 0 || i >= m.actions.length) return;
+  try {
+    updateMacroActions(actions => actions.splice(i, 1), 'アクションを削除');
+    state.macroActionIndex = -1;
+    renderMacroEditor();
+  } catch (e) { status('アクション削除失敗: ' + String(e), true); }
+});
+
 $('layer-picker').addEventListener('change', event => {
   const id = event.target.value;
   const layer = state.inspected.profile.layers.find(item => item.id === id);
