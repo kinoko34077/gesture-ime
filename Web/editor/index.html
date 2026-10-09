@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="Gesture IME 共通エディターのWeb検証画面。実機キーボードへ反映しません。">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="stylesheet" href="./style.css">
+  <title>Gesture IME Studio — Web検証</title>
+</head>
+<body>
+  <main id="app">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Gesture IME / 共通編集基盤</p>
+        <h1>キーボード Studio</h1>
+      </div>
+      <span class="mode">Web検証版</span>
+    </header>
+    <p class="notice" role="status"><strong>ブラウザ内のみ。</strong> この画面からiOS・Androidの実キーボードには反映されません。候補変換とホスト条件は未接続です。</p>
+    <section class="toolbar" aria-label="Profile読み込み">
+      <div>
+        <label class="section-label" for="profile-file">Profile</label>
+        <p id="profile-name" class="subtle">組み込み日本語Profileを読み込み中…</p>
+      </div>
+      <div class="toolbar-actions">
+        <label class="action secondary" for="profile-file">JSONを開く</label>
+        <input id="profile-file" type="file" accept=".json,application/json">
+        <button id="reset-profile" type="button" class="action secondary">初期Profile</button>
+        <button id="export-profile" type="button" class="action secondary" disabled>JSONを保存</button>
+      </div>
+    </section>
+    <section class="workspace">
+      <div class="pane keyboard-pane">
+        <div class="pane-header">
+          <div>
+            <h2>キーボード</h2>
+            <p>キーをタップ／フリックしてRust側の判定を確認</p>
+          </div>
+          <span id="board-count" class="small-pill">—</span>
+        </div>
+        <div class="candidate-preview" aria-label="候補欄のプレースホルダー">候補欄 · 実際の変換候補は未接続</div>
+        <div id="board" class="keyboard-board" role="group" aria-label="入力プレビュー"></div>
+        <p class="hint">文字は入力欄へ送信しません。フリック・Hold判定は同じRustランタイムで記録します。表示文字はProfileの基礎表記であり、条件適用後とは限りません。</p>
+      </div>
+      <div class="pane inspector-pane">
+        <div class="pane-header">
+          <div><h2>操作結果</h2><p>選択したキーと状態遷移</p></div>
+          <span id="rust-status" class="small-pill">Rust読込中</span>
+        </div>
+        <div class="detail">
+          <label class="section-label">選択キー</label>
+          <p id="selected-key" class="selected">なし</p>
+          <label class="section-label">Board・段階</label>
+          <p id="trace-state" class="subtle">キーを押すと結果が表示されます。</p>
+          <label class="section-label">発行された命令</label>
+          <pre id="trace-actions" class="trace-box">—</pre>
+        </div>
+        <div class="feature-later"><strong>共通編集UIの次段階</strong><p>キー文字・Undo・保存などは共通Rust編集APIの統合後に、この画面へ追加します。現在は読み込み・入力再生が対象です。</p></div>
+      </div>
+    </section>
+    <footer><span id="status" role="status" aria-live="polite">準備中</span><span id="build-id"></span></footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
