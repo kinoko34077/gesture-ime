@@ -1,0 +1,61 @@
+name: Web Rust Wasm M1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "Shared/GestureIMECoreWeb/**"
+      - "Shared/GestureIMECoreRust/**"
+      - "App/KeyboardExtension/Resources/default-ja.json"
+      - ".github/workflows/web-rust-wasm.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  wasm-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust Wasm target
+        run: |
+          rustc --version
+          cargo --version
+          rustup target add wasm32-unknown-unknown
+      - name: Native tests for actual Product Profile
+        run: cargo test --manifest-path Shared/GestureIMECoreWeb/Cargo.toml
+      - name: Install pinned wasm-pack
+        run: cargo install wasm-pack --version 0.13.1 --locked
+      - name: Build native-core-backed Wasm modules
+        run: |
+          wasm-pack build Shared/GestureIMECoreWeb --target nodejs --release --out-dir pkg-node
+          wasm-pack build Shared/GestureIMECoreWeb --target web --release --out-dir pkg-web
+          test -s Shared/GestureIMECoreWeb/pkg-web/gesture_ime_core_web_bg.wasm
+          test -s Shared/GestureIMECoreWeb/pkg-node/gesture_ime_core_web_bg.wasm
+      - name: Execute exact native-versus-Wasm fixture parity
+        run: |
+          cargo run --quiet --manifest-path Shared/GestureIMECoreWeb/Cargo.toml \
+            --example inspect_profile -- App/KeyboardExtension/Resources/default-ja.json \
+            > "$RUNNER_TEMP/native-inspection.json"
+          node - "$RUNNER_TEMP/native-inspection.json" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const ffi = require('./Shared/GestureIMECoreWeb/pkg-node/gesture_ime_core_web.js');
+          const input = fs.readFileSync('App/KeyboardExtension/Resources/default-ja.json', 'utf8');
+          const native = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const wasm = JSON.parse(ffi.inspect_profile(input));
+          assert.deepStrictEqual(wasm, native, 'Wasm must call same Profile v3 Rust runtime');
+          assert.equal(wasm.ok, true);
+          assert.equal(wasm.profile.id, 'builtin.ja.product');
+          assert.ok(wasm.profile.entries.length > 1);
+          const invalid = JSON.parse(ffi.inspect_profile('{'));
+          assert.equal(invalid.ok, false);
+          console.log('M1 actual built-in Profile/native-Wasm parity PASS');
+          NODE
+      - name: Upload Web binding proof (not a published website)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gesture-ime-wasm-m1
+          path: Shared/GestureIMECoreWeb/pkg-web/
+          if-no-files-found: error
