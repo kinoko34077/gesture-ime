@@ -4,6 +4,8 @@ use gesture_ime_core::{ProfileV3BoardRuntime, ProfileV3Codec};
 use serde_json::{Value, json};
 use wasm_bindgen::prelude::*;
 
+pub mod trace;
+
 /// Inspect the validated initial Layer and Board from the canonical Rust runtime.
 /// This first M1 slice deliberately does not claim browser input/session parity.
 pub fn inspect_profile_json(profile_json: &str) -> String {
@@ -52,6 +54,12 @@ fn inspect(profile_json: &str) -> Result<Value, String> {
         "initialBoardId": board.id,
         "entries": entries
     }))
+}
+
+/// JSON event replay against the same platform semantic engine used by iOS/Android.
+#[wasm_bindgen]
+pub fn trace_profile(profile_json: &str, script_json: &str) -> String {
+    trace::trace_profile_json(profile_json, script_json)
 }
 
 /// JavaScript/Wasm entry point; both native and Wasm use inspect_profile_json.
