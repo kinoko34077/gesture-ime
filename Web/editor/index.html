@@ -29,9 +29,13 @@
         <label class="action secondary" for="profile-file">JSONを開く</label>
         <input id="profile-file" type="file" accept=".json,application/json">
         <button id="reset-profile" type="button" class="action secondary">初期Profile</button>
-        <button id="export-profile" type="button" class="action secondary" disabled>JSONを保存</button>
+        <button id="undo-edit" type="button" class="action secondary" disabled>元に戻す</button>
+        <button id="redo-edit" type="button" class="action secondary" disabled>やり直す</button>
+        <button id="save-local" type="button" class="action" disabled>この端末に保存</button>
+        <button id="export-profile" type="button" class="action secondary" disabled>JSONを書き出す</button>
       </div>
     </section>
+    <p class="save-info" id="save-info" role="status">未読込</p>
     <section class="workspace">
       <div class="pane keyboard-pane">
         <div class="pane-header">
@@ -50,6 +54,19 @@
           <div><h2>操作結果</h2><p>選択したキーと状態遷移</p></div>
           <span id="rust-status" class="small-pill">Rust読込中</span>
         </div>
+        <div class="authoring" aria-label="Profile編集">
+          <label class="section-label" for="profile-title">Profile名</label>
+          <div class="edit-row">
+            <input id="profile-title" type="text" maxlength="100" disabled placeholder="Profile名">
+            <button id="rename-profile" type="button" class="action secondary" disabled>変更</button>
+          </div>
+          <label class="section-label" for="entry-text">選択キーの標準表示文字</label>
+          <div class="edit-row">
+            <input id="entry-text" type="text" maxlength="256" disabled placeholder="キーボードからキーを選択">
+            <button id="apply-key-text" type="button" class="action secondary" disabled>適用</button>
+          </div>
+          <p class="hint">編集・取り消しは共通Rustで処理します。保存先はこのブラウザのみで、実機キーボードには反映されません。</p>
+        </div>
         <div class="detail">
           <label class="section-label">選択キー</label>
           <p id="selected-key" class="selected">なし</p>
@@ -58,7 +75,7 @@
           <label class="section-label">発行された命令</label>
           <pre id="trace-actions" class="trace-box">—</pre>
         </div>
-        <div class="feature-later"><strong>共通編集UIの次段階</strong><p>キー文字・Undo・保存などは共通Rust編集APIの統合後に、この画面へ追加します。現在は読み込み・入力再生が対象です。</p></div>
+        <div class="feature-later"><strong>後続実装</strong><p>マクロ、条件、候補変換、Themeの全機能とiOS・Androidへの設定配送は、次の共通UI／ネイティブ統合工程で扱います。</p></div>
       </div>
     </section>
     <footer><span id="status" role="status" aria-live="polite">準備中</span><span id="build-id"></span></footer>
