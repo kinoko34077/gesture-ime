@@ -121,6 +121,34 @@ try {
   await page.locator('#rename-profile').click();
   assert.ok((await page.locator('#profile-name').innerText()).includes('Web動作確認'));
 
+  // M3h: real mobile Chromium/Wasm, Rust is the Macro ID/name/action owner.
+  assert.equal(await page.locator('#macro-select option').count(), 0);
+  await page.locator('#macro-create-sample').click();
+  assert.equal(await page.locator('#macro-select option').count(), 1);
+  assert.ok((await page.locator('#macro-selected-meta').innerText()).includes('macro.user.'));
+  assert.equal(await page.locator('#macro-name').inputValue(), 'サンプル：あいさつ');
+  assert.ok((await page.locator('#macro-actions option').first().innerText()).includes('こんにちは！'));
+  await page.locator('#macro-action-text').fill('マクロの動作確認');
+  await page.locator('#macro-edit-action').click();
+  assert.ok((await page.locator('#macro-actions option').first().innerText()).includes('マクロの動作確認'));
+  await page.locator('#macro-name').fill('共有マクロ');
+  await page.locator('#macro-rename').click();
+  assert.equal(await page.locator('#macro-name').inputValue(), '共有マクロ');
+  await page.locator('#undo-edit').click();
+  assert.equal(await page.locator('#macro-name').inputValue(), 'サンプル：あいさつ');
+  await page.locator('#redo-edit').click();
+  assert.equal(await page.locator('#macro-name').inputValue(), '共有マクロ');
+  await page.locator('#macro-create-name').fill('  共有マクロ  ');
+  await page.locator('#macro-create').click();
+  assert.ok((await page.locator('#status').innerText()).includes('Macro作成失敗'));
+  assert.equal(await page.locator('#macro-select option').count(), 1, 'duplicate name must be rejected atomically');
+  await page.locator('#macro-new-action').click();
+  await page.locator('#macro-action-type').selectOption('noop');
+  await page.locator('#macro-add-action').click();
+  assert.equal(await page.locator('#macro-actions option').count(), 2);
+  assert.ok((await page.locator('#macro-actions option').last().innerText()).includes('何もしない'));
+  console.log('M3h Macro create/rename/duplicate reject/action-edit/Undo/Redo via canonical Rust PASS');
+
   await page.locator('#save-local').click();
   await page.waitForFunction(() => document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
   assert.ok((await page.locator('#save-info').innerText()).includes('未反映'));
@@ -130,6 +158,8 @@ try {
   await page.locator('button.key[data-entry-id="kana.a"]').waitFor();
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
   assert.ok((await page.locator('#profile-name').innerText()).includes('Web動作確認'));
+  assert.equal(await page.locator('#macro-name').inputValue(), '共有マクロ');
+  assert.equal(await page.locator('#macro-actions option').count(), 2);
   assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
 
   await page.locator('button.key[data-entry-id="kana.a"]').click();
@@ -148,11 +178,25 @@ try {
   const custom = await page.evaluate(async () => (await (await fetch('./default-ja.json')).json()));
   custom.id = 'user.web.persisted';
   custom.name = '外部Profile復元テスト';
+  // A valid existing advanced Macro action remains intact, not silently normalized away.
+  custom.macros = [{
+    id: 'macro.opaque', name: '既存アクション保持',
+    actions: [{actionID: 'system.dismissKeyboard', arguments: {}}]
+  }];
   await page.locator('#profile-file').setInputFiles({
     name: 'custom-profile.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(custom), 'utf8'),
   });
   await page.waitForFunction(() => document.querySelector('#profile-name')?.textContent?.includes('外部Profile復元テスト'));
+  assert.equal(await page.locator('#macro-select option').count(), 1);
+  await page.locator('#macro-actions').selectOption('0');
+  assert.equal(await page.locator('#macro-edit-action').isDisabled(), true);
+  assert.ok((await page.locator('#macro-action-hint').innerText()).includes('読み取り専用'));
+  await page.locator('#macro-new-action').click();
+  await page.locator('#macro-action-type').selectOption('noop');
+  await page.locator('#macro-add-action').click();
+  assert.equal(await page.locator('#macro-actions option').count(), 2);
+  assert.ok((await page.locator('#macro-actions option').first().innerText()).includes('system.dismissKeyboard'));
   await page.locator('#save-local').click();
   await page.waitForFunction(() => document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
   await page.reload({waitUntil: 'domcontentloaded'});
