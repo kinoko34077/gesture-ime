@@ -125,7 +125,13 @@ try {
   assert.equal(await page.locator('#macro-select option').count(), 0);
   await page.locator('#macro-create-sample').click();
   assert.equal(await page.locator('#macro-select option').count(), 1);
-  assert.ok((await page.locator('#macro-selected-meta').innerText()).includes('macro.user.'));
+  assert.ok((await page.locator('#macro-selected-meta').innerText()).includes('アクション 1 件'));
+  assert.ok(!(await page.locator('#macro-selected-meta').innerText()).includes('macro.user.'));
+  assert.equal(await page.locator('#macro-advanced').evaluate(el => el.open), false);
+  await page.locator('#macro-advanced summary').click();
+  assert.ok((await page.locator('#macro-internal-id').innerText()).includes('macro.user.'));
+  await page.locator('#macro-advanced summary').click();
+  assert.ok((await page.locator('#macro-feedback').innerText()).includes('サンプルMacroを作成しました'));
   assert.equal(await page.locator('#macro-name').inputValue(), 'サンプル：あいさつ');
   assert.ok((await page.locator('#macro-actions option').first().innerText()).includes('こんにちは！'));
   await page.locator('#macro-action-text').fill('マクロの動作確認');
@@ -140,11 +146,17 @@ try {
   assert.equal(await page.locator('#macro-name').inputValue(), '共有マクロ');
   await page.locator('#macro-create-name').fill('  共有マクロ  ');
   await page.locator('#macro-create').click();
-  assert.ok((await page.locator('#status').innerText()).includes('Macro作成失敗'));
+  assert.ok((await page.locator('#macro-feedback').innerText()).includes('マクロを作成できません'));
+  assert.equal(await page.locator('#macro-feedback').getAttribute('data-result'), 'error');
+  assert.equal(await page.locator('#macro-create-name').inputValue(), '  共有マクロ  ');
+  // The failed Rust validation must not alter the Macro list or the typed input.
+  assert.ok((await page.locator('#macro-feedback').boundingBox()).height > 0);
   assert.equal(await page.locator('#macro-select option').count(), 1, 'duplicate name must be rejected atomically');
   await page.locator('#macro-new-action').click();
   await page.locator('#macro-action-type').selectOption('noop');
   await page.locator('#macro-add-action').click();
+  assert.ok((await page.locator('#macro-action-feedback').innerText()).includes('アクションを追加しました'));
+  assert.equal(await page.locator('#macro-action-feedback').getAttribute('data-result'), 'success');
   assert.equal(await page.locator('#macro-actions option').count(), 2);
   assert.ok((await page.locator('#macro-actions option').last().innerText()).includes('何もしない'));
   console.log('M3h Macro create/rename/duplicate reject/action-edit/Undo/Redo via canonical Rust PASS');

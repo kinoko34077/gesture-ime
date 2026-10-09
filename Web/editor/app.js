@@ -9,6 +9,21 @@ function status(message, failed = false) {
   $('status').textContent = message;
   $('status').style.color = failed ? '#b22340' : '';
 }
+function localMacroStatus(id, message, failed = false) {
+  status(message, failed);
+  const feedback = $(id);
+  feedback.textContent = message;
+  feedback.dataset.result = failed ? 'error' : 'success';
+  // Do not leave stale feedback on the other Macro editing task.
+  $(id === 'macro-feedback' ? 'macro-action-feedback' : 'macro-feedback').textContent = '';
+}
+function macroStatus(message, failed = false) {
+  localMacroStatus('macro-feedback', message, failed);
+}
+function macroActionStatus(message, failed = false) {
+  localMacroStatus('macro-action-feedback', message, failed);
+}
+
 function escapeFileName(name) {
   return (name || 'profile').replace(/[^\p{L}\p{N}._-]+/gu, '_').slice(0, 70);
 }
@@ -262,8 +277,10 @@ function renderMacroEditor() {
   $('macro-name').disabled = !m;
   $('macro-rename').disabled = !m;
   $('macro-selected-meta').textContent = m
-    ? '内部ID: ' + m.id + ' / アクション ' + m.actions.length + ' 件'
+    ? '登録済みアクション ' + m.actions.length + ' 件'
     : 'マクロがありません。名前を入力して新規作成できます。';
+  $('macro-internal-id').textContent = m?.id ?? '選択なし';
+  $('macro-advanced').hidden = !m;
   renderMacroActionControls();
 }
 function actionFromForm(previous = null) {
@@ -287,6 +304,7 @@ function createMacro(name, actions, description) {
   state.macroId = newItem.id;
   state.macroActionIndex = newItem.actions.length ? 0 : -1;
   renderMacroEditor();
+  macroStatus(description + 'しました。');
 }
 function updateMacroActions(update, label) {
   const m = selectedMacro();
@@ -295,6 +313,7 @@ function updateMacroActions(update, label) {
   update(actions);
   applyCommand({type: 'setMacroActions', macroId: m.id, actions}, label);
   renderMacroEditor();
+  macroActionStatus(label + 'しました。');
 }
 
 async function saveCurrentDraft() {
@@ -527,23 +546,30 @@ $('macro-select').addEventListener('change', event => {
   state.macroId = event.target.value;
   state.macroActionIndex = -1;
   renderMacroEditor();
+  $('macro-feedback').textContent = '';
 });
 $('macro-create').addEventListener('click', () => {
-  try { createMacro($('macro-create-name').value, [], 'マクロを作成'); }
-  catch (e) { status('Macro作成失敗: ' + String(e), true); }
+  try {
+    createMacro($('macro-create-name').value, [], 'マクロを作成');
+    $('macro-create-name').value = ''; // Clear only after a successful commit.
+  }
+  catch (e) { macroStatus('マクロを作成できません: ' + String(e), true); }
 });
 $('macro-create-sample').addEventListener('click', () => {
   try {
     createMacro('サンプル：あいさつ', [{
       actionID: 'text.insert', arguments: {text: {base: 'こんにちは！', transforms: []}}
     }], 'サンプルMacroを作成');
-  } catch (e) { status('サンプル作成失敗: ' + String(e), true); }
+  } catch (e) { macroStatus('サンプルを作成できません: ' + String(e), true); }
 });
 $('macro-rename').addEventListener('click', () => {
   const m = selectedMacro();
   if (!m) return;
-  try { applyCommand({type: 'renameMacro', macroId: m.id, name: $('macro-name').value}, 'マクロ名を変更'); }
-  catch (e) { status('Macro改名失敗: ' + String(e), true); }
+  try {
+    const result = applyCommand({type: 'renameMacro', macroId: m.id, name: $('macro-name').value}, 'マクロ名を変更');
+    macroStatus(result.changed ? 'マクロ名を変更しました。' : 'マクロ名は変更されていません。');
+  }
+  catch (e) { macroStatus('マクロ名を変更できません: ' + String(e), true); }
 });
 $('macro-actions').addEventListener('change', event => {
   state.macroActionIndex = Number(event.target.value);
@@ -564,13 +590,13 @@ $('macro-add-action').addEventListener('click', () => {
     updateMacroActions(actions => actions.push(actionFromForm(old)), 'アクションを追加');
     state.macroActionIndex = m.actions.length;
     renderMacroEditor();
-  } catch (e) { status('アクション追加失敗: ' + String(e), true); }
+  } catch (e) { macroActionStatus('アクションを追加できません: ' + String(e), true); }
 });
 $('macro-edit-action').addEventListener('click', () => {
   const m = selectedMacro(), i = state.macroActionIndex;
   if (!m || i < 0 || i >= m.actions.length) return;
   try { updateMacroActions(actions => { actions[i] = actionFromForm(m.actions[i]); }, 'アクションを編集'); }
-  catch (e) { status('アクション編集失敗: ' + String(e), true); }
+  catch (e) { macroActionStatus('アクションを編集できません: ' + String(e), true); }
 });
 $('macro-remove-action').addEventListener('click', () => {
   const m = selectedMacro(), i = state.macroActionIndex;
@@ -579,7 +605,7 @@ $('macro-remove-action').addEventListener('click', () => {
     updateMacroActions(actions => actions.splice(i, 1), 'アクションを削除');
     state.macroActionIndex = -1;
     renderMacroEditor();
-  } catch (e) { status('アクション削除失敗: ' + String(e), true); }
+  } catch (e) { macroActionStatus('アクションを削除できません: ' + String(e), true); }
 });
 
 $('layer-picker').addEventListener('change', event => {

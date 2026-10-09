@@ -46,3 +46,13 @@
 .macro-actions-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .macro-actions-row .action{font-size:.79rem;padding:8px 10px}
 @media(max-width:380px){.macro-actions-row .action{flex:1 1 42%}}
+
+
+/* Keep action feedback at the place of use; no scroll to footer required. */
+.macro-feedback{margin:10px 0 12px;padding:9px 11px;border-radius:9px;font-size:.84rem;background:#edf4ff;color:#27456b;overflow-wrap:anywhere}
+.macro-feedback:empty{display:none}
+.macro-feedback[data-result="error"]{background:#fff0f1;color:#99293b}
+.macro-advanced{font-size:.75rem;color:#536078;margin:2px 0 6px}
+.macro-advanced[hidden]{display:none}
+.macro-advanced summary{cursor:pointer;width:fit-content;text-decoration:underline;text-underline-offset:2px}
+.macro-advanced code{overflow-wrap:anywhere;user-select:text}
