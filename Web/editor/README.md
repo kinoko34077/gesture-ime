@@ -10,6 +10,12 @@ Only a user-selected local JSON file is read in-browser using File API. It is ke
 
 ## UX/acceptance limit
 
-This slice proves the first browser-accessible Board layout and gesture trace against the exact Rust engine. Its key labels are explicitly **authored base labels** (no conditional resolution). Editing and Undo attach later to shared Rust ProfileV3Editor once #212/PR #214 reaches accepted main. It must not be called a complete keyboard editor or real iOS/Android keyboard acceptance.
+This slice proves the first browser-accessible Board layout and gesture trace against the exact Rust engine. Its key labels are explicitly **authored base labels** (no conditional resolution). Editing now uses the accepted shared Rust `WebProfileEditor` from #212/PR #214: `renameProfile`, `setEntryDefaultText`, Undo and Redo; browser-only IndexedDB saving and JSON import/export remain HostPort operations. This is the minimal command slice, not a full macro/condition/Theme editor or real iOS/Android keyboard acceptance.
 
 Public Pages publishing needs repository owner to select **Settings → Pages → Build and deployment → Source: GitHub Actions** once. `configure-pages` cannot enable Pages from default ephemeral `GITHUB_TOKEN` alone, and no elevated token/permission alteration is bundled.
+
+## Browser smoke and persistence
+
+The `Shared Web Editor Preview` workflow runs a real headless Chromium mobile-viewport end-to-end test after generating Rust Wasm: load demo Profile, select kana key, update default text, Undo, Redo, rename Profile, save to IndexedDB, reload and recover the current Profile, run canonical Rust gesture trace, reject invalid JSON. Screenshot artifact is attached when available. Browser CI does **not** certify physical iPhone Safari touch/OS IME behavior.
+
+Locally saved Profiles never go to GitHub or a server. They are not synchronized across devices and can be erased by clearing browser storage; use **JSONを書き出す** to keep a separate backup. Browser save never means native IME activation. The service worker cache is restricted to public static assets only.

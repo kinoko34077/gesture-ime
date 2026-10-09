@@ -1,6 +1,7 @@
+import {readDraft, writeDraft} from './host-browser.js';
 // Shared editor-shell foundation. Input semantics come exclusively from Rust Wasm.
 const $ = (id) => document.getElementById(id);
-const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null };
+const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null, editor: null, savedJSON: null, baselineJSON: null };
 const MAX_LOCAL_FILE_BYTES = 2_000_000;
 const MAX_POINTER_EVENTS = 120;
 
@@ -20,7 +21,76 @@ function setSelected(entry) {
   state.selected = entry;
   $('selected-key').textContent = entry ? entry.id : 'なし';
   document.querySelectorAll('.key').forEach(key => key.classList.toggle('selected', key.dataset.entryId === entry?.id));
+  $('entry-text').disabled = !entry;
+  $('apply-key-text').disabled = !entry;
+  $('entry-text').value = entry ? authoredBaseText(state.inspected.profile.initialBoardId, entry.id) : '';
 }
+function editorSnapshot() {
+  if (!state.editor) throw new Error('編集エンジンを読み込んでいません');
+  const result = JSON.parse(state.editor.snapshot());
+  if (!result.ok || !result.snapshot) throw new Error(result.error || '編集状態の取得に失敗');
+  return result.snapshot;
+}
+
+function hasUnsavedEdits() {
+  if (!state.editor) return false;
+  const comparison = state.savedJSON ?? state.baselineJSON;
+  return editorSnapshot().profileJSON !== comparison;
+}
+
+function refreshEditor(snapshot, selectedId = state.selected?.id) {
+  const inspected = JSON.parse(state.core.inspect_profile(snapshot.profileJSON));
+  if (!inspected.ok) throw new Error(inspected.error || '編集中Profileが不正です');
+  state.profileJSON = snapshot.profileJSON;
+  state.document = JSON.parse(snapshot.profileJSON);
+  state.inspected = inspected;
+  $('profile-name').textContent = snapshot.name + ' · ' + state.source;
+  $('profile-title').value = snapshot.name;
+  $('profile-title').disabled = false;
+  $('rename-profile').disabled = false;
+  $('undo-edit').disabled = !snapshot.canUndo;
+  $('redo-edit').disabled = !snapshot.canRedo;
+  $('save-local').disabled = false;
+  $('export-profile').disabled = false;
+  $('save-info').textContent = state.savedJSON === snapshot.profileJSON
+    ? 'ブラウザに保存済 · iOS／Androidには未反映'
+    : '未保存の編集 · iOS／Androidには未反映';
+  renderBoard();
+  setSelected(inspected.profile.entries.find(e => e.id === selectedId) || null);
+}
+
+function loadEditor(profileJSON, source, saved = false) {
+  const editor = new state.core.WebProfileEditor(profileJSON);
+  const result = JSON.parse(editor.snapshot());
+  if (!result.ok || !result.snapshot) throw new Error(result.error || 'Profileを開けません');
+  state.editor = editor;
+  state.source = source;
+  state.baselineJSON = result.snapshot.profileJSON;
+  state.savedJSON = saved ? result.snapshot.profileJSON : null;
+  $('trace-state').textContent = 'キーを押すと結果が表示されます。';
+  $('trace-actions').textContent = '—';
+  refreshEditor(result.snapshot, null);
+  status('共通Rust編集エンジンでProfileを読み込みました。');
+}
+
+function applyEditorResult(resultText, action) {
+  const output = JSON.parse(resultText);
+  if (!output.ok) throw new Error(output.error || action + 'に失敗しました');
+  refreshEditor(output.snapshot);
+  status(action + (output.changed ? 'しました。' : '（変更なし）。'));
+}
+function applyCommand(command, action) {
+  const revision = editorSnapshot().revision;
+  applyEditorResult(state.editor.apply_command(JSON.stringify(command), revision), action);
+}
+async function saveCurrentDraft() {
+  const snapshot = editorSnapshot();
+  await writeDraft(snapshot.profileId, snapshot.profileJSON);
+  state.savedJSON = snapshot.profileJSON;
+  refreshEditor(snapshot);
+  status('このブラウザに保存しました。実キーボードには未反映です。');
+}
+
 function renderBoard() {
   const boardEl = $('board');
   boardEl.replaceChildren();
@@ -93,8 +163,8 @@ function finishPointer(event, cancel) {
   a.element.classList.remove('pressed');
   state.activePointer = null;
   const events = a.events;
-  // Simulate elapsed Hold time in the same canonical Rust timing system.
-  if (!cancel && atMs >= 480) events.push({kind: 'advance', atMs});
+  // Always advance time in canonical Rust; it alone determines per-entry Hold thresholds.
+  if (!cancel) events.push({kind: 'advance', atMs});
   events.push({kind: cancel ? 'cancel' : 'up', atMs});
   const script = {
     entryId: a.entryId, cellWidth: a.cellWidth, cellHeight: a.cellHeight,
@@ -114,27 +184,23 @@ function finishPointer(event, cancel) {
     status('操作を検証できません: ' + String(error?.message || error), true);
   }
 }
-function loadProfile(profileJSON, source) {
-  // Only the canonical Rust codec can authorize a Profile for the UI.
-  const inspected = JSON.parse(state.core.inspect_profile(profileJSON));
-  if (!inspected.ok) throw new Error(inspected.error);
-  const documentJSON = JSON.parse(profileJSON);
-  state.profileJSON = profileJSON;
-  state.source = source;
-  state.document = documentJSON; // authored base labels only; no condition evaluation in JS
-  state.inspected = inspected;
-  $('profile-name').textContent = inspected.profile.name + ' · ' + source;
-  $('trace-state').textContent = 'キーを押すと結果が表示されます。';
-  $('trace-actions').textContent = '—';
-  $('export-profile').disabled = false;
-  setSelected(null);
-  renderBoard();
-  status('Profileを検証して読み込みました。');
-}
-async function builtIn() {
+async function loadBuiltIn(preferSaved = true) {
   const response = await fetch('./default-ja.json');
-  if (!response.ok) throw new Error('組み込みProfileを取得できません (' + response.status + ')');
-  loadProfile(await response.text(), '公開サンプル');
+  if (!response.ok) throw new Error('組み込みProfileの取得に失敗: ' + response.status);
+  const sample = await response.text();
+  let profile = sample;
+  let saved = false;
+  if (preferSaved) {
+    try {
+      const result = JSON.parse(state.core.inspect_profile(sample));
+      if (!result.ok) throw new Error(result.error);
+      const local = await readDraft(result.profile.id);
+      if (local) { profile = local; saved = true; }
+    } catch (error) {
+      status('ブラウザ保存を読めません。組み込みProfileで起動します: ' + String(error), true);
+    }
+  }
+  loadEditor(profile, saved ? 'この端末の保存データ' : '公開サンプル', saved);
 }
 function exportProfile() {
   if (!state.profileJSON) return;
@@ -151,7 +217,7 @@ async function boot() {
     state.core = await import('./wasm/gesture_ime_core_web.js');
     await state.core.default(new URL('./wasm/gesture_ime_core_web_bg.wasm', import.meta.url));
     $('rust-status').textContent = 'Rust稼働中';
-    await builtIn();
+    await loadBuiltIn();
   } catch (error) {
     $('rust-status').textContent = '初期化失敗';
     status('Rustモジュールを読み込めません: ' + String(error?.message || error), true);
@@ -163,15 +229,36 @@ $('profile-file').addEventListener('change', async event => {
   try {
     if (file.size > MAX_LOCAL_FILE_BYTES) throw new Error('2 MBを超えるファイルは扱えません');
     if (!state.core) throw new Error('Rustを初期化できていません');
-    loadProfile(await file.text(), '端末内から読込');
+    if (hasUnsavedEdits() && !window.confirm('未保存の編集を破棄して別のProfileを開きますか？')) return;
+    loadEditor(await file.text(), '端末内から読込');
   } catch (error) {
     status('Profileが無効です: ' + String(error?.message || error), true);
   } finally {
     event.target.value = '';
   }
 });
-$('reset-profile').addEventListener('click', () => builtIn().catch(error => status(String(error), true)));
+$('reset-profile').addEventListener('click', async () => {
+  if (hasUnsavedEdits() && !window.confirm('未保存の編集を破棄して初期Profileに戻しますか？')) return;
+  try { await loadBuiltIn(false); } catch (error) { status(String(error), true); }
+});
 $('export-profile').addEventListener('click', exportProfile);
+$('save-local').addEventListener('click', () => saveCurrentDraft().catch(error => status('保存失敗: ' + String(error), true)));
+$('undo-edit').addEventListener('click', () => {
+  try { applyEditorResult(state.editor.undo(), 'Undo'); } catch(error) { status(String(error), true); }
+});
+$('redo-edit').addEventListener('click', () => {
+  try { applyEditorResult(state.editor.redo(), 'Redo'); } catch(error) { status(String(error), true); }
+});
+$('rename-profile').addEventListener('click', () => {
+  try { applyCommand({type: 'renameProfile', name: $('profile-title').value}, 'Profile名を変更'); }
+  catch(error) { status('名前変更失敗: ' + String(error), true); }
+});
+$('apply-key-text').addEventListener('click', () => {
+  if (!state.selected) return;
+  try {
+    applyCommand({type: 'setEntryDefaultText', boardId: state.inspected.profile.initialBoardId, entryId: state.selected.id, text: $('entry-text').value}, 'キー文字を変更');
+  } catch(error) { status('キー編集失敗: ' + String(error), true); }
+});
 $('build-id').textContent = 'Profile v3 · Rust/Wasm';
 boot();
 if ('serviceWorker' in navigator) {

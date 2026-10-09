@@ -3,5 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Web-hosted UI shell for shared Rust engine; runs in PWA and future WebViews"
+  "description": "Web-hosted UI shell for shared Rust engine; runs in PWA and future WebViews",
+  "scripts": {
+    "smoke": "node tests/browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
 }

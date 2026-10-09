@@ -51,6 +51,7 @@ jobs:
       - name: Validate JS and packaged Web static paths
         run: |
           node --check Web/editor/app.js
+          node --check Web/editor/host-browser.js
           node --check Web/editor/sw.js
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -58,7 +59,7 @@ jobs:
           const html = readFileSync('site/index.html','utf8');
           const js = readFileSync('site/app.js','utf8');
           const manifest = JSON.parse(readFileSync('site/manifest.webmanifest','utf8'));
-          for (const path of ['site/wasm/gesture_ime_core_web.js','site/wasm/gesture_ime_core_web_bg.wasm','site/default-ja.json','site/sw.js','site/icon.svg']) {
+          for (const path of ['site/wasm/gesture_ime_core_web.js','site/wasm/gesture_ime_core_web_bg.wasm','site/default-ja.json','site/sw.js','site/icon.svg','site/host-browser.js']) {
             assert.ok(existsSync(path),'missing build asset: '+path);
           }
           assert.ok(html.includes('app.js'));
@@ -69,6 +70,25 @@ jobs:
           assert.equal(sample.schema,'gesture-ime.profile.v3');
           console.log('Web preview assets / schema / module references PASS');
           NODE
+      - name: Browser smoke — real Rust Wasm editor, mobile gestures and local persistence
+        run: |
+          npm install --prefix Web/editor --no-audit --no-fund --ignore-scripts
+          Web/editor/node_modules/.bin/playwright install --with-deps chromium
+          python3 -m http.server 8765 --directory site > "$RUNNER_TEMP/web-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8765/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node Web/editor/tests/browser-smoke.mjs
+      - name: Upload mobile browser proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gesture-ime-browser-smoke
+          path: ${{ runner.temp }}/gesture-ime-mobile-smoke.png
+          if-no-files-found: ignore
       - name: Upload reviewable site bundle
         uses: actions/upload-artifact@v4
         with:
