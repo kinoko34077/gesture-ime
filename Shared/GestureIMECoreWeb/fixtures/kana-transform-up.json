@@ -1,0 +1,13 @@
+{
+  "entryId": "kana.transform",
+  "cellWidth": 80,
+  "cellHeight": 80,
+  "touchX": 0,
+  "touchY": 0,
+  "atMs": 0,
+  "events": [
+    {"type":"move","x":0,"y":-80,"atMs":10},
+    {"type":"wait","atMs":15},
+    {"type":"up","atMs":20}
+  ]
+}
