@@ -1,6 +1,6 @@
 //! Canonical Profile v3 authoring state shared by Web, iOS and Android.
 //! Platform persistence and UI state are deliberately outside this module.
-use crate::profile_v3::{ProfileBundleV3, ResolvedStringV3, V3Extra};
+use crate::profile_v3::{BoardTransitionLifetimeV3, BoardTransitionV3, ProfileBundleV3, ResolvedStringV3, V3Extra};
 use crate::profile_v3_validation::ProfileV3Codec;
 use serde::Deserialize;
 use serde_json::json;
@@ -18,6 +18,15 @@ enum EditorCommandV3 {
         #[serde(rename = "entryId")]
         entry_id: String,
         text: Option<String>,
+    },
+    SetEntryDefaultTransition {
+        #[serde(rename = "boardId")]
+        board_id: String,
+        #[serde(rename = "entryId")]
+        entry_id: String,
+        #[serde(rename = "targetBoardId")]
+        target_board_id: Option<String>,
+        lifetime: Option<BoardTransitionLifetimeV3>,
     },
 }
 
@@ -127,6 +136,38 @@ impl ProfileEditorV3 {
                     } else {
                         Some(presentation)
                     };
+            }
+            EditorCommandV3::SetEntryDefaultTransition {
+                board_id,
+                entry_id,
+                target_board_id,
+                lifetime,
+            } => {
+                if let Some(target) = target_board_id.as_deref() {
+                    if !next.boards.iter().any(|board| board.id == target) {
+                        return Err(format!("Target Board not found: {target}"));
+                    }
+                }
+                if target_board_id.is_some() != lifetime.is_some() {
+                    return Err("transition target and lifetime must both be supplied or both null".to_owned());
+                }
+                let board = next.boards.iter_mut()
+                    .find(|board| board.id == board_id)
+                    .ok_or_else(|| format!("Board not found: {board_id}"))?;
+                let entry = board.entries.iter_mut()
+                    .find(|entry| entry.id == entry_id)
+                    .ok_or_else(|| format!("Key not found: {board_id}/{entry_id}"))?;
+                let previous = entry.resolver.default.transition.take();
+                entry.resolver.default.transition = match (target_board_id, lifetime) {
+                    (Some(target_board_ref), Some(lifetime)) => Some(BoardTransitionV3 {
+                        target_board_ref,
+                        lifetime,
+                        extra: previous.map(|transition| transition.extra)
+                            .unwrap_or_else(V3Extra::new),
+                    }),
+                    (None, None) => None,
+                    _ => unreachable!("target and lifetime already checked"),
+                };
             }
         }
 
