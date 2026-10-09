@@ -53,6 +53,30 @@ jobs:
           assert.equal(invalid.ok, false);
           console.log('M1 actual built-in Profile/native-Wasm parity PASS');
           NODE
+      - name: Verify actual native-versus-Wasm gesture replay
+        run: |
+          cargo run --quiet --manifest-path Shared/GestureIMECoreWeb/Cargo.toml \\
+            --example trace_gesture -- App/KeyboardExtension/Resources/default-ja.json \\
+            Shared/GestureIMECoreWeb/fixtures/kana-transform-up.json \\
+            > "$RUNNER_TEMP/native-trace.json"
+          node - "$RUNNER_TEMP/native-trace.json" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const bridge = require('./Shared/GestureIMECoreWeb/pkg-node/gesture_ime_core_web.js');
+          const profile = fs.readFileSync('App/KeyboardExtension/Resources/default-ja.json', 'utf8');
+          const script = fs.readFileSync('Shared/GestureIMECoreWeb/fixtures/kana-transform-up.json', 'utf8');
+          const native = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const wasm = JSON.parse(bridge.trace_profile(profile, script));
+          assert.deepStrictEqual(wasm, native);
+          assert.equal(wasm.ok, true);
+          assert.equal(wasm.trace.snapshots[0].boardId, 'board.ja.transform');
+          assert.equal(wasm.trace.snapshots.at(-1).terminal, 'Committed');
+          assert.equal(JSON.parse(bridge.trace_profile(profile, '{"entryId":"text.enter","events":[{"type":"up","atMs":10}]}')).trace.snapshots[1].runtimeDispatches[0].actionId, 'text.insert');
+          for (const bad of ['{', '{"entryId":"text.enter","events":[{"type":"up","atMs":2},{"type":"up","atMs":3}]}']) {
+            assert.equal(JSON.parse(bridge.trace_profile(profile, bad)).ok, false);
+          }
+          console.log('M1b native/Wasm gesture semantic parity PASS');
+          NODE
       - name: Upload Web binding proof (not a published website)
         uses: actions/upload-artifact@v4
         with:
