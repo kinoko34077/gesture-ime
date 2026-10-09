@@ -163,8 +163,8 @@ function finishPointer(event, cancel) {
   a.element.classList.remove('pressed');
   state.activePointer = null;
   const events = a.events;
-  // Simulate elapsed Hold time in the same canonical Rust timing system.
-  if (!cancel && atMs >= 480) events.push({kind: 'advance', atMs});
+  // Always advance time in canonical Rust; it alone determines per-entry Hold thresholds.
+  if (!cancel) events.push({kind: 'advance', atMs});
   events.push({kind: cancel ? 'cancel' : 'up', atMs});
   const script = {
     entryId: a.entryId, cellWidth: a.cellWidth, cellHeight: a.cellHeight,
