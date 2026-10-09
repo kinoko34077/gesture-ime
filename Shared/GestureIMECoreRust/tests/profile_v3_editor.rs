@@ -118,6 +118,7 @@ fn invalid_transition_reference_or_lifetime_is_atomic() {
         json!({"type":"setEntryDefaultTransition","boardId":"board.ja.root","entryId":"kana.a","targetBoardId":"board.absent","lifetime":"transient"}),
         json!({"type":"setEntryDefaultTransition","boardId":"board.absent","entryId":"kana.a","targetBoardId":"board.base.kana.a.flick","lifetime":"transient"}),
         json!({"type":"setEntryDefaultTransition","boardId":"board.ja.root","entryId":"absent","targetBoardId":"board.base.kana.a.flick","lifetime":"transient"}),
+        json!({"type":"setEntryDefaultTransition","boardId":"board.ja.root","entryId":"kana.a"}),
         json!({"type":"setEntryDefaultTransition","boardId":"board.ja.root","entryId":"kana.a","targetBoardId":"board.base.kana.a.flick"}),
         json!({"type":"setEntryDefaultTransition","boardId":"board.ja.root","entryId":"kana.a","targetBoardId":null,"lifetime":"transient"}),
         json!({"type":"setEntryDefaultTransition","boardId":"board.ja.root","entryId":"kana.a","targetBoardId":"board.base.kana.a.flick","lifetime":"random"}),
