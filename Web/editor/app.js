@@ -118,12 +118,31 @@ function renderBoard() {
     btn.dataset.entryId = entry.id;
     btn.style.gridColumn = (entry.rect.x - minX + 1) + ' / span ' + entry.rect.width;
     btn.style.gridRow = (entry.rect.y - minY + 1) + ' / span ' + entry.rect.height;
-    const text = authoredBaseText(profile.initialBoardId, entry.id) || entry.id;
+    const text = entry.text ?? authoredBaseText(profile.initialBoardId, entry.id) ?? entry.id;
     const label = document.createElement('span');
     label.className = 'key-label';
-    label.textContent = text;
+    label.textContent = text || entry.id;
     btn.append(label);
-    btn.setAttribute('aria-label', 'キー ' + text + '、ID ' + entry.id);
+    // Guide labels and center coordinates are resolved by canonical Rust
+    // ProfileV3PlatformRuntime::direct_surface (including source overrides).
+    const guides = Array.isArray(entry.guides)
+      ? entry.guides.filter(g => g.label && Number.isFinite(g.centerX) && Number.isFinite(g.centerY))
+      : [];
+    if (guides.length) {
+      btn.classList.add('has-flick-guides');
+      for (const guide of guides) {
+        const badge = document.createElement('span');
+        badge.className = 'flick-guide';
+        badge.textContent = guide.label;
+        badge.dataset.targetEntryId = guide.targetEntryId;
+        badge.style.left = (50 + Math.max(-1.5, Math.min(1.5, guide.centerX)) * 24) + '%';
+        badge.style.top = (50 + Math.max(-1.5, Math.min(1.5, guide.centerY)) * 24) + '%';
+        badge.setAttribute('aria-hidden', 'true');
+        btn.append(badge);
+      }
+    }
+    btn.setAttribute('aria-label', 'キー ' + (text || entry.id) + '、ID ' + entry.id
+      + (guides.length ? '、フリック候補 ' + guides.map(g => g.label).join('、') : ''));
     btn.addEventListener('pointerdown', event => startPointer(event, btn, entry, cols, rows));
     btn.addEventListener('pointermove', updatePointer);
     btn.addEventListener('pointerup', event => finishPointer(event, false));

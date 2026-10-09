@@ -1,6 +1,6 @@
 //! Browser-facing *binding*, not a second source of Profile or gesture semantics.
 //! JSON wire responses keep Web UI independent of Rust/UniFFI type layouts.
-use gesture_ime_core::{ProfileV3BoardRuntime, ProfileV3Codec};
+use gesture_ime_core::{ProfileV3BoardRuntime, ProfileV3Codec, ProfileV3PlatformRuntime};
 use serde_json::{Value, json};
 use wasm_bindgen::prelude::*;
 
@@ -33,7 +33,16 @@ fn inspect(profile_json: &str) -> Result<Value, String> {
     let board = runtime
         .board(&layer.root_board_ref)
         .ok_or_else(|| "validated initial Board is missing".to_owned())?;
-    let entries: Vec<Value> = board
+    // The native platform preview resolves text, author overrides and flick guides.
+    // Browser presentation never reimplements Profile transition semantics.
+    let platform = ProfileV3PlatformRuntime::new(profile_json.to_owned())
+        .map_err(|error| format!("{error:?}"))?;
+    let surface = platform.direct_surface()
+        .map_err(|error| format!("{error:?}"))?;
+    if surface.board_id != board.id {
+        return Err("initial Board differs from the platform surface".to_owned());
+    }
+    let entries: Vec<Value> = surface
         .entries
         .iter()
         .map(|entry| {
@@ -44,7 +53,16 @@ fn inspect(profile_json: &str) -> Result<Value, String> {
                     "y": entry.rect.y,
                     "width": entry.rect.width,
                     "height": entry.rect.height
-                }
+                },
+                "text": entry.text,
+                "accessibilityLabel": entry.accessibility_label,
+                "guides": entry.guides.iter().map(|guide| json!({
+                    "targetEntryId": guide.target_entry_id,
+                    "centerX": guide.center_x,
+                    "centerY": guide.center_y,
+                    "label": guide.label,
+                    "overridden": guide.overridden,
+                })).collect::<Vec<_>>()
             })
         })
         .collect();
@@ -79,6 +97,13 @@ mod tests {
         assert_eq!(value["profile"]["initialLayerId"], "layer.ja");
         assert_eq!(value["profile"]["initialBoardId"], "board.ja.root");
         assert!(value["profile"]["entries"].as_array().unwrap().len() > 1);
+        // The native preview surface, not JavaScript, provides flick labels.
+        let entries = value["profile"]["entries"].as_array().unwrap();
+        let kana = entries.iter().find(|entry| entry["id"] == "kana.a").unwrap();
+        let guides = kana["guides"].as_array().unwrap();
+        assert!(!guides.is_empty(), "built-in Kana must have native guide labels");
+        assert!(guides.iter().all(|guide| guide["label"].is_string()
+            && guide["centerX"].is_number() && guide["centerY"].is_number()));
     }
 
     #[test]

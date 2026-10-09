@@ -7,3 +7,11 @@
 .edit-row input:disabled{background:#f3f5fa;color:#76849a}
 .edit-row .action{flex-shrink:0}
 @media(max-width:380px){.edit-row{flex-wrap:wrap}.edit-row .action{width:100%}}
+
+
+/* Flick guide labels are display-only projections of Rust native-surface data. */
+.key.has-flick-guides{position:relative;isolation:isolate;overflow:hidden}
+.key.has-flick-guides .key-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:38%;font-size:clamp(.75rem,2.5vw,1.05rem);line-height:1.1;text-align:center}
+.key.has-flick-guides .flick-guide{position:absolute;pointer-events:none;user-select:none;top:50%;left:50%;transform:translate(-50%,-50%);max-width:31%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:clamp(.53rem,1.45vw,.76rem);line-height:1.05;color:#53668e}
+.key.has-flick-guides.pressed .flick-guide{color:#1d4489}
+@media(max-width:380px){.key.has-flick-guides .flick-guide{font-size:.57rem}.key.has-flick-guides .key-label{font-size:.84rem}}
