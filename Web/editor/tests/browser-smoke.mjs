@@ -17,6 +17,7 @@ try {
 
   const kana = page.locator('button.key[data-entry-id="kana.a"]');
   await kana.waitFor({state: 'visible'});
+  assert.ok((await page.locator('#save-info').innerText()).includes('未変更'));
   await kana.click();
   const original = (await kana.locator('.key-label').innerText()).trim();
   assert.ok(original);
@@ -24,6 +25,7 @@ try {
 
   await page.locator('#entry-text').fill('共通Web編集');
   await page.locator('#apply-key-text').click();
+  assert.ok((await page.locator('#save-info').innerText()).includes('未保存の編集'));
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
   assert.equal(await page.locator('#undo-edit').isEnabled(), true);
 
@@ -57,6 +59,23 @@ try {
   });
   await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('Profileが無効'));
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
+
+  // A different locally imported Profile must also restore on restart.
+  // This catches boot paths which unconditionally reopen only builtin.ja.product.
+  const custom = await page.evaluate(async () => (await (await fetch('./default-ja.json')).json()));
+  custom.id = 'user.web.persisted';
+  custom.name = '外部Profile復元テスト';
+  await page.locator('#profile-file').setInputFiles({
+    name: 'custom-profile.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(custom), 'utf8'),
+  });
+  await page.waitForFunction(() => document.querySelector('#profile-name')?.textContent?.includes('外部Profile復元テスト'));
+  await page.locator('#save-local').click();
+  await page.waitForFunction(() => document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
+  await page.reload({waitUntil: 'domcontentloaded'});
+  await page.waitForFunction(() => document.querySelector('#rust-status')?.textContent === 'Rust稼働中');
+  await page.waitForFunction(() => document.querySelector('#profile-name')?.textContent?.includes('外部Profile復元テスト'));
+  assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
   if (errors.length) throw new Error('browser pageerror: ' + errors.join('; '));
 
   await page.screenshot({path: join(process.env.RUNNER_TEMP || '.', 'gesture-ime-mobile-smoke.png'), fullPage: true});
