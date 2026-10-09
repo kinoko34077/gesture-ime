@@ -213,3 +213,97 @@ fn macro_duplicate_names_bad_actions_stale_revision_are_atomic() {
     let err = editor.apply_command_json(&create.to_string(), rev);
     assert!(err.is_err(), "stale revision must reject even valid command");
 }
+
+
+// M3i: Key->Macro invocation is authored only by the common revisioned Rust
+// Core. This is not iOS/Android host delivery or browser JS macro execution.
+#[test]
+fn key_macro_invocation_preserves_other_behavior_and_undo_redo() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let create = json!({"type":"createMacro","name":"あいさつ",
+        "actions":[{"actionID":"text.insert",
+            "arguments":{"text":{"base":"こんにちは！","transforms":[]}}}]});
+    assert!(editor.apply_command_json(&create.to_string(), 0).unwrap());
+    let macro_id = value(&editor.export_json().unwrap())["macros"]
+        .as_array().unwrap().last().unwrap()["id"].as_str().unwrap().to_owned();
+
+    let before = value(&editor.export_json().unwrap());
+    let get_entry = |doc: &Value| {
+        doc["boards"].as_array().unwrap().iter()
+            .find(|board| board["id"] == "board.ja.root").unwrap()["entries"]
+            .as_array().unwrap().iter()
+            .find(|entry| entry["id"] == "kana.a").unwrap().clone()
+    };
+    let before_entry = get_entry(&before);
+    let attach = json!({"type":"setEntryDefaultMacroInvocation",
+        "boardId":"board.ja.root","entryId":"kana.a",
+        "macroId":macro_id,"enabled":true}).to_string();
+    assert!(editor.apply_command_json(&attach, editor.revision()).unwrap());
+    let after = value(&editor.export_json().unwrap());
+    let attached = get_entry(&after);
+    let actions = attached["resolver"]["default"]["onRelease"].as_array().unwrap();
+    assert_eq!(actions.len(), 1);
+    assert_eq!(actions[0]["actionID"], "macro.run");
+    assert_eq!(actions[0]["arguments"]["macro"], macro_id);
+    let mut expected = before_entry.clone();
+    expected["resolver"]["default"]["onRelease"] = attached["resolver"]["default"]["onRelease"].clone();
+    assert_eq!(attached, expected, "key Theme/presentation/transition/Hold/conditions stay unchanged");
+    assert!(!editor.apply_command_json(&attach, editor.revision()).unwrap(),
+        "already attached Macro must not add a duplicate or extra Undo");
+
+    let rename = json!({"type":"renameMacro","macroId":macro_id,"name":"挨拶"}).to_string();
+    assert!(editor.apply_command_json(&rename, editor.revision()).unwrap());
+    assert_eq!(get_entry(&value(&editor.export_json().unwrap()))
+        ["resolver"]["default"]["onRelease"][0]["arguments"]["macro"], macro_id,
+        "user-visible rename cannot break stable macro.run reference");
+    assert!(editor.undo().unwrap()); // undo name change, not attachment
+    assert_eq!(get_entry(&value(&editor.export_json().unwrap()))
+        ["resolver"]["default"]["onRelease"][0]["arguments"]["macro"], macro_id);
+    assert!(editor.undo().unwrap()); // undo attachment
+    assert_eq!(get_entry(&value(&editor.export_json().unwrap())), before_entry);
+    assert!(editor.redo().unwrap()); // redo attachment
+    assert_eq!(get_entry(&value(&editor.export_json().unwrap())),
+        attached);
+    let remove = json!({"type":"setEntryDefaultMacroInvocation",
+        "boardId":"board.ja.root","entryId":"kana.a",
+        "macroId":macro_id,"enabled":false}).to_string();
+    assert!(editor.apply_command_json(&remove, editor.revision()).unwrap());
+    assert_eq!(get_entry(&value(&editor.export_json().unwrap())), before_entry);
+    assert!(!editor.apply_command_json(&remove, editor.revision()).unwrap());
+    assert!(editor.undo().unwrap());
+    assert_eq!(get_entry(&value(&editor.export_json().unwrap())), attached);
+    assert!(ProfileEditorV3::open(&editor.export_json().unwrap()).is_ok(),
+        "complete Profile remains roundtrip validated");
+}
+
+#[test]
+fn invalid_macro_assignment_never_mutates_profile_or_history() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let command = json!({"type":"createMacro","name":"valid",
+        "actions":[{"actionID":"noop","arguments":{}}]}).to_string();
+    assert!(editor.apply_command_json(&command, 0).unwrap());
+    let before = editor.export_json().unwrap();
+    let revision = editor.revision();
+    let id = value(&before)["macros"].as_array().unwrap().last().unwrap()
+        ["id"].as_str().unwrap().to_owned();
+    let invalid = [
+        json!({"type":"setEntryDefaultMacroInvocation","boardId":"missing",
+            "entryId":"kana.a","macroId":id,"enabled":true}),
+        json!({"type":"setEntryDefaultMacroInvocation","boardId":"board.ja.root",
+            "entryId":"missing","macroId":id,"enabled":true}),
+        json!({"type":"setEntryDefaultMacroInvocation","boardId":"board.ja.root",
+            "entryId":"kana.a","macroId":"macro.missing","enabled":true}),
+        json!({"type":"setEntryDefaultMacroInvocation","boardId":"board.ja.root",
+            "entryId":"kana.a","macroId":id}),
+        json!({"type":"setEntryDefaultMacroInvocation","boardId":"board.ja.root",
+            "entryId":"kana.a","enabled":false}),
+        json!({"type":"setEntryDefaultMacroInvocation","boardId":"board.ja.root",
+            "entryId":"kana.a","macroId":id,"enabled":null}),
+    ];
+    for action in invalid {
+        assert!(editor.apply_command_json(&action.to_string(), revision).is_err(), "{action}");
+        assert_eq!(editor.revision(), revision);
+        assert_eq!(editor.export_json().unwrap(), before);
+        assert!(!editor.can_redo());
+    }
+}
