@@ -1,0 +1,7 @@
+{
+  "name": "gesture-ime-web-editor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Web-hosted UI shell for shared Rust engine; runs in PWA and future WebViews"
+}
