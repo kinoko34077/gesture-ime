@@ -1,0 +1,123 @@
+name: Shared Web Editor Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "Web/editor/**"
+      - "Shared/GestureIMECoreWeb/**"
+      - "Shared/GestureIMECoreRust/**"
+      - ".github/workflows/web-preview-pages.yml"
+  pull_request:
+    paths:
+      - "Web/editor/**"
+      - "Shared/GestureIMECoreWeb/**"
+      - "Shared/GestureIMECoreRust/**"
+      - ".github/workflows/web-preview-pages.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gesture-ime-web-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust Wasm toolchain
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install wasm-pack --version 0.13.1 --locked
+      - name: Compile one canonical Rust runtime for browser
+        run: wasm-pack build Shared/GestureIMECoreWeb --target web --release --out-dir pkg-web
+      - name: Assemble deployable repo-subpath-safe website
+        run: |
+          mkdir -p site/wasm
+          cp -R Web/editor/. site/
+          cp App/KeyboardExtension/Resources/default-ja.json site/default-ja.json
+          cp Shared/GestureIMECoreWeb/pkg-web/gesture_ime_core_web.js site/wasm/
+          cp Shared/GestureIMECoreWeb/pkg-web/gesture_ime_core_web_bg.wasm site/wasm/
+          sed -i "s/__BUILD_SHA__/$GITHUB_SHA/g" site/sw.js
+          test -s site/index.html
+          test -s site/wasm/gesture_ime_core_web_bg.wasm
+          test -s site/default-ja.json
+          test -s site/manifest.webmanifest
+          test -s site/sw.js
+      - name: Validate JS and packaged Web static paths
+        run: |
+          node --check Web/editor/app.js
+          node --check Web/editor/sw.js
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync, existsSync} from 'node:fs';
+          const html = readFileSync('site/index.html','utf8');
+          const js = readFileSync('site/app.js','utf8');
+          const manifest = JSON.parse(readFileSync('site/manifest.webmanifest','utf8'));
+          for (const path of ['site/wasm/gesture_ime_core_web.js','site/wasm/gesture_ime_core_web_bg.wasm','site/default-ja.json','site/sw.js','site/icon.svg']) {
+            assert.ok(existsSync(path),'missing build asset: '+path);
+          }
+          assert.ok(html.includes('app.js'));
+          assert.ok(js.includes('state.core.trace_profile('));
+          assert.ok(js.includes('state.core.inspect_profile('));
+          assert.equal(manifest.start_url,'./');
+          const sample = JSON.parse(readFileSync('site/default-ja.json','utf8'));
+          assert.equal(sample.schema,'gesture-ime.profile.v3');
+          console.log('Web preview assets / schema / module references PASS');
+          NODE
+      - name: Upload reviewable site bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: gesture-ime-web-preview-site
+          path: site/
+          if-no-files-found: error
+      - name: Upload deployable Pages artifact on accepted main
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site/
+
+  probe-pages:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+    outputs:
+      enabled: ${{ steps.probe.outputs.enabled }}
+    steps:
+      - name: Check explicit Pages activation (no privileged token)
+        id: probe
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          status="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/pages")"
+          if [ "$status" = "200" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Pages is not enabled or accessible (HTTP $status). Enable Settings > Pages > Source: GitHub Actions. No elevated token or permission modification attempted." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  deploy-pages:
+    if: needs.probe-pages.outputs.enabled == 'true'
+    needs: [build-site, probe-pages]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy verified static site
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,19 @@
+{
+  "name": "Gesture IME Studio — Web検証",
+  "short_name": "Gesture IME",
+  "description": "共通Rust入力エンジンのブラウザ検証",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f8fc",
+  "theme_color": "#f7f8fc",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
