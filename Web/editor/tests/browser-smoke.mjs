@@ -106,6 +106,36 @@ try {
   await page.waitForFunction(() => document.querySelector('#rust-status')?.textContent === 'Rust稼働中');
   await page.waitForFunction(() => document.querySelector('#profile-name')?.textContent?.includes('外部Profile復元テスト'));
   assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
+  // Offline W4: use installed service-worker cache, not browser HTTP/network.
+  // Browser-only acceptance; real iPhone Safari/A2HS remains device-gated.
+  await page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg.active) throw new Error('PWA service worker did not activate');
+  });
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, {timeout: 20000});
+  await context.setOffline(true);
+  try {
+    await page.reload({waitUntil: 'domcontentloaded'});
+    await page.waitForFunction(() =>
+      document.querySelector('#rust-status')?.textContent === 'Rust稼働中', null, {timeout: 20000});
+    assert.ok((await page.locator('#profile-name').innerText()).includes('外部Profile復元テスト'),
+      'Offline launch must restore local imported Profile, not reset to builtin');
+    assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
+    assert.ok(await page.locator('button.key[data-entry-id="kana.a"] .flick-guide').count() >= 4,
+      'Offline runtime must still expose canonical Rust flick guides');
+    await page.locator('button.key[data-entry-id="kana.a"]').click();
+    await page.waitForFunction(() =>
+      document.querySelector('#status')?.textContent?.includes('Rust判定を実行'), null, {timeout: 15000});
+    const sample = await page.evaluate(async () => {
+      const r = await fetch('./default-ja.json');
+      if (!r.ok) throw new Error('Cached public default-ja.json response failed: ' + r.status);
+      return (await r.json()).schema;
+    });
+    assert.equal(sample, 'gesture-ime.profile.v3');
+    console.log('W4 browser OFFLINE service-worker Wasm boot + local Profile recovery + Rust flick trace PASS');
+  } finally {
+    await context.setOffline(false);
+  }
   if (errors.length) throw new Error('browser pageerror: ' + errors.join('; '));
 
   await page.screenshot({path: join(process.env.RUNNER_TEMP || '.', 'gesture-ime-mobile-smoke.png'), fullPage: true});
