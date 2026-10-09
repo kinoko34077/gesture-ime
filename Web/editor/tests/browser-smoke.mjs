@@ -50,6 +50,52 @@ try {
   const original = (await kana.locator('.key-label').innerText()).trim();
   assert.ok(original);
   assert.equal(await page.locator('#apply-key-text').isEnabled(), true);
+  // M3f: the current authored default transition is shown without any JS
+  // semantic editing. Only the canonical Rust command updates its meaning.
+  const target = page.locator('#entry-transition-board');
+  const lifetime = page.locator('#entry-transition-lifetime');
+  assert.equal(await target.inputValue(), 'board.base.kana.a.flick');
+  assert.equal(await lifetime.inputValue(), 'transient');
+  const initialGuides = await kana.locator('.flick-guide').allTextContents();
+  await target.selectOption('board.base.kana.ka.flick');
+  await lifetime.selectOption('persistent');
+  await page.locator('#apply-entry-transition').click();
+  assert.equal(await target.inputValue(), 'board.base.kana.ka.flick');
+  assert.equal(await lifetime.inputValue(), 'persistent');
+  assert.ok((await page.locator('#save-info').innerText()).includes('未保存の編集'));
+  const changedGuides = await kana.locator('.flick-guide').allTextContents();
+  assert.notDeepStrictEqual(changedGuides, initialGuides, 'Rust preview guides must follow the selected transition');
+
+  await page.locator('#undo-edit').click();
+  assert.equal(await target.inputValue(), 'board.base.kana.a.flick');
+  assert.equal(await lifetime.inputValue(), 'transient');
+  assert.deepStrictEqual(await kana.locator('.flick-guide').allTextContents(), initialGuides);
+  await page.locator('#redo-edit').click();
+  assert.equal(await target.inputValue(), 'board.base.kana.ka.flick');
+  assert.equal(await lifetime.inputValue(), 'persistent');
+
+  await target.selectOption('');
+  assert.equal(await lifetime.isDisabled(), true);
+  await page.locator('#apply-entry-transition').click();
+  assert.equal(await target.inputValue(), '');
+  // Deliberately send an impossible Board ID through the UI; Rust must
+  // reject the change atomically and preserve the actual source document.
+  await target.evaluate(el => {
+    const missing = document.createElement('option');
+    missing.value = 'board.absent';
+    missing.textContent = 'invalid fixture';
+    el.append(missing);
+    el.value = missing.value;
+    el.dispatchEvent(new Event('change', {bubbles: true}));
+  });
+  await page.locator('#apply-entry-transition').click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('遷移変更失敗'));
+  await kana.click();
+  assert.equal(await target.inputValue(), '', 'invalid target must not mutate the Profile');
+  await page.locator('#undo-edit').click();
+  await page.locator('#undo-edit').click();
+  assert.equal(await target.inputValue(), 'board.base.kana.a.flick');
+  assert.equal(await lifetime.inputValue(), 'transient');
 
   await page.locator('#entry-text').fill('共通Web編集');
   await page.locator('#apply-key-text').click();
