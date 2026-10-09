@@ -9,11 +9,19 @@ function status(message, failed = false) {
   $('status').textContent = message;
   $('status').style.color = failed ? '#b22340' : '';
 }
-function macroStatus(message, failed = false) {
-  status(message, failed); // Preserve the existing global status API.
-  const feedback = $('macro-feedback');
+function localMacroStatus(id, message, failed = false) {
+  status(message, failed);
+  const feedback = $(id);
   feedback.textContent = message;
   feedback.dataset.result = failed ? 'error' : 'success';
+  // Do not leave stale feedback on the other Macro editing task.
+  $(id === 'macro-feedback' ? 'macro-action-feedback' : 'macro-feedback').textContent = '';
+}
+function macroStatus(message, failed = false) {
+  localMacroStatus('macro-feedback', message, failed);
+}
+function macroActionStatus(message, failed = false) {
+  localMacroStatus('macro-action-feedback', message, failed);
 }
 
 function escapeFileName(name) {
@@ -305,7 +313,7 @@ function updateMacroActions(update, label) {
   update(actions);
   applyCommand({type: 'setMacroActions', macroId: m.id, actions}, label);
   renderMacroEditor();
-  macroStatus(label + 'しました。');
+  macroActionStatus(label + 'しました。');
 }
 
 async function saveCurrentDraft() {
@@ -582,13 +590,13 @@ $('macro-add-action').addEventListener('click', () => {
     updateMacroActions(actions => actions.push(actionFromForm(old)), 'アクションを追加');
     state.macroActionIndex = m.actions.length;
     renderMacroEditor();
-  } catch (e) { macroStatus('アクションを追加できません: ' + String(e), true); }
+  } catch (e) { macroActionStatus('アクションを追加できません: ' + String(e), true); }
 });
 $('macro-edit-action').addEventListener('click', () => {
   const m = selectedMacro(), i = state.macroActionIndex;
   if (!m || i < 0 || i >= m.actions.length) return;
   try { updateMacroActions(actions => { actions[i] = actionFromForm(m.actions[i]); }, 'アクションを編集'); }
-  catch (e) { macroStatus('アクションを編集できません: ' + String(e), true); }
+  catch (e) { macroActionStatus('アクションを編集できません: ' + String(e), true); }
 });
 $('macro-remove-action').addEventListener('click', () => {
   const m = selectedMacro(), i = state.macroActionIndex;
@@ -597,7 +605,7 @@ $('macro-remove-action').addEventListener('click', () => {
     updateMacroActions(actions => actions.splice(i, 1), 'アクションを削除');
     state.macroActionIndex = -1;
     renderMacroEditor();
-  } catch (e) { macroStatus('アクションを削除できません: ' + String(e), true); }
+  } catch (e) { macroActionStatus('アクションを削除できません: ' + String(e), true); }
 });
 
 $('layer-picker').addEventListener('change', event => {
