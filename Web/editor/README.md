@@ -19,3 +19,7 @@ Public Pages publishing needs repository owner to select **Settings → Pages �
 The `Shared Web Editor Preview` workflow runs a real headless Chromium mobile-viewport end-to-end test after generating Rust Wasm: load demo Profile, select kana key, update default text, Undo, Redo, rename Profile, save to IndexedDB, reload and recover the current Profile, run canonical Rust gesture trace, reject invalid JSON. Screenshot artifact is attached when available. Browser CI does **not** certify physical iPhone Safari touch/OS IME behavior.
 
 Locally saved Profiles never go to GitHub or a server. They are not synchronized across devices and can be erased by clearing browser storage; use **JSONを書き出す** to keep a separate backup. Browser save never means native IME activation. The service worker cache is restricted to public static assets only.
+
+## Flick guide rendering (M3c)
+
+The Wasm `inspect_profile` response now includes direct-entry presentation text and immediate flick labels plus logical guide center coordinates from **the exact same** native Rust `ProfileV3PlatformRuntime::direct_surface()` contract used by iOS/Android adapters. The browser positions those returned labels around each key and does not guess Profile transitions or conditional cases in JavaScript. Touch hit targets remain the underlying original keys. The native surface is resolved against **default simulated host facts**, not real iOS text-field attributes or conversion state, and deeper Board/Stage overlays remain later UI scope.
