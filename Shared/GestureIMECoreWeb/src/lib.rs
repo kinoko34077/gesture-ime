@@ -4,6 +4,9 @@ use gesture_ime_core::{ProfileV3BoardRuntime, ProfileV3Codec};
 use serde_json::{Value, json};
 use wasm_bindgen::prelude::*;
 
+mod trace;
+pub use trace::trace_profile_json;
+
 /// Inspect the validated initial Layer and Board from the canonical Rust runtime.
 /// This first M1 slice deliberately does not claim browser input/session parity.
 pub fn inspect_profile_json(profile_json: &str) -> String {
@@ -82,4 +85,12 @@ mod tests {
         assert_eq!(value["ok"], false);
         assert!(value["error"].as_str().unwrap().len() > 1);
     }
+}
+
+/// Bounded event replay through the canonical Rust BoardSessionV3.
+/// This M1 binding resolves the default endpoint only; conditional host facts
+/// are a later explicit parity gate, not simulated by JavaScript.
+#[wasm_bindgen]
+pub fn trace_profile(profile_json: &str, event_trace_json: &str) -> String {
+    trace_profile_json(profile_json, event_trace_json)
 }
