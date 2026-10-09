@@ -89,7 +89,7 @@ fn inspect(profile_json: &str, selection: Option<(&str, &str)>) -> Result<Value,
         "id": profile.id,
         "name": profile.name,
         "revision": revision,
-        "initialLayerId": layer.id,
+        "initialLayerId": profile.initial_layer_ref,
         "initialBoardId": runtime.layer(&profile.initial_layer_ref)
             .ok_or("validated initial Layer is missing")?.root_board_ref,
         "layerId": layer.id,
@@ -154,6 +154,14 @@ mod tests {
             &inspect_board_json(PRODUCT, "layer.ja", "board.absent")
         ).unwrap();
         assert_eq!(missing["ok"], false);
+        let other: Value = serde_json::from_str(
+            &inspect_board_json(PRODUCT, "layer.numbers", "board.numbers.root")
+        ).unwrap();
+        assert_eq!(other["ok"], true, "{other}");
+        assert_eq!(other["profile"]["layerId"], "layer.numbers");
+        assert_eq!(other["profile"]["boardId"], "board.numbers.root");
+        assert_eq!(other["profile"]["initialLayerId"], "layer.ja");
+        assert_eq!(other["profile"]["initialBoardId"], "board.ja.root");
     }
 
     #[test]
