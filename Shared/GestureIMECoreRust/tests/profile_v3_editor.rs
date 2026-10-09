@@ -307,3 +307,43 @@ fn invalid_macro_assignment_never_mutates_profile_or_history() {
         assert!(!editor.can_redo());
     }
 }
+
+
+#[test]
+fn macro_binding_does_not_replace_existing_key_default_actions() {
+    // Validated built-in Profile + a pre-existing non-Macro action. This proves
+    // attach/removal touches only the selected macro.run entry.
+    let mut source = value(PRODUCT);
+    let board = source["boards"].as_array_mut().unwrap().iter_mut()
+        .find(|b| b["id"] == "board.ja.root").unwrap();
+    let entry = board["entries"].as_array_mut().unwrap().iter_mut()
+        .find(|e| e["id"] == "kana.a").unwrap();
+    entry["resolver"]["default"]["onRelease"] =
+        json!([{"actionID":"noop","arguments":{}}]);
+    let mut editor = ProfileEditorV3::open(&source.to_string()).unwrap();
+    let create = json!({"type":"createMacro","name":"additional",
+        "actions":[{"actionID":"noop","arguments":{}}]});
+    assert!(editor.apply_command_json(&create.to_string(), editor.revision()).unwrap());
+    let macro_id = value(&editor.export_json().unwrap())["macros"]
+        .as_array().unwrap().last().unwrap()["id"].as_str().unwrap().to_owned();
+    let before = value(&editor.export_json().unwrap());
+    let attach = json!({"type":"setEntryDefaultMacroInvocation",
+        "boardId":"board.ja.root","entryId":"kana.a",
+        "macroId":macro_id,"enabled":true}).to_string();
+    assert!(editor.apply_command_json(&attach, editor.revision()).unwrap());
+    let after = value(&editor.export_json().unwrap());
+    let locate = |profile: &Value| profile["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.ja.root").unwrap()["entries"]
+        .as_array().unwrap().iter().find(|e| e["id"] == "kana.a").unwrap().clone();
+    let actions = locate(&after)["resolver"]["default"]["onRelease"].as_array().unwrap().clone();
+    assert_eq!(actions.len(), 2);
+    assert_eq!(actions[0]["actionID"], "noop");
+    assert_eq!(actions[1]["actionID"], "macro.run");
+    assert_eq!(actions[1]["arguments"]["macro"], macro_id);
+    let remove = json!({"type":"setEntryDefaultMacroInvocation",
+        "boardId":"board.ja.root","entryId":"kana.a",
+        "macroId":macro_id,"enabled":false}).to_string();
+    assert!(editor.apply_command_json(&remove, editor.revision()).unwrap());
+    assert_eq!(locate(&value(&editor.export_json().unwrap())), locate(&before),
+        "unassignment removes only the Macro while preserving existing onRelease action");
+}
