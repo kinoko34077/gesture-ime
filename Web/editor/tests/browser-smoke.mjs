@@ -15,6 +15,29 @@ try {
   await page.goto('http://127.0.0.1:8765/', {waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => document.querySelector('#rust-status')?.textContent === 'Rust稼働中', null, {timeout: 25000});
 
+  assert.equal(await page.locator('#layer-picker').inputValue(), 'layer.ja');
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
+  await page.locator('#board-picker').selectOption('board.base.kana.a.flick');
+  await page.waitForFunction(() => document.querySelector('#board-preview-state')?.dataset.mode === 'edit');
+  const internal = page.locator('#board button.key').first();
+  await internal.waitFor({state: 'visible'});
+  await internal.click();
+  const internalOriginal = (await internal.locator('.key-label').innerText()).trim();
+  await page.locator('#entry-text').fill('内部Board編集確認');
+  await page.locator('#apply-key-text').click();
+  assert.equal((await page.locator('#board button.key').first().locator('.key-label').innerText()).trim(), '内部Board編集確認');
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.base.kana.a.flick');
+  await page.locator('#undo-edit').click();
+  assert.equal((await page.locator('#board button.key').first().locator('.key-label').innerText()).trim(), internalOriginal);
+  await page.locator('#redo-edit').click();
+  assert.equal((await page.locator('#board button.key').first().locator('.key-label').innerText()).trim(), '内部Board編集確認');
+  await page.locator('#undo-edit').click();
+  // Internal Board selection is an edit-only preview, not a false Stage replay.
+  assert.ok((await page.locator('#board-preview-state').innerText()).includes('編集専用'));
+  await page.locator('#board-picker').selectOption('board.ja.root');
+  await page.waitForFunction(() => document.querySelector('#board-preview-state')?.dataset.mode === 'replay');
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
+
   const kana = page.locator('button.key[data-entry-id="kana.a"]');
   await kana.waitFor({state: 'visible'});
   const nativeGuides = kana.locator('.flick-guide');
