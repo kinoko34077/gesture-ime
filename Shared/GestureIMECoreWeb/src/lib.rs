@@ -6,6 +6,8 @@ use wasm_bindgen::prelude::*;
 
 mod trace;
 pub use trace::trace_profile_json;
+mod editor;
+pub use editor::WebProfileEditor;
 
 /// Inspect the validated initial Layer and Board from the canonical Rust runtime.
 /// This first M1 slice deliberately does not claim browser input/session parity.

@@ -83,6 +83,34 @@ jobs:
           const invalid = JSON.stringify({entryId:'kana.a',cellWidth:50,cellHeight:50,touchDown:{x:0,y:0},startMs:100,events:[{kind:'up',atMs:90}]});
           assert.equal(JSON.parse(ffi.trace_profile(profile, invalid)).ok, false);
           NODE
+      - name: Shared Rust editor command and Undo/Redo native-Wasm parity
+        run: |
+          cargo run --quiet --manifest-path Shared/GestureIMECoreWeb/Cargo.toml \
+            --example editor_sequence -- \
+            App/KeyboardExtension/Resources/default-ja.json \
+            spec/conformance/fixtures/web-m2a-key-text.json \
+            > "$RUNNER_TEMP/native-editor-sequence.json"
+          node - "$RUNNER_TEMP/native-editor-sequence.json" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const { WebProfileEditor } = require('./Shared/GestureIMECoreWeb/pkg-node/gesture_ime_core_web.js');
+          const profile = fs.readFileSync('App/KeyboardExtension/Resources/default-ja.json', 'utf8');
+          const command = fs.readFileSync('spec/conformance/fixtures/web-m2a-key-text.json', 'utf8');
+          const expected = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const editor = new WebProfileEditor(profile);
+          const afterApply = JSON.parse(editor.apply_command(command, 0));
+          const afterUndo = JSON.parse(editor.undo());
+          const afterRedo = JSON.parse(editor.redo());
+          assert.deepStrictEqual({afterApply, afterUndo, afterRedo}, expected);
+          assert.equal(afterRedo.snapshot.revision, 3);
+          assert.equal(afterRedo.snapshot.canUndo, true);
+          const stale = JSON.parse(editor.apply_command(command, 0));
+          assert.equal(stale.ok, false);
+          const afterStale = JSON.parse(editor.snapshot());
+          assert.equal(afterStale.snapshot.revision, 3);
+          editor.free();
+          console.log('M2a shared Rust editor native-Wasm/Undo parity PASS');
+          NODE
       - name: Upload Web binding proof (not a published website)
         uses: actions/upload-artifact@v4
         with:
