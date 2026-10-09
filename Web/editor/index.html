@@ -76,6 +76,19 @@
             <input id="entry-text" type="text" maxlength="256" disabled placeholder="キーボードからキーを選択">
             <button id="apply-key-text" type="button" class="action secondary" disabled>適用</button>
           </div>
+          <div class="transition-editor" aria-label="選択キーの標準遷移">
+            <label class="section-label" for="entry-transition-board">遷移先Board（標準動作）</label>
+            <select id="entry-transition-board" disabled>
+              <option value="">なし</option>
+            </select>
+            <label class="section-label" for="entry-transition-lifetime">遷移種別</label>
+            <select id="entry-transition-lifetime" disabled>
+              <option value="transient">transient（一時的）</option>
+              <option value="persistent">persistent（持続）</option>
+            </select>
+            <button id="apply-entry-transition" type="button" class="action secondary" disabled>遷移を適用</button>
+            <p class="hint">対象は選択キーの標準遷移のみです。条件別の動作・Hold中の遷移は変更しません。</p>
+          </div>
           <p class="hint">編集・取り消しは共通Rustで処理します。保存先はこのブラウザのみで、実機キーボードには反映されません。</p>
         </div>
         <div class="detail">
