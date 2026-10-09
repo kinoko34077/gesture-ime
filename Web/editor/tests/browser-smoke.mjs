@@ -170,7 +170,10 @@ try {
   try {
     await page.reload({waitUntil: 'domcontentloaded'});
     await page.waitForFunction(() =>
-      document.querySelector('#rust-status')?.textContent === 'Rust稼働中', null, {timeout: 20000});
+      document.querySelector('#rust-status')?.textContent === 'Rust稼働中'
+      && document.querySelector('#profile-name')?.textContent?.includes('外部Profile復元テスト')
+      && document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'),
+      null, {timeout: 20000});
     assert.ok((await page.locator('#profile-name').innerText()).includes('外部Profile復元テスト'),
       'Offline launch must restore local imported Profile, not reset to builtin');
     assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
