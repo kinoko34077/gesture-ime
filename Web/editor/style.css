@@ -24,3 +24,11 @@
 .board-preview-state{margin:4px 0 10px;padding:7px 10px;background:#e9f4eb;color:#27523b;border-radius:8px;font-size:.77rem}
 .board-preview-state[data-mode="edit"]{background:#fff4df;color:#6b4a22}
 @media(max-width:540px){.board-picker{grid-template-columns:1fr;gap:3px}}
+
+
+/* The transition form projects only authored defaults; Rust owns the command. */
+.transition-editor{margin-top:12px;padding:10px 0;border-top:1px solid #e1e6f0;display:flex;flex-direction:column;align-items:stretch;gap:5px}
+.transition-editor select{width:100%;min-width:0;padding:9px;border:1px solid #bac7e0;border-radius:10px;color:#233150;background:#fff;font:inherit;font-size:.84rem}
+.transition-editor select:disabled{background:#f3f5fa;color:#76849a}
+.transition-editor select:focus-visible{outline:3px solid #a0b6ff;outline-offset:1px}
+.transition-editor .action{align-self:flex-start;margin-top:7px}
