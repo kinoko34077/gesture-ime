@@ -14,6 +14,13 @@ try {
   page.on('pageerror', error => errors.push(String(error)));
   await page.goto('http://127.0.0.1:8765/', {waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => document.querySelector('#rust-status')?.textContent === 'Rust稼働中', null, {timeout: 25000});
+  // Rust module initialization precedes async Profile load. Wait for actual
+  // validated editor / Board controls, not merely a loaded Wasm module.
+  await page.waitForFunction(() =>
+    document.querySelector('#layer-picker')?.value === 'layer.ja'
+    && document.querySelector('#board-picker')?.value === 'board.ja.root'
+    && !document.querySelector('#board-picker')?.disabled,
+    null, {timeout: 25000});
 
   assert.equal(await page.locator('#layer-picker').inputValue(), 'layer.ja');
   assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
