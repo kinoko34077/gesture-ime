@@ -17,6 +17,11 @@ try {
 
   const kana = page.locator('button.key[data-entry-id="kana.a"]');
   await kana.waitFor({state: 'visible'});
+  const nativeGuides = kana.locator('.flick-guide');
+  assert.ok(await nativeGuides.count() >= 4, 'Rust preview must expose immediate kana flick labels');
+  const labels = await nativeGuides.allTextContents();
+  assert.ok(labels.some(x => x.trim().length > 0));
+  assert.ok((await kana.getAttribute('aria-label')).includes('フリック候補'));
   assert.ok((await page.locator('#save-info').innerText()).includes('未変更'));
   await kana.click();
   const original = (await kana.locator('.key-label').innerText()).trim();
@@ -27,6 +32,8 @@ try {
   await page.locator('#apply-key-text').click();
   assert.ok((await page.locator('#save-info').innerText()).includes('未保存の編集'));
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
+  assert.ok(await page.locator('button.key[data-entry-id="kana.a"] .flick-guide').count() >= 4,
+    'editing default text must not discard Rust flick guides');
   assert.equal(await page.locator('#undo-edit').isEnabled(), true);
 
   await page.locator('#undo-edit').click();
