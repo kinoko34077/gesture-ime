@@ -3,7 +3,7 @@
 use crate::profile_v3::{BoardTransitionLifetimeV3, BoardTransitionV3, ProfileBundleV3, ResolvedStringV3, V3Extra};
 use crate::profile_v3_validation::ProfileV3Codec;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 
 const HISTORY_CAPACITY: usize = 100;
 const MAX_COMMAND_BYTES: usize = 32 * 1024;
@@ -25,8 +25,10 @@ enum EditorCommandV3 {
         #[serde(rename = "entryId")]
         entry_id: String,
         #[serde(rename = "targetBoardId")]
-        target_board_id: Option<String>,
-        lifetime: Option<BoardTransitionLifetimeV3>,
+        // Value (not Option<T>) intentionally REQUIRES the field to be present.
+        // A missing target must never be interpreted as a destructive clear.
+        target_board_id: Value,
+        lifetime: Value,
     },
 }
 
@@ -143,13 +145,19 @@ impl ProfileEditorV3 {
                 target_board_id,
                 lifetime,
             } => {
+                let (target_board_id, lifetime) = match (target_board_id, lifetime) {
+                    (Value::Null, Value::Null) => (None, None),
+                    (Value::String(target), lifetime) => {
+                        let lifetime = serde_json::from_value::<BoardTransitionLifetimeV3>(lifetime)
+                            .map_err(|_| "transition lifetime must be persistent or transient".to_owned())?;
+                        (Some(target), Some(lifetime))
+                    }
+                    _ => return Err("transition target and lifetime must both be supplied or both null".to_owned()),
+                };
                 if let Some(target) = target_board_id.as_deref() {
                     if !next.boards.iter().any(|board| board.id == target) {
                         return Err(format!("Target Board not found: {target}"));
                     }
-                }
-                if target_board_id.is_some() != lifetime.is_some() {
-                    return Err("transition target and lifetime must both be supplied or both null".to_owned());
                 }
                 let board = next.boards.iter_mut()
                     .find(|board| board.id == board_id)
