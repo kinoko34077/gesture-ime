@@ -91,6 +91,41 @@
           </div>
           <p class="hint">編集・取り消しは共通Rustで処理します。保存先はこのブラウザのみで、実機キーボードには反映されません。</p>
         </div>
+
+        <section class="macro-editor" aria-label="マクロの編集">
+          <div class="pane-header"><div><h3>マクロ</h3><p>名前で作成・編集。動作は共通Rustで検証します。</p></div></div>
+          <label class="section-label" for="macro-select">作成済みのマクロ</label>
+          <select id="macro-select" disabled aria-label="編集するマクロを選択"></select>
+          <p class="subtle" id="macro-selected-meta">マクロ未読込</p>
+          <label class="section-label" for="macro-create-name">新しいマクロ名</label>
+          <div class="edit-row">
+            <input id="macro-create-name" type="text" maxlength="100" placeholder="例：あいさつ" autocomplete="off">
+            <button id="macro-create" class="action secondary" type="button">新規作成</button>
+          </div>
+          <button id="macro-create-sample" class="action secondary sample-action" type="button">サンプルMacroを作成</button>
+          <label class="section-label" for="macro-name">選択中のマクロ名</label>
+          <div class="edit-row">
+            <input id="macro-name" type="text" maxlength="100" disabled>
+            <button id="macro-rename" class="action secondary" type="button" disabled>名前を変更</button>
+          </div>
+          <label class="section-label" for="macro-actions">登録済みアクション（順番通り）</label>
+          <select id="macro-actions" size="3" disabled aria-label="編集するアクションを選択"></select>
+          <label class="section-label" for="macro-action-type">アクションの種類</label>
+          <select id="macro-action-type" disabled>
+            <option value="text.insert">文字を入力</option>
+            <option value="noop">何もしない</option>
+          </select>
+          <label class="section-label" for="macro-action-text">入力する文字</label>
+          <input id="macro-action-text" type="text" maxlength="512" disabled placeholder="入力する文字">
+          <div class="macro-actions-row">
+            <button id="macro-new-action" class="action secondary" type="button" disabled>新しいアクション</button>
+            <button id="macro-add-action" class="action secondary" type="button" disabled>末尾に追加</button>
+            <button id="macro-edit-action" class="action secondary" type="button" disabled>選択項目を編集</button>
+            <button id="macro-remove-action" class="action secondary" type="button" disabled>選択項目を削除</button>
+          </div>
+          <p id="macro-action-hint" class="hint" role="status">マクロを選択してください。</p>
+          <p class="hint">サンプルは明示操作でのみ作成され、編集できます。キーへのマクロ割当と実キーボードでの実行は未実装です。</p>
+        </section>
         <div class="detail">
           <label class="section-label">選択キー</label>
           <p id="selected-key" class="selected">なし</p>
@@ -99,7 +134,7 @@
           <label class="section-label">発行された命令</label>
           <pre id="trace-actions" class="trace-box">—</pre>
         </div>
-        <div class="feature-later"><strong>後続実装</strong><p>マクロ、条件、候補変換、Themeの全機能とiOS・Androidへの設定配送は、次の共通UI／ネイティブ統合工程で扱います。</p></div>
+        <div class="feature-later"><strong>後続実装</strong><p>マクロのキー割当、条件、候補変換、ThemeとiOS・Androidへの設定配送は、次の共通UI／ネイティブ統合工程で扱います。</p></div>
       </div>
     </section>
     <footer><span id="status" role="status" aria-live="polite">準備中</span><span id="build-id"></span></footer>
