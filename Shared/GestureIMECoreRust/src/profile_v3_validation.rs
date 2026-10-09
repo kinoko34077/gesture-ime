@@ -187,7 +187,23 @@ impl ProfileV3Validator {
         let state_kinds = validate_states(&profile.states)?;
         validate_transform_tables(&profile.transform_tables)?;
 
+        // User-facing Macro names are distinct from immutable internal IDs.
+        // Existing unnamed macros are legal; authoring a name is opt-in.
+        let mut macro_names = HashSet::new();
         for macro_item in &profile.macros {
+            if let Some(name) = macro_item.name.as_ref() {
+                let canonical = name.trim().to_lowercase();
+                if name.trim().is_empty()
+                    || name.chars().count() > 100
+                    || name.trim() != name
+                    || !macro_names.insert(canonical)
+                {
+                    return Err(ProfileValidationError::new(
+                        ProfileValidationCode::InvalidPresentation,
+                        Some(macro_item.id.clone()),
+                    ));
+                }
+            }
             if macro_item.actions.len() > ProfileLimits::MACRO_ACTIONS {
                 return Err(ProfileValidationError::new(
                     ProfileValidationCode::LimitActions,

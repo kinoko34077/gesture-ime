@@ -1,6 +1,9 @@
 //! Canonical Profile v3 authoring state shared by Web, iOS and Android.
 //! Platform persistence and UI state are deliberately outside this module.
-use crate::profile_v3::{BoardTransitionLifetimeV3, BoardTransitionV3, ProfileBundleV3, ResolvedStringV3, V3Extra};
+use crate::profile_v3::{
+    ActionInvocationV3, BoardTransitionLifetimeV3, BoardTransitionV3, MacroV3,
+    ProfileBundleV3, ResolvedStringV3, V3Extra,
+};
 use crate::profile_v3_validation::ProfileV3Codec;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -12,6 +15,21 @@ const MAX_COMMAND_BYTES: usize = 32 * 1024;
 #[serde(tag = "type", rename_all = "camelCase")]
 enum EditorCommandV3 {
     RenameProfile { name: String },
+    CreateMacro {
+        name: String,
+        #[serde(default)]
+        actions: Vec<ActionInvocationV3>,
+    },
+    RenameMacro {
+        #[serde(rename = "macroId")]
+        macro_id: String,
+        name: String,
+    },
+    SetMacroActions {
+        #[serde(rename = "macroId")]
+        macro_id: String,
+        actions: Vec<ActionInvocationV3>,
+    },
     SetEntryDefaultText {
         #[serde(rename = "boardId")]
         board_id: String,
@@ -33,7 +51,7 @@ enum EditorCommandV3 {
 }
 
 /// A revisioned, atomic authoring session; platform hosts store the exported JSON.
-/// This M2a slice only edits Profile name and the default Key presentation text.
+/// Commands include stable Macro identity/name/action authoring and key defaults.
 pub struct ProfileEditorV3 {
     current: ProfileBundleV3,
     undo_stack: Vec<ProfileBundleV3>,
@@ -100,6 +118,33 @@ impl ProfileEditorV3 {
 
         match command {
             EditorCommandV3::RenameProfile { name } => next.name = name,
+            EditorCommandV3::CreateMacro { name, actions } => {
+                let name = Self::validate_macro_name(&next.macros, name, None)?;
+                let id = (1..=1_000_000u32)
+                    .map(|serial| format!("macro.user.{serial}"))
+                    .find(|id| !next.macros.iter().any(|item| item.id == *id))
+                    .ok_or_else(|| "no available Macro ID".to_owned())?;
+                next.macros.push(MacroV3 {
+                    id,
+                    name: Some(name),
+                    actions,
+                    extra: V3Extra::new(),
+                });
+            }
+            EditorCommandV3::RenameMacro { macro_id, name } => {
+                if !next.macros.iter().any(|item| item.id == macro_id) {
+                    return Err(format!("Macro not found: {macro_id}"));
+                }
+                let name = Self::validate_macro_name(&next.macros, name, Some(&macro_id))?;
+                let item = next.macros.iter_mut().find(|item| item.id == macro_id)
+                    .ok_or_else(|| format!("Macro not found: {macro_id}"))?;
+                item.name = Some(name);
+            }
+            EditorCommandV3::SetMacroActions { macro_id, actions } => {
+                let item = next.macros.iter_mut().find(|item| item.id == macro_id)
+                    .ok_or_else(|| format!("Macro not found: {macro_id}"))?;
+                item.actions = actions;
+            }
             EditorCommandV3::SetEntryDefaultText {
                 board_id,
                 entry_id,
@@ -221,6 +266,27 @@ impl ProfileEditorV3 {
         self.current = next;
         self.revision = revision;
         Ok(true)
+    }
+
+    /// Canonical authoring comparison: Unicode whitespace trimmed, Unicode lowercase.
+    /// Does not perform NFC folding; normalized display strings are stored as entered.
+    fn validate_macro_name(
+        macros: &[MacroV3],
+        name: String,
+        except_id: Option<&str>,
+    ) -> Result<String, String> {
+        let trimmed = name.trim();
+        if trimmed.is_empty() || trimmed.chars().count() > 100 {
+            return Err("Macro name must be 1–100 characters".to_owned());
+        }
+        let comparable = trimmed.to_lowercase();
+        if macros.iter().filter(|item| Some(item.id.as_str()) != except_id)
+            .filter_map(|item| item.name.as_deref())
+            .any(|existing| existing.trim().to_lowercase() == comparable)
+        {
+            return Err("Macro name already exists in this Profile".to_owned());
+        }
+        Ok(trimmed.to_owned())
     }
 
     fn push(stack: &mut Vec<ProfileBundleV3>, item: ProfileBundleV3) {
