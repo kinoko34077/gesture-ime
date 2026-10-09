@@ -29,15 +29,18 @@ impl WebProfileEditor {
     }
 
     pub fn apply_command(&mut self, command_json: &str, expected_revision: u32) -> String {
-        self.format_change(self.inner.apply_command_json(command_json, expected_revision))
+        let result = self.inner.apply_command_json(command_json, expected_revision);
+        self.format_change(result)
     }
 
     pub fn undo(&mut self) -> String {
-        self.format_change(self.inner.undo())
+        let result = self.inner.undo();
+        self.format_change(result)
     }
 
     pub fn redo(&mut self) -> String {
-        self.format_change(self.inner.redo())
+        let result = self.inner.redo();
+        self.format_change(result)
     }
 }
 
