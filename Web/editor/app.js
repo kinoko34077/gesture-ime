@@ -54,7 +54,9 @@ function refreshEditor(snapshot, selectedId = state.selected?.id) {
   $('export-profile').disabled = false;
   $('save-info').textContent = state.savedJSON === snapshot.profileJSON
     ? 'ブラウザに保存済 · iOS／Androidには未反映'
-    : '未保存の編集 · iOS／Androidには未反映';
+    : state.baselineJSON === snapshot.profileJSON
+      ? '未変更・端末未保存 · iOS／Androidには未反映'
+      : '未保存の編集 · iOS／Androidには未反映';
   renderBoard();
   setSelected(inspected.profile.entries.find(e => e.id === selectedId) || null);
 }
@@ -195,7 +197,12 @@ async function loadBuiltIn(preferSaved = true) {
       const result = JSON.parse(state.core.inspect_profile(sample));
       if (!result.ok) throw new Error(result.error);
       const local = await readDraft(result.profile.id);
-      if (local) { profile = local; saved = true; }
+      if (local) {
+        const check = JSON.parse(state.core.inspect_profile(local));
+        if (!check.ok) throw new Error('保存Profileが無効です: ' + check.error);
+        profile = local;
+        saved = true;
+      }
     } catch (error) {
       status('ブラウザ保存を読めません。組み込みProfileで起動します: ' + String(error), true);
     }
