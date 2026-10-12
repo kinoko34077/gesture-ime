@@ -71,8 +71,62 @@ try {
   assert.ok((await page.locator('#gesture-guides').innerText()).includes('い'),
     'Rust-projected left flick output must appear beside active keyboard');
   assert.ok(await page.locator('#gesture-guides .gesture-guide-item').count() >= 4);
+  // The popup uses this key's exact Rust-projected cardinal guides, not a
+  // hardcoded kana/English table or a JS directional hit engine.
+  const popup = page.locator('#flick-popup');
+  assert.equal(await popup.count(), 1);
+  assert.equal(await popup.getAttribute('data-source-entry-id'), 'kana.a');
+  assert.equal((await popup.locator('[data-direction="west"]').innerText()).trim(), 'い');
+  assert.equal((await popup.locator('[data-direction="center"]').innerText()).trim(), 'あ');
+  assert.equal(await popup.locator('.flick-popup-cell:not(.is-center):not(.is-empty)').count(), 4);
+  assert.equal(await popup.locator('[data-direction="northWest"].is-empty').count(), 1,
+    'unconfigured diagonal must not be presented as a runtime candidate');
+  assert.equal(await popup.evaluate(el => getComputedStyle(el).pointerEvents), 'none',
+    'overlay must never swallow pointer input intended for the key');
+  const overlayBounds = await popup.evaluate(el => {
+    const p = el.getBoundingClientRect(), b = document.querySelector('#board').getBoundingClientRect();
+    return {left:p.left, right:p.right, boardLeft:b.left, boardRight:b.right};
+  });
+  assert.ok(overlayBounds.left >= overlayBounds.boardLeft - 2
+    && overlayBounds.right <= overlayBounds.boardRight + 2,
+    'popup must be fully within keyboard width even at an edge key');
+  await page.screenshot({path: join(process.env.RUNNER_TEMP || '.', 'flick-popup-mobile-390.png')});
+  await page.mouse.move(keyBox.x + keyBox.width / 2 + 48, keyBox.y + keyBox.height / 2, {steps: 4});
+  assert.equal(await popup.count(), 1, 'visual guide remains visible during movement');
   await page.mouse.up();
+  assert.equal(await popup.count(), 0, 'popup clears on release');
   assert.ok((await page.locator('#gesture-result').innerText()).includes('Rust判定：'));
+  assert.ok((await page.locator('#trace-state').innerText()).includes('Committed'),
+    'canonical Rust must still judge the actual flick');
+
+  // Non-kana Board has the SAME projected popup, without falsely enabling
+  // Rust replay from a non-initial Layer (which remains edit-only).
+  await page.locator('#layer-picker').selectOption('layer.alpha');
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.alpha.root');
+  assert.ok((await page.locator('#board-preview-state').innerText()).includes('編集専用'));
+  const latin = page.locator('button.key[data-entry-id="alpha.abc"]');
+  await latin.scrollIntoViewIfNeeded();
+  const latinBox = await latin.boundingBox();
+  await page.mouse.move(latinBox.x + latinBox.width / 2, latinBox.y + latinBox.height / 2);
+  await page.mouse.down();
+  assert.equal(await popup.getAttribute('data-source-entry-id'), 'alpha.abc');
+  assert.ok(await popup.locator('.flick-popup-cell:not(.is-center):not(.is-empty)').count() >= 1,
+    'Latin hints also derive from the Rust preview');
+  assert.ok((await page.locator('#board-preview-state').innerText()).includes('編集専用'));
+  await page.mouse.up();
+  assert.equal(await popup.count(), 0);
+  await page.locator('#layer-picker').selectOption('layer.ja');
+  await kana.click(); // Restore the original key selection for Stage authoring tests.
+
+  // Cancellation must never leave a touch-blocking visual overlay behind.
+  await kana.scrollIntoViewIfNeeded();
+  const cancelBox = await kana.boundingBox();
+  await page.mouse.move(cancelBox.x + cancelBox.width / 2, cancelBox.y + cancelBox.height / 2);
+  await page.mouse.down();
+  assert.equal(await popup.count(), 1);
+  await kana.dispatchEvent('pointercancel', {pointerId: 1, isPrimary: true, bubbles: true});
+  assert.equal(await popup.count(), 0);
+  await page.mouse.up();
   await page.locator('#trace-details summary').click();
   assert.equal(await page.locator('#trace-details').evaluate(el => el.open), true);
   assert.ok((await page.locator('#trace-actions').innerText()).length > 1);
@@ -310,6 +364,22 @@ try {
   }));
   assert.ok(visibleFeedbackWidth.actual <= visibleFeedbackWidth.viewport,
     'gesture feedback must fit the 320px mobile viewport without horizontal overflow');
+  await page.locator('button.key[data-entry-id="kana.a"]').scrollIntoViewIfNeeded();
+  const narrowKey = page.locator('button.key[data-entry-id="kana.a"]');
+  const narrowKeyBox = await narrowKey.boundingBox();
+  await page.mouse.move(narrowKeyBox.x + narrowKeyBox.width / 2, narrowKeyBox.y + narrowKeyBox.height / 2);
+  await page.mouse.down();
+  const narrowPopupBounds = await page.locator('#flick-popup').evaluate(el => {
+    const p = el.getBoundingClientRect(), b = document.querySelector('#board').getBoundingClientRect();
+    return {left:p.left, right:p.right, boardLeft:b.left, boardRight:b.right, viewport:innerWidth};
+  });
+  assert.ok(narrowPopupBounds.left >= narrowPopupBounds.boardLeft - 2
+    && narrowPopupBounds.right <= narrowPopupBounds.boardRight + 2
+    && narrowPopupBounds.right <= narrowPopupBounds.viewport,
+    'on-key Rust hint popup must fit 320px without offscreen overflow');
+  await page.screenshot({path: join(process.env.RUNNER_TEMP || '.', 'flick-popup-mobile-320.png')});
+  await page.mouse.up();
+  assert.equal(await page.locator('#flick-popup').count(), 0);
   const keyMacroBounds = await page.locator('.key-macro-editor').evaluate(el => ({
     width: el.getBoundingClientRect().width, screen: window.innerWidth
   }));
