@@ -472,6 +472,9 @@ impl ProfileEditorV3 {
                 if text_indices.len() > 1 {
                     return Err("multiple text.insert actions require advanced editing".to_owned());
                 }
+                let old_insert = text_indices.first().and_then(|&index| actions[index]
+                    .arguments.get("text")?.get("base")?.as_str()).map(str::to_owned);
+                let new_presentation = new_text.clone();
                 if let Some(new_text) = new_text {
                     if let Some(&index) = text_indices.first() {
                         // Preserve all additional arguments/transforms, ordering,
@@ -500,6 +503,23 @@ impl ProfileEditorV3 {
                     // preserving any other action and authored presentation.
                     if let Some(&index) = text_indices.first() {
                         actions.remove(index);
+                    }
+                }
+                // Newly empty Hold center defaults to a visible glyph matching
+                // its inserted output. Preserve any independently customized
+                // presentation instead of silently overwriting user artwork.
+                if let Some(text) = new_presentation {
+                    let presentation = entry.resolver.default.presentation
+                        .get_or_insert_with(Default::default);
+                    match presentation.text.as_mut() {
+                        None => presentation.text = Some(ResolvedStringV3 {
+                            base: text, transforms: Vec::new(), extra: V3Extra::new(),
+                        }),
+                        Some(label) if label.base.is_empty()
+                            || old_insert.as_deref() == Some(label.base.as_str()) => {
+                            label.base = text;
+                        }
+                        _ => {}
                     }
                 }
             }
