@@ -225,8 +225,14 @@ try {
   await page.mouse.down();
   await page.waitForTimeout(600);
   await page.mouse.up();
-  assert.ok((await page.locator('#trace-actions').innerText()).includes('長押し入力'),
-    'Rust must dispatch a real Hold center text.insert, not only draw a label');
+  const heldTraceState = await page.locator('#trace-state').innerText();
+  const heldTraceActions = await page.locator('#trace-actions').innerText();
+  const heldOutcome = await page.locator('#gesture-result').innerText();
+  assert.ok(heldTraceActions.includes('長押し入力'),
+    'Rust must dispatch a real Hold center text.insert, not only draw a label'
+    + '; trace-state=' + heldTraceState
+    + '; actions=' + heldTraceActions
+    + '; user-outcome=' + heldOutcome);
   assert.equal((await page.locator('#hold-open').innerText()).trim(), '長押しの入力面へ');
   await page.locator('#hold-open').click();
   assert.equal(await page.locator('#board-picker').inputValue(), holdBoard,
