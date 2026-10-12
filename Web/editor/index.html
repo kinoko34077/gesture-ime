@@ -77,6 +77,14 @@
             <button id="apply-key-text" type="button" class="action secondary" disabled>適用</button>
           </div>
           <p id="entry-text-feedback" class="edit-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+          <section class="stage-editor" aria-label="方向から次の段階を編集">
+            <div class="stage-heading"><h3>フリック・次の段階</h3>
+              <button id="stage-back" class="action secondary" type="button" hidden>前のキーに戻る</button>
+            </div>
+            <p id="stage-location" class="subtle">キーを選ぶと方向が表示されます。</p>
+            <div id="stage-grid" class="stage-grid" role="group" aria-label="中央と8方向の編集枠"></div>
+            <p id="stage-feedback" class="edit-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+          </section>
           <div class="transition-editor" aria-label="選択キーの標準遷移">
             <label class="section-label" for="entry-transition-board">遷移先Board（標準動作）</label>
             <select id="entry-transition-board" disabled>
