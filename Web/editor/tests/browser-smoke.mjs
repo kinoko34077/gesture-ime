@@ -552,6 +552,16 @@ try {
   await page.locator('#macro-add-action').click();
   assert.equal(await page.locator('#macro-actions option').count(), 2);
   assert.ok((await page.locator('#macro-actions option').first().innerText()).includes('system.dismissKeyboard'));
+  // Hold authoring stays serializable across explicit Save, Reload, and offline.
+  await page.locator('button.key[data-entry-id="kana.a"]').click();
+  await page.locator('#hold-delay').fill('480');
+  await page.locator('#hold-open').click();
+  const savedHoldBoard = await page.locator('#board-picker').inputValue();
+  assert.match(savedHoldBoard, /^board\.user\.hold\./);
+  await page.locator('#entry-text').fill('保存された長押し面');
+  await page.locator('#apply-key-text').click();
+  await page.locator('#hold-back').click();
+  assert.equal(await page.locator('#hold-open').getAttribute('data-mode'), 'open');
   await page.locator('#save-local').click();
   await page.waitForFunction(() => document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
   await page.reload({waitUntil: 'domcontentloaded'});
@@ -576,6 +586,15 @@ try {
     assert.ok((await page.locator('#profile-name').innerText()).includes('外部Profile復元テスト'),
       'Offline launch must restore local imported Profile, not reset to builtin');
     assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
+    await page.locator('#mode-edit').click();
+    await page.locator('button.key[data-entry-id="kana.a"]').click();
+    assert.equal(await page.locator('#hold-open').getAttribute('data-mode'), 'open',
+      'saved authored Hold must survive browser restart and offline recovery');
+    await page.locator('#hold-open').click();
+    assert.equal(await page.locator('#board-picker').inputValue(), savedHoldBoard);
+    assert.equal((await page.locator('#board .key-label').innerText()).trim(), '保存された長押し面');
+    await page.locator('#hold-back').click();
+    await page.locator('#mode-test').click();
     assert.ok(await page.locator('button.key[data-entry-id="kana.a"] .flick-guide').count() >= 4,
       'Offline runtime must still expose canonical Rust flick guides');
     await page.locator('button.key[data-entry-id="kana.a"]').click();
