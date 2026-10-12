@@ -1,4 +1,7 @@
-use gesture_ime_core::ProfileEditorV3;
+use gesture_ime_core::{
+    ProfileEditorV3, ProfileV3BoardRuntime, ProfileV3Codec,
+    DefaultBoardSemanticsV3, GestureSize, GesturePoint,
+};
 use serde_json::{Value, json};
 
 const PRODUCT: &str = include_str!("../../../App/KeyboardExtension/Resources/default-ja.json");
@@ -459,4 +462,205 @@ fn stage_output_replacement_requires_explicit_confirmation_and_errors_are_atomic
         "existing transition is never silently replaced");
     assert_eq!(editor.export_json().unwrap(), before_error);
     assert_eq!(editor.revision(), revision);
+}
+
+
+// M3m: ordinary immediate root transitions must place Hold at the *reachable*
+// relative origin, and each user-created Hold input surface is independent.
+#[test]
+fn reachable_hold_from_kana_and_latin_keeps_root_and_cardinal_outputs() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let original = value(&editor.export_json().unwrap());
+    for (root, source) in [("board.ja.root", "kana.a"), ("board.alpha.root", "alpha.abc")] {
+        let command = json!({"type":"createReachableHoldSurface",
+            "boardId":root,"entryId":source,"delayMs":480}).to_string();
+        assert!(editor.apply_command_json(&command, editor.revision()).unwrap());
+    }
+    let changed = value(&editor.export_json().unwrap());
+    assert_eq!(changed["boards"].as_array().unwrap().len(),
+        original["boards"].as_array().unwrap().len() + 2);
+    let mut target_ids = Vec::new();
+    for (root_id, root_key, relative_id) in [
+        ("board.ja.root", "kana.a", "board.base.kana.a.flick"),
+        ("board.alpha.root", "alpha.abc", "board.alpha.alpha.abc.flick"),
+    ] {
+        let root_before = original["boards"].as_array().unwrap().iter()
+            .find(|b| b["id"] == root_id).unwrap();
+        let root_after = changed["boards"].as_array().unwrap().iter()
+            .find(|b| b["id"] == root_id).unwrap();
+        assert_eq!(root_after, root_before, "root key and direct transition must stay untouched");
+        let source_entry = root_after["entries"].as_array().unwrap().iter()
+            .find(|e| e["id"] == root_key).unwrap();
+        assert_eq!(source_entry["resolver"]["default"]["transition"]["targetBoardRef"], relative_id);
+        assert!(source_entry["resolver"]["default"].get("hold").is_none(),
+            "Hold on root would not run after immediate touch-down transition");
+
+        let relative_before = original["boards"].as_array().unwrap().iter()
+            .find(|b| b["id"] == relative_id).unwrap();
+        let relative = changed["boards"].as_array().unwrap().iter()
+            .find(|b| b["id"] == relative_id).unwrap();
+        for prev in relative_before["entries"].as_array().unwrap() {
+            let current = relative["entries"].as_array().unwrap().iter()
+                .find(|e| e["id"] == prev["id"]).unwrap();
+            let mut expected = prev.clone();
+            if prev["rect"]["x"] == -1 && prev["rect"]["y"] == -1 {
+                expected["resolver"]["default"]["hold"] =
+                    current["resolver"]["default"]["hold"].clone();
+                let hold_target = current["resolver"]["default"]["hold"]["transition"]["targetBoardRef"].clone();
+                if let Some(cases) = expected["resolver"]["cases"].as_array_mut() {
+                    for (i, case) in cases.iter_mut().enumerate() {
+                        case["behavior"]["hold"] =
+                            current["resolver"]["cases"][i]["behavior"]["hold"].clone();
+                        assert_eq!(case["behavior"]["hold"]["transition"]["targetBoardRef"],
+                            hold_target,
+                            "every conditional endpoint must lead to the same Hold surface");
+                    }
+                }
+            }
+            assert_eq!(*current, expected,
+                "only the relative origin Hold is new, no flick output changed");
+        }
+        let origin = relative["entries"].as_array().unwrap().iter()
+            .find(|e| e["rect"]["x"] == -1 && e["rect"]["y"] == -1).unwrap();
+        let hold = &origin["resolver"]["default"]["hold"];
+        assert_eq!(hold["delayMs"], 480);
+        assert_eq!(hold["suppressOnReleaseAfterStart"], true);
+        assert_eq!(hold["transition"]["lifetime"], "transient");
+        assert!(hold["onStart"].as_array().unwrap().is_empty());
+        let destination = hold["transition"]["targetBoardRef"].as_str().unwrap();
+        assert!(!target_ids.contains(&destination.to_string()));
+        target_ids.push(destination.to_string());
+        let board = changed["boards"].as_array().unwrap().iter()
+            .find(|b| b["id"] == destination).unwrap();
+        assert_eq!(board["entries"].as_array().unwrap().len(), 1);
+        assert_eq!(board["entries"][0]["rect"]["x"], -1);
+        assert_eq!(board["entries"][0]["rect"]["y"], -1);
+        assert!(board["entries"][0]["resolver"]["default"]["onRelease"]
+            .as_array().unwrap().is_empty());
+    }
+    assert!(ProfileEditorV3::open(&editor.export_json().unwrap()).is_ok());
+    assert!(editor.undo().unwrap());
+    assert!(editor.undo().unwrap());
+    assert_eq!(value(&editor.export_json().unwrap()), original);
+    assert!(editor.redo().unwrap());
+    assert!(editor.redo().unwrap());
+    assert_eq!(value(&editor.export_json().unwrap()), changed);
+}
+
+#[test]
+fn reachable_hold_rejects_conflicts_atomically_and_supports_direct_endpoint() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let original = editor.export_json().unwrap();
+    for command in [
+        json!({"type":"createReachableHoldSurface","boardId":"board.ja.root",
+            "entryId":"kana.a","delayMs":49}),
+        json!({"type":"createReachableHoldSurface","boardId":"board.ja.root",
+            "entryId":"kana.a","delayMs":5001}),
+        json!({"type":"createReachableHoldSurface","boardId":"board.ja.root",
+            "entryId":"kana.a"}),
+        json!({"type":"createReachableHoldSurface","boardId":"missing",
+            "entryId":"kana.a","delayMs":480}),
+        json!({"type":"createReachableHoldSurface","boardId":"board.ja.root",
+            "entryId":"text.enter","delayMs":480}),
+        json!({"type":"createReachableHoldSurface","boardId":"board.ja.root",
+            "entryId":"edit.delete","delayMs":480}),
+    ] {
+        assert!(editor.apply_command_json(&command.to_string(), 0).is_err(),
+            "rejected invalid/advanced Hold must be atomic: {command}");
+        assert_eq!(editor.export_json().unwrap(), original);
+        assert_eq!(editor.revision(), 0);
+        assert!(!editor.can_undo());
+    }
+    let direct = json!({"type":"createReachableHoldSurface",
+        "boardId":"board.base.kana.a.flick","entryId":"kana.a.w","delayMs":300})
+        .to_string();
+    assert!(editor.apply_command_json(&direct, 0).unwrap());
+    let after = value(&editor.export_json().unwrap());
+    let relative = after["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.base.kana.a.flick").unwrap();
+    let west = relative["entries"].as_array().unwrap().iter()
+        .find(|e| e["id"] == "kana.a.w").unwrap();
+    assert_eq!(west["resolver"]["default"]["hold"]["delayMs"], 300);
+    assert_eq!(west["resolver"]["default"]["onRelease"][0]["arguments"]["text"]["base"], "い",
+        "original direct flick output must survive");
+    let prev = editor.export_json().unwrap();
+    let rev = editor.revision();
+    assert!(editor.apply_command_json(&direct, rev).is_err(),
+        "existing Hold must never be replaced implicitly");
+    assert_eq!(editor.revision(), rev);
+    assert_eq!(editor.export_json().unwrap(), prev);
+    assert!(editor.undo().unwrap());
+    assert_eq!(editor.export_json().unwrap(), original);
+}
+
+
+#[test]
+fn authored_reachable_hold_transitions_in_actual_rust_board_session() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let create = json!({"type":"createReachableHoldSurface",
+        "boardId":"board.ja.root","entryId":"kana.a","delayMs":480}).to_string();
+    assert!(editor.apply_command_json(&create, 0).unwrap());
+    let authored = editor.export_json().unwrap();
+    let doc = value(&authored);
+    let relative = doc["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.base.kana.a.flick").unwrap();
+    let origin = relative["entries"].as_array().unwrap().iter()
+        .find(|e| e["id"] == "kana.a.tap").unwrap();
+    let hold_board_id = origin["resolver"]["default"]["hold"]["transition"]["targetBoardRef"]
+        .as_str().unwrap();
+
+    let profile = ProfileV3Codec::decode_and_validate(authored.as_bytes()).unwrap();
+    let runtime = ProfileV3BoardRuntime::compile(&profile, "hold-authored").unwrap();
+    let frame = runtime.new_frame("layer.ja").unwrap();
+    let mut session = runtime.begin_direct_session(
+        frame, "kana.a",
+        GestureSize { width:100.0, height:50.0 },
+        GesturePoint { x:0.0, y:0.0 }, 0,
+        Box::<DefaultBoardSemanticsV3>::default(),
+    ).unwrap();
+
+    assert_eq!(session.current_board_id, "board.base.kana.a.flick");
+    session.advance_time(479);
+    assert_eq!(session.current_board_id, "board.base.kana.a.flick",
+        "Hold must not transition before configured delay");
+    session.advance_time(480);
+    assert_eq!(session.current_board_id, hold_board_id,
+        "Hold belongs to reachable relative origin after root touch-down");
+    session.touch_up(Some(520));
+    assert!(session.dispatched_actions.is_empty(),
+        "empty Hold Board must not invent ordinary tap output on release");
+
+    let frame = runtime.new_frame("layer.ja").unwrap();
+    let mut cancelled = runtime.begin_direct_session(
+        frame, "kana.a",
+        GestureSize { width:100.0, height:50.0 },
+        GesturePoint { x:0.0, y:0.0 }, 0,
+        Box::<DefaultBoardSemanticsV3>::default(),
+    ).unwrap();
+    cancelled.cancel(Some(100));
+    cancelled.advance_time(600);
+    assert!(cancelled.dispatched_actions.is_empty(),
+        "cancelled input must not later emit Hold or tap");
+}
+
+
+#[test]
+fn reachable_hold_does_not_change_another_key_sharing_the_same_relative_board() {
+    let mut original = value(PRODUCT);
+    let root = original["boards"].as_array_mut().unwrap().iter_mut()
+        .find(|b| b["id"] == "board.ja.root").unwrap();
+    let second = root["entries"].as_array_mut().unwrap().iter_mut()
+        .find(|e| e["id"] == "kana.ka").unwrap();
+    second["resolver"]["default"]["transition"]["targetBoardRef"] =
+        json!("board.base.kana.a.flick");
+    let json = original.to_string();
+    let mut editor = ProfileEditorV3::open(&json).unwrap();
+    let before = editor.export_json().unwrap();
+    let cmd = json!({"type":"createReachableHoldSurface",
+        "boardId":"board.ja.root","entryId":"kana.a","delayMs":480}).to_string();
+    assert!(editor.apply_command_json(&cmd, 0).is_err(),
+        "shared relative Board must not acquire Hold that changes another key");
+    assert_eq!(editor.export_json().unwrap(), before);
+    assert_eq!(editor.revision(), 0);
+    assert!(!editor.can_undo());
 }
