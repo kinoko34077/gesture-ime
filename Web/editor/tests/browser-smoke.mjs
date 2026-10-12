@@ -204,7 +204,8 @@ try {
   assert.equal(await page.locator('#board button.key').count(), 1,
     'new Hold Board must have center only and no phantom diagonal inputs');
   assert.ok(await page.locator('#hold-back').isVisible());
-  assert.ok(await page.locator('#hold-guide').innerText().then(x => x.includes('中央キー')));
+  assert.ok((await page.locator('#hold-guide').innerText()).includes('入力文字を設定'),
+    'Hold destination must explain how to author real input');
   assert.equal(await page.locator('#hold-output-controls').isVisible(), true);
   await page.locator('#hold-insert-text').fill('長押し入力');
   await page.locator('#hold-apply-insert').click();
