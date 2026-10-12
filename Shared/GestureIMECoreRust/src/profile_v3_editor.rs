@@ -332,6 +332,26 @@ impl ProfileEditorV3 {
                 }
                 let relative = source.resolver.default.transition.as_ref()
                     .map(|transition| transition.target_board_ref.clone());
+                // A shared relative Board may be reached from other keys or
+                // conditional/Hold paths. Mutating its origin would also alter
+                // those inputs: reject rather than silently share this Hold.
+                if let Some(target) = relative.as_ref() {
+                    let incoming = next.boards.iter().flat_map(|b| b.entries.iter())
+                        .map(|entry| {
+                            std::iter::once(&entry.resolver.default)
+                                .chain(entry.resolver.cases.iter().map(|case| &case.behavior))
+                                .map(|behavior| {
+                                    usize::from(behavior.transition.as_ref()
+                                        .is_some_and(|t| &t.target_board_ref == target))
+                                        + usize::from(behavior.hold.as_ref()
+                                            .and_then(|h| h.transition.as_ref())
+                                            .is_some_and(|t| &t.target_board_ref == target))
+                                }).sum::<usize>()
+                        }).sum::<usize>();
+                    if incoming != 1 {
+                        return Err("shared relative Board requires separate Hold authoring".to_owned());
+                    }
+                }
                 let (effective_board_id, effective_entry_id) = match relative {
                     Some(target) => {
                         let relative_board = next.boards.iter()
