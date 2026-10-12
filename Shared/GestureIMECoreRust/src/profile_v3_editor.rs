@@ -358,13 +358,21 @@ impl ProfileEditorV3 {
                 let endpoint = effective_board.entries.iter_mut()
                     .find(|entry| entry.id == effective_entry_id)
                     .ok_or_else(|| "Hold source endpoint is missing".to_owned())?;
-                if !endpoint.resolver.cases.is_empty() || endpoint.resolver.default.hold.is_some() {
-                    return Err("Hold already exists or endpoint has conditional behavior".to_owned());
+                if endpoint.resolver.default.hold.is_some()
+                    || endpoint.resolver.cases.iter().any(|case| case.behavior.hold.is_some())
+                {
+                    return Err("endpoint already has Hold behavior".to_owned());
                 }
-                if endpoint.resolver.default.transition.is_some() {
+                if endpoint.resolver.default.transition.is_some()
+                    || endpoint.resolver.cases.iter().any(|case| case.behavior.transition.is_some())
+                {
                     return Err("immediate transition makes this Hold unreachable".to_owned());
                 }
-                endpoint.resolver.default.hold = Some(HoldBehaviorV3 {
+                // A conditional key (e.g. Latin upper-case output) must use
+                // the SAME reachable Hold transition in every existing resolver
+                // branch; adding only to default would disable Hold on matches.
+                // Conditions and existing release actions remain unchanged.
+                let new_hold = HoldBehaviorV3 {
                     delay_ms,
                     on_start: Vec::new(),
                     transition: Some(BoardTransitionV3 {
@@ -375,7 +383,11 @@ impl ProfileEditorV3 {
                     repeat_behavior: None,
                     suppress_on_release_after_start: true,
                     extra: V3Extra::new(),
-                });
+                };
+                endpoint.resolver.default.hold = Some(new_hold.clone());
+                for case in &mut endpoint.resolver.cases {
+                    case.behavior.hold = Some(new_hold.clone());
+                }
                 next.boards.push(BoardV3 {
                     id: hold_board_id,
                     entries: vec![BoardEntryV3 {
