@@ -347,3 +347,116 @@ fn macro_binding_does_not_replace_existing_key_default_actions() {
     assert_eq!(locate(&value(&editor.export_json().unwrap())), locate(&before),
         "unassignment removes only the Macro while preserving existing onRelease action");
 }
+
+
+// M3k: invisible empty directions have no runtime BoardEntry until explicitly
+// authored. A directional Stage must remain one atomic Rust/Undo step.
+#[test]
+fn sparse_directional_stage_creates_only_one_hit_target_and_supports_multistage_undo() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let original = value(&editor.export_json().unwrap());
+    let parent_id = "board.base.kana.a.flick";
+    let old_parent = original["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == parent_id).unwrap().clone();
+    assert_eq!(old_parent["entries"].as_array().unwrap().len(), 5);
+
+    let first = json!({"type":"createDirectionalStage","boardId":parent_id,
+        "direction":"northWest","replaceExistingOutput":false}).to_string();
+    assert!(editor.apply_command_json(&first, 0).unwrap());
+    let doc = value(&editor.export_json().unwrap());
+    let parent = doc["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == parent_id).unwrap();
+    assert_eq!(parent["entries"].as_array().unwrap().len(), 6,
+        "only the explicitly assigned NW direction becomes a semantic Entry");
+    let northwest = parent["entries"].as_array().unwrap().iter()
+        .find(|e| e["rect"]["x"] == -3 && e["rect"]["y"] == -3).unwrap();
+    let stage = northwest["resolver"]["default"]["transition"]["targetBoardRef"]
+        .as_str().unwrap().to_owned();
+    assert_eq!(northwest["resolver"]["default"]["transition"]["lifetime"], "transient");
+    for id in ["kana.a.tap", "kana.a.w", "kana.a.n", "kana.a.e", "kana.a.s"] {
+        assert_eq!(parent["entries"].as_array().unwrap().iter()
+            .find(|e| e["id"] == id).unwrap(),
+            old_parent["entries"].as_array().unwrap().iter()
+                .find(|e| e["id"] == id).unwrap(),
+            "ordinary tap + cardinal actions must not change");
+    }
+    let stage_board = doc["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == stage).unwrap();
+    assert_eq!(stage_board["entries"].as_array().unwrap().len(), 1,
+        "new Stage must have center only and no phantom diagonal hits");
+    assert_eq!(stage_board["entries"][0]["rect"]["x"], -1);
+    assert_eq!(stage_board["entries"][0]["rect"]["y"], -1);
+    assert!(stage_board["entries"][0]["resolver"]["default"]["onRelease"]
+        .as_array().unwrap().is_empty());
+
+    let second = json!({"type":"createDirectionalStage","boardId":stage,
+        "direction":"northEast","replaceExistingOutput":false}).to_string();
+    assert!(editor.apply_command_json(&second, editor.revision()).unwrap());
+    let nested = value(&editor.export_json().unwrap());
+    let stage_one = nested["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == stage).unwrap();
+    assert_eq!(stage_one["entries"].as_array().unwrap().len(), 2);
+    let stage_two_id = stage_one["entries"].as_array().unwrap().iter()
+        .find(|e| e["rect"]["x"] == 1 && e["rect"]["y"] == -3).unwrap()
+        ["resolver"]["default"]["transition"]["targetBoardRef"].as_str().unwrap();
+    assert!(nested["boards"].as_array().unwrap().iter().any(|b| b["id"] == stage_two_id));
+    assert!(ProfileEditorV3::open(&editor.export_json().unwrap()).is_ok());
+
+    assert!(editor.undo().unwrap());
+    assert_eq!(value(&editor.export_json().unwrap()), doc);
+    assert!(editor.undo().unwrap());
+    assert_eq!(value(&editor.export_json().unwrap()), original);
+    assert!(editor.redo().unwrap());
+    assert_eq!(value(&editor.export_json().unwrap()), doc);
+    assert!(editor.redo().unwrap());
+    assert_eq!(value(&editor.export_json().unwrap()), nested);
+}
+
+#[test]
+fn stage_output_replacement_requires_explicit_confirmation_and_errors_are_atomic() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let original = editor.export_json().unwrap();
+    let base = "board.base.kana.a.flick";
+    for command in [
+        json!({"type":"createDirectionalStage","boardId":base,"direction":"west",
+            "replaceExistingOutput":false}),
+        json!({"type":"createDirectionalStage","boardId":base,"direction":"center",
+            "replaceExistingOutput":false}),
+        json!({"type":"createDirectionalStage","boardId":"board.unknown",
+            "direction":"northWest","replaceExistingOutput":false}),
+        json!({"type":"createDirectionalStage","boardId":base,"direction":"northWest"}),
+        json!({"type":"createDirectionalStage","boardId":base,"direction":"northWest",
+            "replaceExistingOutput":null}),
+    ] {
+        assert!(editor.apply_command_json(&command.to_string(), 0).is_err(),
+            "invalid Stage command must reject: {command}");
+        assert_eq!(editor.export_json().unwrap(), original);
+        assert_eq!(editor.revision(), 0);
+        assert!(!editor.can_undo());
+    }
+    let replace = json!({"type":"createDirectionalStage","boardId":base,
+        "direction":"west","replaceExistingOutput":true}).to_string();
+    assert!(editor.apply_command_json(&replace, 0).unwrap());
+    let changed = value(&editor.export_json().unwrap());
+    let board = changed["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == base).unwrap();
+    let west = board["entries"].as_array().unwrap().iter()
+        .find(|e| e["id"] == "kana.a.w").unwrap();
+    assert!(west["resolver"]["default"]["onRelease"].as_array().unwrap().is_empty());
+    assert_eq!(west["resolver"]["default"]["transition"]["lifetime"], "transient");
+    assert_eq!(west["resolver"]["default"]["presentation"]["text"]["base"], "い",
+        "existing presentation metadata is not silently stripped");
+    let unchanged = value(&original);
+    let old_board = unchanged["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == base).unwrap();
+    for id in ["kana.a.tap", "kana.a.n", "kana.a.e", "kana.a.s"] {
+        assert_eq!(board["entries"].as_array().unwrap().iter().find(|e| e["id"] == id),
+                   old_board["entries"].as_array().unwrap().iter().find(|e| e["id"] == id));
+    }
+    let before_error = editor.export_json().unwrap();
+    let revision = editor.revision();
+    assert!(editor.apply_command_json(&replace, revision).is_err(),
+        "existing transition is never silently replaced");
+    assert_eq!(editor.export_json().unwrap(), before_error);
+    assert_eq!(editor.revision(), revision);
+}
