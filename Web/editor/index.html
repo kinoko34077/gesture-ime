@@ -101,6 +101,21 @@
             <button id="apply-key-text" type="button" class="action secondary" disabled>適用</button>
           </div>
           <p id="entry-text-feedback" class="edit-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+          <section id="key-hold-editor" class="key-hold-editor" aria-label="選択キーの長押し入力面">
+            <div class="stage-heading">
+              <h3>長押しの入力面</h3>
+              <button id="hold-back" type="button" class="action secondary" hidden>前のキーに戻る</button>
+            </div>
+            <p id="hold-guide" class="subtle">キーを選ぶと設定できます。</p>
+            <div class="hold-controls">
+              <label for="hold-delay" class="section-label">長押しまでの時間（ミリ秒）</label>
+              <div class="edit-row">
+                <input id="hold-delay" type="number" value="480" min="50" max="5000" step="10" inputmode="numeric" disabled aria-label="長押しまでの時間（50〜5000ミリ秒）">
+                <button id="hold-open" type="button" class="action secondary" disabled>長押しの入力面を作る</button>
+              </div>
+            </div>
+            <p id="hold-feedback" class="edit-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+          </section>
           <section class="stage-editor" aria-label="方向から次の段階を編集">
             <div class="stage-heading"><h3>フリック・次の段階</h3>
               <button id="stage-back" class="action secondary" type="button" hidden>前のキーに戻る</button>
