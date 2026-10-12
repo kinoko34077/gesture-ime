@@ -839,7 +839,19 @@ function finishPointer(event, cancel) {
       state.testOutput = (state.testOutput + inserted).slice(-MAX_TEST_CHARACTERS);
       renderTestOutput();
     }
-    gestureOutcome('Rust判定：' + outcome + ' · ' + actionText + '（ブラウザ内）');
+    if ($('app').dataset.workspace === 'test') {
+      if (cancel) {
+        gestureOutcome('キャンセルしました。文字は追加されません。');
+      } else if (inserted) {
+        gestureOutcome('Rust判定で「' + inserted + '」を入力しました。');
+      } else if (actions.length) {
+        gestureOutcome('Rust判定：' + actionText + '（端末上の操作は実行しません）');
+      } else {
+        gestureOutcome('Rust判定：' + outcome + ' · 入力された文字はありません。');
+      }
+    } else {
+      gestureOutcome('Rust判定：' + outcome + ' · ' + actionText + '（ブラウザ内）');
+    }
     status('Rust判定を実行しました（ブラウザ内のみ）。');
   } catch (error) {
     gestureOutcome('Rust判定エラー：' + String(error?.message || error), true);
