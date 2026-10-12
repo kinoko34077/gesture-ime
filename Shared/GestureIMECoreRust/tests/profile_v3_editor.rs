@@ -627,7 +627,7 @@ fn authored_reachable_hold_transitions_in_actual_rust_board_session() {
         GesturePoint { x:0.0, y:0.0 }, 0,
         Box::<DefaultBoardSemanticsV3>::default(),
     ).unwrap();
-    cancelled.touch_cancel(Some(100));
+    cancelled.cancel(Some(100));
     cancelled.advance_time(600);
     assert!(cancelled.dispatched_actions.is_empty(),
         "cancelled input must not later emit Hold or tap");
