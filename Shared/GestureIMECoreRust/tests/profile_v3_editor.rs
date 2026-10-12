@@ -1,4 +1,7 @@
-use gesture_ime_core::ProfileEditorV3;
+use gesture_ime_core::{
+    ProfileEditorV3, ProfileV3BoardRuntime, ProfileV3Codec,
+    DefaultBoardSemanticsV3, GestureSize, GesturePoint,
+};
 use serde_json::{Value, json};
 
 const PRODUCT: &str = include_str!("../../../App/KeyboardExtension/Resources/default-ja.json");
@@ -578,4 +581,54 @@ fn reachable_hold_rejects_conflicts_atomically_and_supports_direct_endpoint() {
     assert_eq!(editor.export_json().unwrap(), prev);
     assert!(editor.undo().unwrap());
     assert_eq!(editor.export_json().unwrap(), original);
+}
+
+
+#[test]
+fn authored_reachable_hold_transitions_in_actual_rust_board_session() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let create = json!({"type":"createReachableHoldSurface",
+        "boardId":"board.ja.root","entryId":"kana.a","delayMs":480}).to_string();
+    assert!(editor.apply_command_json(&create, 0).unwrap());
+    let authored = editor.export_json().unwrap();
+    let doc = value(&authored);
+    let relative = doc["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.base.kana.a.flick").unwrap();
+    let origin = relative["entries"].as_array().unwrap().iter()
+        .find(|e| e["id"] == "kana.a.tap").unwrap();
+    let hold_board_id = origin["resolver"]["default"]["hold"]["transition"]["targetBoardRef"]
+        .as_str().unwrap();
+
+    let profile = ProfileV3Codec::decode_and_validate(authored.as_bytes()).unwrap();
+    let runtime = ProfileV3BoardRuntime::compile(&profile, "hold-authored").unwrap();
+    let frame = runtime.new_frame("layer.ja").unwrap();
+    let mut session = runtime.begin_direct_session(
+        frame, "kana.a",
+        GestureSize { width:100.0, height:50.0 },
+        GesturePoint { x:0.0, y:0.0 }, 0,
+        Box::<DefaultBoardSemanticsV3>::default(),
+    ).unwrap();
+
+    assert_eq!(session.current_board_id, "board.base.kana.a.flick");
+    session.advance_time(479);
+    assert_eq!(session.current_board_id, "board.base.kana.a.flick",
+        "Hold must not transition before configured delay");
+    session.advance_time(480);
+    assert_eq!(session.current_board_id, hold_board_id,
+        "Hold belongs to reachable relative origin after root touch-down");
+    session.touch_up(Some(520));
+    assert!(session.dispatched_actions.is_empty(),
+        "empty Hold Board must not invent ordinary tap output on release");
+
+    let frame = runtime.new_frame("layer.ja").unwrap();
+    let mut cancelled = runtime.begin_direct_session(
+        frame, "kana.a",
+        GestureSize { width:100.0, height:50.0 },
+        GesturePoint { x:0.0, y:0.0 }, 0,
+        Box::<DefaultBoardSemanticsV3>::default(),
+    ).unwrap();
+    cancelled.touch_cancel(Some(100));
+    cancelled.advance_time(600);
+    assert!(cancelled.dispatched_actions.is_empty(),
+        "cancelled input must not later emit Hold or tap");
 }
