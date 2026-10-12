@@ -67,6 +67,7 @@ try {
   await target.selectOption('board.base.kana.ka.flick');
   await lifetime.selectOption('persistent');
   await page.locator('#apply-entry-transition').click();
+  assert.ok((await page.locator('#entry-transition-feedback').innerText()).includes('遷移先を変更しました'));
   assert.equal(await target.inputValue(), 'board.base.kana.ka.flick');
   assert.equal(await lifetime.inputValue(), 'persistent');
   assert.ok((await page.locator('#save-info').innerText()).includes('未保存の編集'));
@@ -96,7 +97,10 @@ try {
     el.dispatchEvent(new Event('change', {bubbles: true}));
   });
   await page.locator('#apply-entry-transition').click();
-  await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('遷移変更失敗'));
+  await page.waitForFunction(() => document.querySelector('#entry-transition-feedback')?.textContent?.includes('遷移先を変更できません'));
+  assert.equal(await page.locator('#entry-transition-feedback').getAttribute('data-result'), 'error');
+  assert.equal(await target.inputValue(), 'board.absent',
+    'Rust rejection must leave the attempted target intact for correction');
   await kana.click();
   assert.equal(await target.inputValue(), '', 'invalid target must not mutate the Profile');
   await page.locator('#undo-edit').click();
@@ -106,6 +110,7 @@ try {
 
   await page.locator('#entry-text').fill('共通Web編集');
   await page.locator('#apply-key-text').click();
+  assert.ok((await page.locator('#entry-text-feedback').innerText()).includes('文字を変更しました'));
   assert.ok((await page.locator('#save-info').innerText()).includes('未保存の編集'));
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
   assert.ok(await page.locator('button.key[data-entry-id="kana.a"] .flick-guide').count() >= 4,
@@ -113,6 +118,8 @@ try {
   assert.equal(await page.locator('#undo-edit').isEnabled(), true);
 
   await page.locator('#undo-edit').click();
+  assert.equal(await page.locator('#entry-text-feedback').innerText(), '',
+    'Undo must clear stale Key success feedback');
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), original);
   await page.locator('#redo-edit').click();
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
