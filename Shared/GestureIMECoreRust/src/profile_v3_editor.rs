@@ -2,7 +2,7 @@
 //! Platform persistence and UI state are deliberately outside this module.
 use crate::profile_v3::{
     ActionInvocationV3, BoardEntryV3, BoardRectV3, BoardV3, BoardTransitionLifetimeV3,
-    BoardTransitionV3, EndpointBehaviorV3, EntryResolverV3, MacroV3,
+    BoardTransitionV3, EndpointBehaviorV3, EntryResolverV3, HoldBehaviorV3, MacroV3,
     ProfileBundleV3, ResolvedStringV3, V3Extra,
 };
 use crate::profile_v3_validation::ProfileV3Codec;
@@ -48,6 +48,14 @@ enum EditorCommandV3 {
         // Required: never discard authored output via an omitted flag.
         #[serde(rename = "replaceExistingOutput")]
         replace_existing_output: bool,
+    },
+    CreateReachableHoldSurface {
+        #[serde(rename = "boardId")]
+        board_id: String,
+        #[serde(rename = "entryId")]
+        entry_id: String,
+        #[serde(rename = "delayMs")]
+        delay_ms: i64,
     },
     SetEntryDefaultText {
         #[serde(rename = "boardId")]
@@ -287,6 +295,91 @@ impl ProfileEditorV3 {
                     id: target_id,
                     entries: vec![BoardEntryV3 {
                         id: target_center_id,
+                        rect: BoardRectV3 {
+                            x: -1, y: -1, width: 2, height: 2, extra: V3Extra::new()
+                        },
+                        resolver: EntryResolverV3 {
+                            cases: Vec::new(),
+                            default: EndpointBehaviorV3::default(),
+                            extra: V3Extra::new(),
+                        },
+                        gesture_policy_override: None,
+                        guide_label_overrides: None,
+                        extra: V3Extra::new(),
+                    }],
+                    extra: V3Extra::new(),
+                });
+            }
+            EditorCommandV3::CreateReachableHoldSurface {
+                board_id, entry_id, delay_ms,
+            } => {
+                if !(50..=5000).contains(&delay_ms) {
+                    return Err("Hold delayMs must be from 50 to 5000".to_owned());
+                }
+                // Resolve the *reachable* entry. An ordinary root key with an
+                // immediate transition cannot itself receive a useful Hold.
+                let source = next.boards.iter()
+                    .find(|board| board.id == board_id)
+                    .ok_or_else(|| format!("Board not found: {board_id}"))?
+                    .entries.iter()
+                    .find(|entry| entry.id == entry_id)
+                    .ok_or_else(|| format!("Key not found: {board_id}/{entry_id}"))?;
+                if !source.resolver.cases.is_empty() {
+                    return Err("conditional source Hold requires advanced editing".to_owned());
+                }
+                if source.resolver.default.hold.is_some() {
+                    return Err("source already has Hold behavior".to_owned());
+                }
+                let relative = source.resolver.default.transition.as_ref()
+                    .map(|transition| transition.target_board_ref.clone());
+                let (effective_board_id, effective_entry_id) = match relative {
+                    Some(target) => {
+                        let relative_board = next.boards.iter()
+                            .find(|board| board.id == target)
+                            .ok_or_else(|| format!("relative Board not found: {target}"))?;
+                        let origins: Vec<&BoardEntryV3> = relative_board.entries.iter()
+                            .filter(|entry| entry.rect.contains_origin()).collect();
+                        if origins.len() != 1 {
+                            return Err("relative Board must have exactly one origin for Hold".to_owned());
+                        }
+                        (target, origins[0].id.clone())
+                    }
+                    None => (board_id, entry_id),
+                };
+                let effective_board = next.boards.iter_mut()
+                    .find(|board| board.id == effective_board_id)
+                    .ok_or_else(|| "Hold source Board is missing".to_owned())?;
+                let endpoint = effective_board.entries.iter_mut()
+                    .find(|entry| entry.id == effective_entry_id)
+                    .ok_or_else(|| "Hold source endpoint is missing".to_owned())?;
+                if !endpoint.resolver.cases.is_empty() || endpoint.resolver.default.hold.is_some() {
+                    return Err("Hold already exists or endpoint has conditional behavior".to_owned());
+                }
+                if endpoint.resolver.default.transition.is_some() {
+                    return Err("immediate transition makes this Hold unreachable".to_owned());
+                }
+                let serial = (1..=1_000_000u32)
+                    .find(|id| !next.boards.iter()
+                        .any(|board| board.id == format!("board.user.hold.{id}")))
+                    .ok_or_else(|| "no available Hold Board ID".to_owned())?;
+                let hold_board_id = format!("board.user.hold.{serial}");
+                let center_id = format!("entry.user.hold.center.{serial}");
+                endpoint.resolver.default.hold = Some(HoldBehaviorV3 {
+                    delay_ms,
+                    on_start: Vec::new(),
+                    transition: Some(BoardTransitionV3 {
+                        target_board_ref: hold_board_id.clone(),
+                        lifetime: BoardTransitionLifetimeV3::Transient,
+                        extra: V3Extra::new(),
+                    }),
+                    repeat_behavior: None,
+                    suppress_on_release_after_start: true,
+                    extra: V3Extra::new(),
+                });
+                next.boards.push(BoardV3 {
+                    id: hold_board_id,
+                    entries: vec![BoardEntryV3 {
+                        id: center_id,
                         rect: BoardRectV3 {
                             x: -1, y: -1, width: 2, height: 2, extra: V3Extra::new()
                         },
