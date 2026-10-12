@@ -214,3 +214,15 @@
   .key-hold-editor #hold-delay{flex:1 1 100px;width:auto}
   .key-hold-editor #hold-open{flex:2 1 155px;width:auto}
 }
+
+
+/* Real Hold text insertion is a separate canonical output field, shown only
+   when editing a validated Hold destination's center entry. */
+.hold-output-controls{display:grid;gap:5px;padding:9px 0;border-top:1px solid #cbd8ed;margin-top:8px}
+.hold-output-controls[hidden]{display:none}
+.hold-output-controls .section-label{margin-top:0}
+.hold-output-controls .edit-row{display:flex;align-items:stretch;flex-wrap:wrap}
+.hold-output-controls #hold-insert-text{min-width:0;flex:1 1 130px}
+.hold-output-controls #hold-apply-insert{flex:0 1 auto;white-space:normal}
+.hold-output-controls .hold-remove{justify-self:start;background:#eff2fa;color:#5b657c;font-size:.77rem;padding:5px 10px}
+.hold-output-controls .hold-remove:disabled{opacity:.4}
