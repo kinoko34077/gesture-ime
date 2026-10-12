@@ -121,6 +121,10 @@ try {
   await page.locator('#rename-profile').click();
   assert.ok((await page.locator('#profile-name').innerText()).includes('Web動作確認'));
 
+  // M3j: every Key shows a discoverable Macro surface before any Macro exists.
+  assert.ok((await page.locator('#key-macro-assigned').innerText()).includes('割当なし'));
+  assert.equal(await page.locator('#key-macro-picker').isDisabled(), true);
+  assert.equal(await page.locator('#key-macro-open-editor').isVisible(), true);
   // M3h: real mobile Chromium/Wasm, Rust is the Macro ID/name/action owner.
   assert.equal(await page.locator('#macro-select option').count(), 0);
   await page.locator('#macro-create-sample').click();
@@ -160,6 +164,85 @@ try {
   assert.equal(await page.locator('#macro-actions option').count(), 2);
   assert.ok((await page.locator('#macro-actions option').last().innerText()).includes('何もしない'));
   console.log('M3h Macro create/rename/duplicate reject/action-edit/Undo/Redo via canonical Rust PASS');
+
+  // M3j: attach a Macro *at the selected Key*, preserve existing Key context.
+  const keyBindingList = page.locator('#key-macro-assigned');
+  const keyBindingPicker = page.locator('#key-macro-picker');
+  assert.ok((await keyBindingList.innerText()).includes('割当なし'));
+  assert.equal(await page.locator('#key-macro-attach').isDisabled(), true);
+  await keyBindingPicker.selectOption({label: '共有マクロ'});
+  await page.locator('#key-macro-attach').click();
+  assert.ok((await keyBindingList.innerText()).includes('共有マクロ'));
+  assert.equal(await keyBindingList.locator('button').count(), 1);
+  assert.ok((await page.locator('#key-macro-feedback').innerText()).includes('割り当てました'));
+  assert.ok((await page.locator('#save-info').innerText()).includes('未保存の編集'));
+  assert.ok((await page.locator('#selected-key').innerText()).length > 0);
+  await page.locator('#undo-edit').click();
+  assert.ok((await keyBindingList.innerText()).includes('割当なし'));
+  await page.locator('#redo-edit').click();
+  assert.ok((await keyBindingList.innerText()).includes('共有マクロ'));
+
+  // Two independent Macro calls must coexist; one removal never deletes the other.
+  await page.locator('#macro-create-name').fill('補助マクロ');
+  await page.locator('#macro-create').click();
+  await keyBindingPicker.selectOption({label: '補助マクロ'});
+  await page.locator('#key-macro-attach').click();
+  assert.equal(await keyBindingList.locator('button').count(), 2);
+
+  // A deliberately injected duplicate reaches Rust as an unchanged/no-op command.
+  const assignedId = await keyBindingList.locator('button').first().getAttribute('data-macro-id');
+  await keyBindingPicker.evaluate((el, id) => {
+    const option = document.createElement('option');
+    option.value = id; option.textContent = 'duplicate fixture';
+    el.append(option); el.value = id;
+    el.dispatchEvent(new Event('change', {bubbles: true}));
+  }, assignedId);
+  await page.locator('#key-macro-attach').click();
+  assert.ok((await page.locator('#key-macro-feedback').innerText()).includes('既に割り当て済み'));
+  assert.equal(await keyBindingList.locator('button').count(), 2);
+
+  // Rust must reject a missing Macro without losing selected Key/input or actions.
+  await keyBindingPicker.evaluate(el => {
+    const option = document.createElement('option');
+    option.value = 'macro.missing'; option.textContent = 'invalid fixture';
+    el.append(option); el.value = option.value;
+    el.dispatchEvent(new Event('change', {bubbles: true}));
+  });
+  await page.locator('#key-macro-attach').click();
+  assert.ok((await page.locator('#key-macro-feedback').innerText()).includes('割当失敗'));
+  assert.equal(await keyBindingPicker.inputValue(), 'macro.missing');
+  assert.equal(await keyBindingList.locator('button').count(), 2);
+  assert.equal(await page.locator('#selected-key').isVisible(), true);
+
+  await keyBindingList.locator('button').first().click();
+  assert.equal(await keyBindingList.locator('button').count(), 1);
+  await page.locator('#undo-edit').click();
+  assert.equal(await keyBindingList.locator('button').count(), 2);
+  await page.locator('#redo-edit').click();
+  assert.equal(await keyBindingList.locator('button').count(), 1);
+  assert.ok((await page.locator('#key-macro-guide').innerText()).includes('実キーボードでの実行は未確認'));
+  await page.locator('#save-local').click();
+  // IndexedDB writeDraft is asynchronous; a reload before durable completion
+  // tests a race, not a persisted Macro roundtrip.
+  await page.waitForFunction(() =>
+    document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
+  await page.reload({waitUntil: 'domcontentloaded'});
+  await page.locator('button.key[data-entry-id="kana.a"]').waitFor();
+  await page.locator('button.key[data-entry-id="kana.a"]').click();
+  assert.equal(await page.locator('#key-macro-assigned button').count(), 1);
+  assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
+  // Narrow-screen + keyboard-accessible controls: no offscreen Key Macro editor.
+  await page.setViewportSize({width: 320, height: 844});
+  const keyMacroBounds = await page.locator('.key-macro-editor').evaluate(el => ({
+    width: el.getBoundingClientRect().width, screen: window.innerWidth
+  }));
+  assert.ok(keyMacroBounds.width <= keyMacroBounds.screen,
+    'Key-local Macro editor must fit 320px screens');
+  await page.locator('#key-macro-picker').focus();
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'key-macro-picker');
+  await page.setViewportSize({width: 390, height: 844});
+  console.log('M3j Key Macro attach/multiple/no-op/invalid/Undo/Redo/save-reload and 320px focus PASS');
+
 
   await page.locator('#save-local').click();
   await page.waitForFunction(() => document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
