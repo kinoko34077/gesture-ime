@@ -56,3 +56,16 @@
 .macro-advanced[hidden]{display:none}
 .macro-advanced summary{cursor:pointer;width:fit-content;text-decoration:underline;text-underline-offset:2px}
 .macro-advanced code{overflow-wrap:anywhere;user-select:text}
+
+/* Contextual Macro assignment stays beside the selected Key, not in the global Macro editor. */
+.key-macro-editor{border-top:1px solid #e1e6f0;margin-top:14px;padding-top:10px}
+.key-macro-editor h3{font-size:.93rem;margin:0 0 5px}
+.key-macro-editor select{width:100%;min-width:0;padding:9px;border:1px solid #bac7e0;border-radius:10px;background:white;color:#233150}
+.key-macro-editor select:disabled{background:#f3f5fa;color:#76849a}
+.key-macro-editor select:focus-visible{outline:3px solid #a0b6ff;outline-offset:1px}
+.key-macro-assigned{list-style:none;margin:3px 0;padding:0;display:grid;gap:6px}
+.key-macro-assigned li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;font-size:.86rem;overflow-wrap:anywhere}
+.key-macro-assigned li .action{flex-shrink:0}
+#key-macro-open-editor{margin-top:8px}
+#key-macro-feedback[data-result="error"]{color:#b22340}
+@media(max-width:380px){.key-macro-editor .edit-row{flex-wrap:wrap}.key-macro-editor .edit-row .action{width:100%}}
