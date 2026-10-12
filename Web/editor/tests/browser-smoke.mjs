@@ -187,6 +187,61 @@ try {
   await page.locator('#trace-details summary').click();
   const original = (await kana.locator('.key-label').innerText()).trim();
   assert.ok(original);
+  // M3n Hold: the root Key creates ONE reachable input surface through Rust,
+  // shows the authored destination, retains tap/flick, supports back/Undo/Redo.
+  assert.equal(await page.locator('#hold-delay').inputValue(), '480');
+  assert.equal(await page.locator('#hold-open').isEnabled(), true);
+  assert.ok((await page.locator('#hold-open').innerText()).includes('作る'));
+  await page.locator('#hold-delay').fill('49');
+  await page.locator('#hold-open').click();
+  assert.equal(await page.locator('#hold-feedback').getAttribute('data-result'), 'error');
+  assert.ok((await page.locator('#hold-feedback').innerText()).includes('50〜5000'));
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
+  await page.locator('#hold-delay').fill('480');
+  await page.locator('#hold-open').click();
+  const holdBoard = await page.locator('#board-picker').inputValue();
+  assert.match(holdBoard, /^board\\.user\\.hold\\./);
+  assert.equal(await page.locator('#board button.key').count(), 1,
+    'new Hold Board must have center only and no phantom diagonal inputs');
+  assert.ok(await page.locator('#hold-back').isVisible());
+  assert.ok(await page.locator('#hold-guide').innerText().then(x => x.includes('中央キー')));
+  await page.locator('#entry-text').fill('長押し入力');
+  await page.locator('#apply-key-text').click();
+  assert.equal((await page.locator('#board button.key .key-label').innerText()).trim(), '長押し入力');
+  await page.locator('#hold-back').click();
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
+  assert.equal((await page.locator('#selected-key').innerText()).trim(), original);
+  assert.equal((await page.locator('#hold-open').innerText()).trim(), '長押しの入力面へ');
+  await page.locator('#hold-open').click();
+  assert.equal(await page.locator('#board-picker').inputValue(), holdBoard,
+    'an existing Hold opens the same Board rather than allocating duplicates');
+  await page.locator('#hold-back').click();
+  await page.locator('#undo-edit').click();
+  await page.locator('#undo-edit').click();
+  assert.equal(await page.locator('#board-picker option[value="' + holdBoard + '"]').count(), 0);
+  assert.ok((await page.locator('#hold-open').innerText()).includes('作る'));
+  await page.locator('#redo-edit').click();
+  await page.locator('#redo-edit').click();
+  assert.equal(await page.locator('#board-picker option[value="' + holdBoard + '"]').count(), 1);
+  await page.locator('#undo-edit').click();
+  await page.locator('#undo-edit').click();
+  assert.equal(await page.locator('#board-picker option[value="' + holdBoard + '"]').count(), 0);
+  // A second ordinary Layer with conditional outputs uses the same Core command.
+  await page.locator('#layer-picker').selectOption('layer.alpha');
+  await page.locator('button.key[data-entry-id="alpha.abc"]').click();
+  await page.locator('#hold-delay').fill('500');
+  await page.locator('#hold-open').click();
+  const latinHold = await page.locator('#board-picker').inputValue();
+  assert.match(latinHold, /^board\\.user\\.hold\\./);
+  await page.locator('#hold-back').click();
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.alpha.root');
+  assert.equal(await page.locator('#hold-open').getAttribute('data-mode'), 'open');
+  assert.equal(await page.locator('#hold-delay').inputValue(), '500');
+  await page.locator('#undo-edit').click();
+  assert.equal(await page.locator('#hold-open').getAttribute('data-mode'), 'create');
+  await page.locator('#layer-picker').selectOption('layer.ja');
+  await kana.click();
+  console.log('M3n Web Hold kana/Latin create/open/center/back/error/Undo/Redo PASS');
   // M3l: the selected ordinary key exposes eight virtual directions without
   // creating phantom runtime entries, and nested Stages roundtrip through Rust.
   assert.equal(await page.locator('#stage-grid button[data-direction]').count(), 8);
