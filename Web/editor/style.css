@@ -143,3 +143,53 @@
   .flick-popup{width:min(156px,calc(100% - 12px));height:147px;gap:3px;padding:6px}
   .flick-popup-cell{font-size:.91rem}
 }
+
+
+/* UX-04/06/09/11: testing is the primary task; authoring is a separate mode.
+   A new tester sees the keyboard and its actual Rust-issued text, not raw IDs. */
+.workspace-modes{display:grid;grid-template-columns:1fr 1fr;gap:5px;max-width:520px;
+  padding:5px;border:1px solid #ced8ed;border-radius:14px;background:#eef2fb;margin:0 0 10px}
+.mode-choice{border:0;border-radius:10px;background:transparent;color:#536681;
+  padding:10px 16px;font-weight:750;min-height:44px;font-size:1rem}
+.mode-choice.active{background:#fff;color:#243f93;box-shadow:0 2px 7px #172e5924}
+.mode-choice:focus-visible,.test-layer-choice:focus-visible{outline:3px solid #6384f6;outline-offset:2px}
+.try-instructions{margin:8px 0 12px;font-size:.87rem;color:#3b506e;line-height:1.5}
+.test-layer-tabs{display:flex;align-items:center;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;
+  padding:0 0 9px;margin:1px 0 8px;scrollbar-width:thin}
+.test-layer-choice{flex:0 0 auto;min-height:43px;padding:9px 14px;border:1px solid #c1cce4;
+  border-radius:11px;background:#fff;color:#415271;font-size:.9rem;font-weight:700}
+.test-layer-choice.active{background:#3b5cbe;color:#fff;border-color:#3b5cbe}
+.test-output-region{margin:11px 0 8px;padding:11px 12px;border-radius:12px;
+  background:#fbfcff;border:1px solid #becce8}
+.test-output-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.test-output-head strong{font-size:.94rem;color:#1b3660}
+.test-output-head small{font-size:.69rem;font-weight:500;color:#667792;margin-left:3px}
+.test-output-head .action{padding:6px 12px;font-size:.81rem}
+.test-output{min-height:52px;max-height:120px;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;
+  padding:10px 12px;border:1px solid #d3dbed;border-radius:9px;background:#fff;
+  font-size:1.25rem;line-height:1.45;color:#19304d}
+.test-output[data-empty="true"]{color:#8290a7;font-size:.86rem;display:flex;align-items:center}
+#app[data-workspace="test"] .workspace{display:block}
+#app[data-workspace="test"] .keyboard-pane{max-width:750px;margin:0 auto}
+#app[data-workspace="test"] .toolbar,
+#app[data-workspace="test"] .save-info,
+#app[data-workspace="test"] .inspector-pane,
+#app[data-workspace="test"] .board-picker,
+#app[data-workspace="test"] .gesture-detail,
+#app[data-workspace="test"] .mode-detail-hint{display:none}
+#app[data-workspace="test"] #gesture-feedback{margin:0;padding:8px 11px;
+  position:relative;top:auto;box-shadow:none;background:#f1f5fc;font-size:.82rem}
+#app[data-workspace="test"] #board-preview-state{margin:0 0 7px}
+#app[data-workspace="edit"] .try-instructions,
+#app[data-workspace="edit"] .test-layer-tabs,
+#app[data-workspace="edit"] .test-output-region{display:none}
+@media(max-width:540px){
+  .workspace-modes{max-width:none}
+  .mode-choice{font-size:.91rem}
+  .try-instructions{font-size:.8rem}
+  .test-output-head small{display:block;margin:0}
+  #app[data-workspace="test"] .pane{padding:10px}
+  #app[data-workspace="test"] .pane-header{margin-bottom:9px}
+  #app[data-workspace="test"] .pane-header p{font-size:.76rem}
+  #app[data-workspace="test"] .board-preview-state{font-size:.75rem}
+}
