@@ -11,6 +11,31 @@ public enum ProfileV3SettingsLayoutPolicy {
     public static let ordinaryRowMinimumHeight = 44.0
     public static let sectionGap = 16.0
 
+    /// Ordinary product UI range. Storage remains positive/unbounded for
+    /// backwards compatibility and Developer diagnostics.
+    public static let ordinaryHeightScaleRange = 0.80...1.25
+    public static let ordinaryHeightScaleStep = 0.05
+
+    public static func ordinaryHeightScaleValue(
+        storedScale: Double
+    ) -> Double {
+        guard storedScale.isFinite else { return 1.0 }
+        return min(
+            ordinaryHeightScaleRange.upperBound,
+            max(
+                ordinaryHeightScaleRange.lowerBound,
+                storedScale
+            )
+        )
+    }
+
+    public static func isOutsideOrdinaryHeightScaleRange(
+        _ scale: Double
+    ) -> Bool {
+        !scale.isFinite
+            || !ordinaryHeightScaleRange.contains(scale)
+    }
+
     public static func contentInset(
         usableWidth: Double
     ) -> Double {
@@ -35,8 +60,9 @@ public enum ProfileV3SettingsLayoutPolicy {
         )
     }
 
-    /// Maps the positive, unbounded keyboard-height scale into one finite
-    /// Slider interval without inventing a new semantic min/max.
+    /// Legacy raw-value mapping retained for diagnostics/backwards
+    /// compatibility. The rebuilt ordinary Settings UI uses
+    /// ordinaryHeightScaleRange instead.
     ///
     /// scale = 1 -> position = 0.5
     /// reciprocal scales are symmetric around the midpoint.

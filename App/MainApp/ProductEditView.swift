@@ -111,7 +111,9 @@ struct ProductEditView: View {
                     editor: editor,
                     entry: entry,
                     stageDepth: stageNavigation.depth,
-                    onOpenNextStage: openNextStage
+                    onOpenNextStage: openNextStage,
+                    onOpenHoldStage: openHoldStage,
+                    onOpenDirectionStage: openDirectionStage
                 )
                 .id(entry.id + "@" + (editor.currentBoardID ?? ""))
             } else {
@@ -264,6 +266,51 @@ struct ProductEditView: View {
             destinationBoardID: target
         )
         editor.navigate(to: target)
+        selectStageOrigin()
+    }
+
+    private func openHoldStage() {
+        guard
+            let sourceBoardID = editor.currentBoardID,
+            let sourceEntryID = editor.selectedEntryID,
+            let target = editor.selectedHoldStageBoardID
+        else { return }
+
+        stageNavigation.push(
+            sourceBoardID: sourceBoardID,
+            sourceEntryID: sourceEntryID,
+            destinationBoardID: target
+        )
+        editor.navigate(to: target)
+        selectStageOrigin()
+    }
+
+    private func openDirectionStage(
+        _ direction: ProfileV3Direction,
+        _ replacingOutput: Bool
+    ) {
+        guard
+            let sourceBoardID = editor.currentBoardID,
+            let sourceEntryID = editor.selectedEntryID,
+            let target = editor.openOrCreateDirectionStage(
+                direction,
+                replacingOutput: replacingOutput
+            )
+        else { return }
+
+        stageNavigation.push(
+            sourceBoardID: sourceBoardID,
+            sourceEntryID: sourceEntryID,
+            destinationBoardID: target
+        )
+        editor.navigate(to: target)
+        selectStageOrigin()
+    }
+
+    private func selectStageOrigin() {
+        if let center = editor.entries.first(where: { $0.rect.containsOrigin }) {
+            editor.selectEntry(center.id)
+        }
     }
 
     private func goBackOneStage() {

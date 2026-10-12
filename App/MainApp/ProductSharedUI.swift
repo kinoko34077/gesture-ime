@@ -132,6 +132,7 @@ struct ProductProfileScopeButton: View {
     @EnvironmentObject private var library: ProfileLibraryModel
     @ObservedObject var workspace: ProfileV3Workspace
     @State private var showingManager = false
+    @State private var activationError: String?
 
     var body: some View {
         let profiles = library.profiles.filter {
@@ -139,17 +140,43 @@ struct ProductProfileScopeButton: View {
         }
         let selectedID = workspace.resolvedProfileID(library: library)
         let selectedName = profiles.first(where: { $0.id == selectedID })?.name
+        let activeName = library.profiles.first {
+            $0.id == library.activeProfileID
+        }?.name
 
         Menu {
-            ForEach(profiles) { profile in
-                Button {
-                    workspace.select(profileID: profile.id)
-                } label: {
-                    if selectedID == profile.id {
-                        Label(profile.name, systemImage: "checkmark")
-                    } else {
-                        Text(profile.name)
+            Section("編集中") {
+                ForEach(profiles) { profile in
+                    Button {
+                        workspace.select(profileID: profile.id)
+                    } label: {
+                        if selectedID == profile.id {
+                            Label(profile.name, systemImage: "checkmark")
+                        } else {
+                            Text(profile.name)
+                        }
                     }
+                }
+            }
+
+            Section("使用中") {
+                Text(activeName ?? "なし")
+            }
+
+            if let selectedID, selectedID != library.activeProfileID {
+                Button {
+                    let editor = workspace.editor(library: library)
+                    if editor?.saveAndActivateForKeyboard() != true {
+                        activationError = editor?.errorMessage
+                            ?? "キーボードを切り替えられませんでした。"
+                    }
+                } label: {
+                    Label(
+                        requiresSave(profileID: selectedID)
+                            ? "保存して使う"
+                            : "このキーボードを使う",
+                        systemImage: "checkmark.circle"
+                    )
                 }
             }
 
@@ -178,6 +205,26 @@ struct ProductProfileScopeButton: View {
                 ProductProfileManagerView(workspace: workspace)
             }
         }
+        .alert(
+            "キーボードを切り替えられません",
+            isPresented: Binding(
+                get: { activationError != nil },
+                set: { if !$0 { activationError = nil } }
+            )
+        ) {
+            Button("閉じる", role: .cancel) {}
+        } message: {
+            Text(activationError ?? "")
+        }
+    }
+
+    private func requiresSave(profileID: String) -> Bool {
+        guard let editor = workspace.existingEditor(profileID: profileID)
+        else { return false }
+        if case .dirty = editor.persistenceState {
+            return true
+        }
+        return false
     }
 }
 
