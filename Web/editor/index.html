@@ -107,6 +107,15 @@
               <button id="hold-back" type="button" class="action secondary" hidden>前のキーに戻る</button>
             </div>
             <p id="hold-guide" class="subtle">キーを選ぶと設定できます。</p>
+            <div id="hold-output-controls" class="hold-output-controls" hidden>
+              <label for="hold-insert-text" class="section-label">長押しで実際に入力する文字</label>
+              <div class="edit-row">
+                <input id="hold-insert-text" type="text" maxlength="256" autocomplete="off" placeholder="例：ん">
+                <button id="hold-apply-insert" type="button" class="action secondary">入力文字を設定</button>
+              </div>
+              <button id="hold-remove-insert" type="button" class="hold-remove action secondary" disabled>文字入力を解除</button>
+              <p id="hold-insert-feedback" class="edit-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+            </div>
             <div class="hold-controls">
               <label for="hold-delay" class="section-label">長押しまでの時間（ミリ秒）</label>
               <div class="edit-row">
