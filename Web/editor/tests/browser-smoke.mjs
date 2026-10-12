@@ -407,6 +407,9 @@ try {
     document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
   await page.reload({waitUntil: 'domcontentloaded'});
   await page.locator('button.key[data-entry-id="kana.a"]').waitFor();
+  assert.equal(await page.locator('#app').getAttribute('data-workspace'), 'test',
+    'relaunch defaults to simple verification, not editing');
+  await page.locator('#mode-edit').click();
   await page.locator('button.key[data-entry-id="kana.a"]').click();
   assert.equal(await page.locator('#key-macro-assigned button').count(), 1);
   assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
@@ -452,6 +455,7 @@ try {
   await page.reload({waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => document.querySelector('#rust-status')?.textContent === 'Rust稼働中', null, {timeout: 25000});
   await page.locator('button.key[data-entry-id="kana.a"]').waitFor();
+  await page.locator('#mode-edit').click();
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
   assert.ok((await page.locator('#profile-name').innerText()).includes('Web動作確認'));
   assert.equal(await page.locator('#macro-name').inputValue(), '共有マクロ');
