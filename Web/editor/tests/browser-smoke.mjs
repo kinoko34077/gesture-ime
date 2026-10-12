@@ -222,6 +222,10 @@ try {
   assert.equal(await keyBindingList.locator('button').count(), 1);
   assert.ok((await page.locator('#key-macro-guide').innerText()).includes('実キーボードでの実行は未確認'));
   await page.locator('#save-local').click();
+  // IndexedDB writeDraft is asynchronous; a reload before durable completion
+  // tests a race, not a persisted Macro roundtrip.
+  await page.waitForFunction(() =>
+    document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
   await page.reload({waitUntil: 'domcontentloaded'});
   await page.locator('button.key[data-entry-id="kana.a"]').waitFor();
   await page.locator('button.key[data-entry-id="kana.a"]').click();
