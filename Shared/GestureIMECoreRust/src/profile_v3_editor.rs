@@ -30,6 +30,16 @@ enum EditorCommandV3 {
         macro_id: String,
         actions: Vec<ActionInvocationV3>,
     },
+    SetEntryDefaultMacroInvocation {
+        #[serde(rename = "boardId")]
+        board_id: String,
+        #[serde(rename = "entryId")]
+        entry_id: String,
+        #[serde(rename = "macroId")]
+        macro_id: String,
+        // Required by serde: a missing flag must never silently remove actions.
+        enabled: bool,
+    },
     SetEntryDefaultText {
         #[serde(rename = "boardId")]
         board_id: String,
@@ -144,6 +154,40 @@ impl ProfileEditorV3 {
                 let item = next.macros.iter_mut().find(|item| item.id == macro_id)
                     .ok_or_else(|| format!("Macro not found: {macro_id}"))?;
                 item.actions = actions;
+            }
+            EditorCommandV3::SetEntryDefaultMacroInvocation {
+                board_id, entry_id, macro_id, enabled,
+            } => {
+                if !next.macros.iter().any(|item| item.id == macro_id) {
+                    return Err(format!("Macro not found: {macro_id}"));
+                }
+                let board = next.boards.iter_mut()
+                    .find(|item| item.id == board_id)
+                    .ok_or_else(|| format!("Board not found: {board_id}"))?;
+                let entry = board.entries.iter_mut()
+                    .find(|item| item.id == entry_id)
+                    .ok_or_else(|| format!("Key not found: {board_id}/{entry_id}"))?;
+                let actions = &mut entry.resolver.default.on_release;
+                let matches_macro = |item: &ActionInvocationV3| {
+                    item.action_id == "macro.run"
+                        && item.arguments.get("macro").and_then(Value::as_str)
+                            == Some(macro_id.as_str())
+                };
+                if enabled {
+                    if !actions.iter().any(matches_macro) {
+                        let mut arguments = serde_json::Map::new();
+                        arguments.insert("macro".to_owned(), Value::String(macro_id));
+                        actions.push(ActionInvocationV3 {
+                            action_id: "macro.run".to_owned(),
+                            arguments,
+                            extra: V3Extra::new(),
+                        });
+                    }
+                } else {
+                    // Explicit unassignment removes ONLY the selected Macro call.
+                    // Never rewrite unrelated actions or other resolver fields.
+                    actions.retain(|item| !matches_macro(item));
+                }
             }
             EditorCommandV3::SetEntryDefaultText {
                 board_id,
