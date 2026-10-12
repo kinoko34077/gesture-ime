@@ -371,7 +371,7 @@ function renderHoldEditor() {
   } else if (!key) {
     guide.textContent = 'まず編集したいキーを選択してください。';
   } else if (!root) {
-    guide.textContent = 'この入力面の中央キーを編集できます。前のキーに戻ると長押し設定を確認できます。';
+    guide.textContent = '中央キーの表示文字を編集できます。入力する文字の動作設定は別機能です。前のキーに戻れます。';
   } else if (linked?.hold) {
     guide.textContent = '既存の詳細な長押し設定はこの簡易画面では開けません。';
   } else {
@@ -392,7 +392,7 @@ function openOrCreateHold() {
   const target = reachableHoldForSelected()?.target;
   if (target && state.document.boards.some(board => board.id === target)) {
     openStageBoard(target);
-    keyEditorStatus('hold-feedback', '長押し先を開きました。中央キーを選択して文字を設定できます。');
+    keyEditorStatus('hold-feedback', '長押し先を開きました。中央キーの表示を編集できます（入力動作は別設定）。');
     return;
   }
   const delay = Number($('hold-delay').value);
@@ -418,7 +418,7 @@ function openOrCreateHold() {
       throw new Error('作成後の長押し先を確認できません');
     }
     openStageBoard(destination);
-    keyEditorStatus('hold-feedback', '長押し先を作成しました。中央キーの文字を編集できます。');
+    keyEditorStatus('hold-feedback', '長押し先を作成しました。中央キーの表示を編集できます（入力動作は別設定）。');
   } catch (error) {
     keyEditorStatus('hold-feedback', '長押しを設定できません: ' + String(error?.message || error), true);
   }
