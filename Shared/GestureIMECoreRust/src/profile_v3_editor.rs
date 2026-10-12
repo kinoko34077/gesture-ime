@@ -346,6 +346,12 @@ impl ProfileEditorV3 {
                     }
                     None => (board_id, entry_id),
                 };
+                let serial = (1..=1_000_000u32)
+                    .find(|id| !next.boards.iter()
+                        .any(|board| board.id == format!("board.user.hold.{id}")))
+                    .ok_or_else(|| "no available Hold Board ID".to_owned())?;
+                let hold_board_id = format!("board.user.hold.{serial}");
+                let center_id = format!("entry.user.hold.center.{serial}");
                 let effective_board = next.boards.iter_mut()
                     .find(|board| board.id == effective_board_id)
                     .ok_or_else(|| "Hold source Board is missing".to_owned())?;
@@ -358,12 +364,6 @@ impl ProfileEditorV3 {
                 if endpoint.resolver.default.transition.is_some() {
                     return Err("immediate transition makes this Hold unreachable".to_owned());
                 }
-                let serial = (1..=1_000_000u32)
-                    .find(|id| !next.boards.iter()
-                        .any(|board| board.id == format!("board.user.hold.{id}")))
-                    .ok_or_else(|| "no available Hold Board ID".to_owned())?;
-                let hold_board_id = format!("board.user.hold.{serial}");
-                let center_id = format!("entry.user.hold.center.{serial}");
                 endpoint.resolver.default.hold = Some(HoldBehaviorV3 {
                     delay_ms,
                     on_start: Vec::new(),
