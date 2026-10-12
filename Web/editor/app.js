@@ -10,6 +10,43 @@ const STAGE_DIRECTIONS = [
 ];
 const MAX_LOCAL_FILE_BYTES = 2_000_000;
 const MAX_POINTER_EVENTS = 120;
+const MAX_TEST_CHARACTERS = 2000;
+
+// Browser-only display of actions dispatched by the canonical Rust BoardSession.
+// It is never Profile input or proof of OS keyboard effects.
+function renderTestOutput() {
+  const el = $('test-output');
+  el.dataset.empty = state.testOutput ? 'false' : 'true';
+  el.textContent = state.testOutput || 'キーを押すと、入力された文字をここに表示します';
+}
+function setWorkspaceMode(mode) {
+  const app = $('app');
+  if (!['test','edit'].includes(mode) || !state.inspected) return;
+  const previous = app.dataset.workspace;
+  if (mode === 'test' && previous === 'edit') {
+    state.editLocation = {layerId: state.viewLayerId, boardId: state.viewBoardId,
+      entryId: state.selected?.id};
+    const layer = state.inspected.profile.layers.find(item => item.id === state.viewLayerId);
+    if (layer && layer.rootBoardId !== state.viewBoardId) chooseBoard(layer.id, layer.rootBoardId);
+  } else if (mode === 'edit' && previous === 'test' && state.editLocation) {
+    const prior = state.editLocation;
+    state.editLocation = null;
+    if (state.document?.boards.some(board => board.id === prior.boardId)
+        && state.document?.layers.some(layer => layer.id === prior.layerId)) {
+      chooseBoard(prior.layerId, prior.boardId);
+      setSelected(state.inspected.profile.entries.find(entry => entry.id === prior.entryId) || null);
+    }
+  }
+  app.dataset.workspace = mode;
+  $('mode-test').classList.toggle('active', mode === 'test');
+  $('mode-edit').classList.toggle('active', mode === 'edit');
+  $('mode-test').setAttribute('aria-pressed', String(mode === 'test'));
+  $('mode-edit').setAttribute('aria-pressed', String(mode === 'edit'));
+  $('keyboard-heading').textContent = mode === 'test' ? 'キーボードを試す' : 'キーボードの編集';
+  $('keyboard-subtitle').textContent = mode === 'test'
+    ? 'キーを押して、下の入力結果で動作を確認してください。'
+    : '編集対象のLayerとBoardを選び、キーを変更できます。';
+}
 
 function status(message, failed = false) {
   $('status').textContent = message;
@@ -385,8 +422,8 @@ function hasUnsavedEdits() {
 
 function canReplayCurrentBoard() {
   const profile = state.inspected?.profile;
-  return !!profile && state.viewLayerId === profile.initialLayerId
-    && state.viewBoardId === profile.initialBoardId;
+  const layer = profile?.layers?.find(item => item.id === state.viewLayerId);
+  return !!layer && layer.rootBoardId === state.viewBoardId;
 }
 
 function renderBoardPickers() {
@@ -395,11 +432,22 @@ function renderBoardPickers() {
   const boards = $('board-picker');
   layers.replaceChildren();
   boards.replaceChildren();
+  const tabs = $('test-layer-tabs');
+  tabs.replaceChildren();
   for (const layer of profile.layers) {
     const option = document.createElement('option');
     option.value = layer.id;
     option.textContent = (layer.name || layer.id) + ' · ' + layer.id;
     layers.append(option);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'test-layer-choice';
+    button.textContent = layer.name || layer.id;
+    button.dataset.layerId = layer.id;
+    button.setAttribute('aria-pressed', String(layer.id === state.viewLayerId));
+    if (layer.id === state.viewLayerId) button.classList.add('active');
+    button.addEventListener('click', () => chooseBoard(layer.id, layer.rootBoardId));
+    tabs.append(button);
   }
   for (const board of profile.boards) {
     const option = document.createElement('option');
@@ -412,8 +460,8 @@ function renderBoardPickers() {
   layers.disabled = false;
   boards.disabled = false;
   $('board-preview-state').textContent = canReplayCurrentBoard()
-    ? '初期Board · タップ／フリックを共通Rustで検証'
-    : '編集専用プレビュー · 内部Boardからの操作再生は未対応';
+    ? 'Rust判定が有効 · タップ／フリックを試せます'
+    : '編集専用プレビュー · ここからのジェスチャー再生には非対応';
   $('board-preview-state').dataset.mode = canReplayCurrentBoard() ? 'replay' : 'edit';
 }
 
@@ -508,6 +556,9 @@ function loadEditor(profileJSON, source, saved = false) {
   const result = JSON.parse(editor.snapshot());
   if (!result.ok || !result.snapshot) throw new Error(result.error || 'Profileを開けません');
   state.editor = editor;
+  state.editLocation = null;
+  state.testOutput = '';
+  renderTestOutput();
   resetGestureOutcome();
   state.stageHistory = [];
   $('stage-feedback').textContent = '';
@@ -765,6 +816,7 @@ function finishPointer(event, cancel) {
   if (!cancel) events.push({kind: 'advance', atMs});
   events.push({kind: cancel ? 'cancel' : 'up', atMs});
   const script = {
+    layerId: state.viewLayerId,
     entryId: a.entryId, cellWidth: a.cellWidth, cellHeight: a.cellHeight,
     touchDown: {x: 0, y: 0}, startMs: 0, events,
   };
@@ -779,7 +831,27 @@ function finishPointer(event, cancel) {
     $('trace-actions').textContent = actions.length ? JSON.stringify(actions, null, 2) : '発行された命令はありません';
     const outcome = cancel ? 'キャンセル' : (last.terminal || '判定完了');
     const actionText = actions.length ? actions.map(describeRustAction).join('・') : '発行命令なし';
-    gestureOutcome('Rust判定：' + outcome + ' · ' + actionText + '（ブラウザ内）');
+    const inserted = !cancel && last.terminal === 'Committed'
+      ? actions.filter(action => ['text.insert', 'text.directInsert'].includes(action.actionID))
+        .map(action => action.arguments?.text?.base).filter(text => typeof text === 'string').join('')
+      : '';
+    if (inserted) {
+      state.testOutput = (state.testOutput + inserted).slice(-MAX_TEST_CHARACTERS);
+      renderTestOutput();
+    }
+    if ($('app').dataset.workspace === 'test') {
+      if (cancel) {
+        gestureOutcome('キャンセルしました。文字は追加されません。');
+      } else if (inserted) {
+        gestureOutcome('Rust判定で「' + inserted + '」を入力しました。');
+      } else if (actions.length) {
+        gestureOutcome('Rust判定：' + actionText + '（端末上の操作は実行しません）');
+      } else {
+        gestureOutcome('Rust判定：' + outcome + ' · 入力された文字はありません。');
+      }
+    } else {
+      gestureOutcome('Rust判定：' + outcome + ' · ' + actionText + '（ブラウザ内）');
+    }
     status('Rust判定を実行しました（ブラウザ内のみ）。');
   } catch (error) {
     gestureOutcome('Rust判定エラー：' + String(error?.message || error), true);
@@ -1004,6 +1076,13 @@ $('macro-remove-action').addEventListener('click', () => {
   } catch (e) { macroActionStatus('アクションを削除できません: ' + String(e), true); }
 });
 
+$('mode-test').addEventListener('click', () => setWorkspaceMode('test'));
+$('mode-edit').addEventListener('click', () => setWorkspaceMode('edit'));
+$('clear-test-output').addEventListener('click', () => {
+  state.testOutput = '';
+  renderTestOutput();
+  gestureOutcome('入力結果を消しました。次のキーを試せます。');
+});
 $('layer-picker').addEventListener('change', event => {
   const id = event.target.value;
   const layer = state.inspected.profile.layers.find(item => item.id === id);

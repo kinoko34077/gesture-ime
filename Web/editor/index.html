@@ -11,7 +11,7 @@
   <title>Gesture IME Studio — Web検証</title>
 </head>
 <body>
-  <main id="app">
+  <main id="app" data-workspace="test">
     <header class="app-header">
       <div>
         <p class="eyebrow">Gesture IME / 共通編集基盤</p>
@@ -19,7 +19,12 @@
       </div>
       <span class="mode">Web検証版</span>
     </header>
-    <p class="notice" role="status"><strong>ブラウザ内のみ。</strong> この画面からiOS・Androidの実キーボードには反映されません。候補変換とホスト条件は未接続です。</p>
+    <p class="notice" role="status"><strong>ブラウザ上の動作検証です。</strong> 実際のiPhone・Androidのキーボードには反映されません。</p>
+    <nav class="workspace-modes" role="group" aria-label="画面を切り替える">
+      <button id="mode-test" type="button" class="mode-choice active" aria-pressed="true">⌨ 試す</button>
+      <button id="mode-edit" type="button" class="mode-choice" aria-pressed="false">✎ 編集する</button>
+    </nav>
+    <p id="try-instructions" class="try-instructions">① 種類を選ぶ　② キーをタップ／フリック　③ 下の入力結果を見る</p>
     <section class="toolbar" aria-label="Profile読み込み">
       <div>
         <label class="section-label" for="profile-file">Profile</label>
@@ -40,11 +45,12 @@
       <div class="pane keyboard-pane">
         <div class="pane-header">
           <div>
-            <h2>キーボード</h2>
-            <p>初期Boardでは操作検証、その他のBoardではキー表示と編集</p>
+            <h2 id="keyboard-heading">キーボードを試す</h2>
+            <p id="keyboard-subtitle">実際の共通Rustで判定します。端末の文字入力とは別です。</p>
           </div>
           <span id="board-count" class="small-pill">—</span>
         </div>
+        <div id="test-layer-tabs" class="test-layer-tabs" role="group" aria-label="試すキーボードの種類"></div>
         <div class="board-picker" aria-label="LayerとBoardの選択">
           <div>
             <label class="section-label" for="layer-picker">Layer</label>
@@ -56,12 +62,18 @@
           </div>
         </div>
         <p class="board-preview-state" id="board-preview-state" role="status">初期Boardの入力検証</p>
+        <div class="candidate-preview" aria-label="候補欄のプレースホルダー">候補変換は未接続 · タップ／フリックを検証できます</div>
+        <div id="board" class="keyboard-board" role="group" aria-label="入力プレビュー"></div>
+        <section id="test-output-region" class="test-output-region" aria-label="入力結果">
+          <div class="test-output-head"><strong>入力結果 <small>この画面だけのシミュレーション</small></strong>
+            <button id="clear-test-output" class="action secondary" type="button">消す</button>
+          </div>
+          <div id="test-output" class="test-output" role="status" aria-live="polite" aria-label="シミュレーションの文字列" data-empty="true">キーを押すと、入力された文字をここに表示します</div>
+        </section>
         <div id="gesture-feedback" class="gesture-feedback" aria-label="キーボードの判定結果">
-          <strong id="gesture-result" role="status" aria-live="polite" aria-atomic="true">キーを押すと、ここにRustの判定が表示されます。</strong>
+          <strong id="gesture-result" role="status" aria-live="polite" aria-atomic="true">キーを操作すると判定がここに表示されます。</strong>
           <div id="gesture-guides" class="gesture-guides" hidden aria-label="Rustから取得したフリック候補"></div>
         </div>
-        <div class="candidate-preview" aria-label="候補欄のプレースホルダー">候補欄 · 実際の変換候補は未接続</div>
-        <div id="board" class="keyboard-board" role="group" aria-label="入力プレビュー"></div>
         <div class="detail gesture-detail">
           <span class="section-label">選択キー：<span id="selected-key" class="selected">なし</span></span>
           <p id="trace-state" class="subtle">Rustの判定詳細は操作後に更新されます。</p>
@@ -70,11 +82,11 @@
             <pre id="trace-actions" class="trace-box">—</pre>
           </details>
         </div>
-        <p class="hint">ここでの操作はRustによるブラウザ内シミュレーションです。別のBoardでは編集のみ、実キーボードへの入力や端末条件・変換候補は未接続です。</p>
+        <p class="hint mode-detail-hint">内部Boardは編集専用です。実機への入力、変換候補、端末条件の動作はこのWeb画面では検証できません。</p>
       </div>
       <div class="pane inspector-pane">
         <div class="pane-header">
-          <div><h2>操作結果</h2><p>選択したキーと状態遷移</p></div>
+          <div><h2>編集する</h2><p>キーと入力面を変更・保存</p></div>
           <span id="rust-status" class="small-pill">Rust読込中</span>
         </div>
         <div class="authoring" aria-label="Profile編集">

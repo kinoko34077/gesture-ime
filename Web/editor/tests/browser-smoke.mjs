@@ -22,6 +22,35 @@ try {
     && !document.querySelector('#board-picker')?.disabled,
     null, {timeout: 25000});
 
+  // Real end-user first view: immediately usable test, not long edit forms.
+  assert.equal(await page.locator('#app').getAttribute('data-workspace'), 'test');
+  assert.equal(await page.locator('#mode-test').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('.inspector-pane').isVisible(), false);
+  assert.equal(await page.locator('#layer-picker').isVisible(), false);
+  assert.equal(await page.locator('#test-output').isVisible(), true);
+  assert.ok((await page.locator('#try-instructions').innerText()).includes('タップ'));
+  const firstViewport = await page.locator('#board').boundingBox();
+  assert.ok(firstViewport.y < 560, 'test keyboard should be inside the first phone viewport');
+  await page.locator('button.key[data-entry-id="kana.a"]').click();
+  assert.equal((await page.locator('#test-output').innerText()).trim(), 'あ');
+  await page.locator('.test-layer-choice[data-layer-id="layer.alpha"]').click();
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.alpha.root');
+  assert.equal(await page.locator('#board-preview-state').getAttribute('data-mode'), 'replay');
+  await page.locator('button.key[data-entry-id="alpha.abc"]').click();
+  assert.ok((await page.locator('#test-output').innerText()).trim().length > 1,
+    'Rust replay from Latin Layer must add a dispatched text action');
+  await page.locator('.test-layer-choice[data-layer-id="layer.numbers"]').click();
+  assert.equal(await page.locator('#board-preview-state').getAttribute('data-mode'), 'replay');
+  await page.locator('button.key[data-entry-id="num.1"]').click();
+  assert.ok((await page.locator('#test-output').innerText()).includes('1'),
+    'number Layer must be actually judged by Rust and append the number');
+  await page.locator('#clear-test-output').click();
+  assert.equal(await page.locator('#test-output').getAttribute('data-empty'), 'true');
+  await page.locator('#mode-edit').click();
+  assert.equal(await page.locator('#app').getAttribute('data-workspace'), 'edit');
+  assert.equal(await page.locator('.inspector-pane').isVisible(), true);
+  assert.equal(await page.locator('#layer-picker').isVisible(), true);
+  await page.locator('#layer-picker').selectOption('layer.ja');
   assert.equal(await page.locator('#layer-picker').inputValue(), 'layer.ja');
   assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
   await page.locator('#board-picker').selectOption('board.base.kana.a.flick');
@@ -59,8 +88,8 @@ try {
   assert.equal(await page.locator('#trace-details').evaluate(el => el.open), false,
     'verbose trace stays collapsed by default rather than pushing keyboard feedback away');
   const feedbackNearBoard = await page.locator('#gesture-feedback').evaluate(el =>
-    !!(el.compareDocumentPosition(document.querySelector('#board')) & Node.DOCUMENT_POSITION_FOLLOWING));
-  assert.ok(feedbackNearBoard, 'Rust result must precede keyboard, not follow long edit forms');
+    !!(el.compareDocumentPosition(document.querySelector('#board')) & Node.DOCUMENT_POSITION_PRECEDING));
+  assert.ok(feedbackNearBoard, 'Rust result must immediately follow the keyboard, not be below editing forms');
   await kana.scrollIntoViewIfNeeded();
   const keyBox = await kana.boundingBox();
   const boardBeforePress = await page.locator('#board').boundingBox();
@@ -102,11 +131,11 @@ try {
   assert.ok((await page.locator('#trace-state').innerText()).includes('Committed'),
     'canonical Rust must still judge the actual flick');
 
-  // Non-kana Board has the SAME projected popup, without falsely enabling
-  // Rust replay from a non-initial Layer (which remains edit-only).
+  // Non-kana Layers use the SAME projected popup and now replay canonical
+  // Rust sessions from their validated Layer root, not edit-only pretending.
   await page.locator('#layer-picker').selectOption('layer.alpha');
   assert.equal(await page.locator('#board-picker').inputValue(), 'board.alpha.root');
-  assert.ok((await page.locator('#board-preview-state').innerText()).includes('編集専用'));
+  assert.equal(await page.locator('#board-preview-state').getAttribute('data-mode'), 'replay');
   const latin = page.locator('button.key[data-entry-id="alpha.abc"]');
   await latin.scrollIntoViewIfNeeded();
   const latinBox = await latin.boundingBox();
@@ -115,8 +144,9 @@ try {
   assert.equal(await popup.getAttribute('data-source-entry-id'), 'alpha.abc');
   assert.ok(await popup.locator('.flick-popup-cell:not(.is-center):not(.is-empty)').count() >= 1,
     'Latin hints also derive from the Rust preview');
-  assert.ok((await page.locator('#board-preview-state').innerText()).includes('編集専用'));
   await page.mouse.up();
+  assert.ok((await page.locator('#trace-state').innerText()).includes('Committed'),
+    'Latin root must commit through canonical Rust rather than remain edit-only');
   assert.equal(await popup.count(), 0);
   await page.locator('#layer-picker').selectOption('layer.ja');
   await kana.click(); // Restore the original key selection for Stage authoring tests.
@@ -377,6 +407,9 @@ try {
     document.querySelector('#save-info')?.textContent?.includes('ブラウザに保存済'));
   await page.reload({waitUntil: 'domcontentloaded'});
   await page.locator('button.key[data-entry-id="kana.a"]').waitFor();
+  assert.equal(await page.locator('#app').getAttribute('data-workspace'), 'test',
+    'relaunch defaults to simple verification, not editing');
+  await page.locator('#mode-edit').click();
   await page.locator('button.key[data-entry-id="kana.a"]').click();
   assert.equal(await page.locator('#key-macro-assigned button').count(), 1);
   assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
@@ -422,6 +455,7 @@ try {
   await page.reload({waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => document.querySelector('#rust-status')?.textContent === 'Rust稼働中', null, {timeout: 25000});
   await page.locator('button.key[data-entry-id="kana.a"]').waitFor();
+  await page.locator('#mode-edit').click();
   assert.equal((await page.locator('button.key[data-entry-id="kana.a"] .key-label').innerText()).trim(), '共通Web編集');
   assert.ok((await page.locator('#profile-name').innerText()).includes('Web動作確認'));
   assert.equal(await page.locator('#macro-name').inputValue(), '共有マクロ');

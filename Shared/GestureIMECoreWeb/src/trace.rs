@@ -13,6 +13,8 @@ const MAX_EVENTS: usize = 256;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ReplayRequest {
+    // Omitted on old callers: continue replaying the Profile's initial Layer.
+    layer_id: Option<String>,
     entry_id: String,
     cell_width: f64,
     cell_height: f64,
@@ -87,8 +89,9 @@ fn replay(profile_json: &str, trace_json: &str) -> Result<Value, String> {
     let revision = format!("{}:{}", profile.id, profile.version);
     let runtime = ProfileV3BoardRuntime::compile(&profile, revision.clone())
         .map_err(|error| format!("{error:?}"))?;
+    let layer_id = request.layer_id.as_deref().unwrap_or(&profile.initial_layer_ref);
     let frame = runtime
-        .new_frame(&profile.initial_layer_ref)
+        .new_frame(layer_id)
         .map_err(|error| format!("{error:?}"))?;
     let mut session = runtime
         .begin_direct_session(
@@ -131,6 +134,7 @@ fn replay(profile_json: &str, trace_json: &str) -> Result<Value, String> {
 
     Ok(json!({
         "profileRevision": revision,
+        "layerId": layer_id,
         "entryId": request.entry_id,
         "samples": samples
     }))
@@ -166,6 +170,29 @@ mod tests {
         assert_eq!(value["trace"]["entryId"], "kana.a");
         assert_eq!(value["trace"]["samples"].as_array().unwrap().len(), 3);
         assert_eq!(value["trace"]["samples"][2]["terminal"], "Committed");
+    }
+
+    #[test]
+    fn replays_other_layers_through_the_same_canonical_board_session() {
+        for (layer, entry) in [("layer.alpha", "alpha.abc"), ("layer.numbers", "num.1")] {
+            let req = json!({
+                "layerId": layer, "entryId": entry,
+                "cellWidth": 50.0, "cellHeight": 50.0,
+                "touchDown": {"x": 0.0, "y": 0.0}, "startMs": 0,
+                "events": [{"kind": "up", "atMs": 20}]
+            });
+            let v: Value = serde_json::from_str(&trace_profile_json(PRODUCT, &req.to_string())).unwrap();
+            assert_eq!(v["ok"], true, "{v}");
+            assert_eq!(v["trace"]["layerId"], layer);
+            assert_eq!(v["trace"]["samples"][1]["terminal"], "Committed");
+        }
+    }
+
+    #[test]
+    fn invalid_layer_must_fail_instead_of_silently_replaying_initial_layer() {
+        let req = r#"{"layerId":"layer.no.such","entryId":"kana.a","cellWidth":50,"cellHeight":50,"touchDown":{"x":0,"y":0},"startMs":0,"events":[{"kind":"up","atMs":10}]}"#;
+        let v: Value = serde_json::from_str(&trace_profile_json(PRODUCT, req)).unwrap();
+        assert_eq!(v["ok"], false);
     }
 
     #[test]
