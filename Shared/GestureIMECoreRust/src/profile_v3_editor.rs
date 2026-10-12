@@ -1,7 +1,8 @@
 //! Canonical Profile v3 authoring state shared by Web, iOS and Android.
 //! Platform persistence and UI state are deliberately outside this module.
 use crate::profile_v3::{
-    ActionInvocationV3, BoardTransitionLifetimeV3, BoardTransitionV3, MacroV3,
+    ActionInvocationV3, BoardEntryV3, BoardRectV3, BoardV3, BoardTransitionLifetimeV3,
+    BoardTransitionV3, EndpointBehaviorV3, EntryResolverV3, MacroV3,
     ProfileBundleV3, ResolvedStringV3, V3Extra,
 };
 use crate::profile_v3_validation::ProfileV3Codec;
@@ -39,6 +40,14 @@ enum EditorCommandV3 {
         macro_id: String,
         // Required by serde: a missing flag must never silently remove actions.
         enabled: bool,
+    },
+    CreateDirectionalStage {
+        #[serde(rename = "boardId")]
+        board_id: String,
+        direction: String,
+        // Required: never discard authored output via an omitted flag.
+        #[serde(rename = "replaceExistingOutput")]
+        replace_existing_output: bool,
     },
     SetEntryDefaultText {
         #[serde(rename = "boardId")]
@@ -188,6 +197,110 @@ impl ProfileEditorV3 {
                     // Never rewrite unrelated actions or other resolver fields.
                     actions.retain(|item| !matches_macro(item));
                 }
+            }
+            EditorCommandV3::CreateDirectionalStage {
+                board_id, direction, replace_existing_output,
+            } => {
+                // Fixed 3x3 *authoring* slots. Missing directions are not
+                // semantic hit targets until explicitly authored.
+                let (dx, dy, short) = match direction.as_str() {
+                    "northWest" => (-3, -3, "nw"),
+                    "north" => (-1, -3, "n"),
+                    "northEast" => (1, -3, "ne"),
+                    "west" => (-3, -1, "w"),
+                    "east" => (1, -1, "e"),
+                    "southWest" => (-3, 1, "sw"),
+                    "south" => (-1, 1, "s"),
+                    "southEast" => (1, 1, "se"),
+                    _ => return Err("direction must be one of the eight named directions".to_owned()),
+                };
+                let rect = BoardRectV3 {
+                    x: dx, y: dy, width: 2, height: 2, extra: V3Extra::new()
+                };
+                let board_index = next.boards.iter()
+                    .position(|board| board.id == board_id)
+                    .ok_or_else(|| format!("Board not found: {board_id}"))?;
+                let parent = &next.boards[board_index];
+                if !parent.entries.iter().any(|entry| entry.rect.contains_origin()) {
+                    return Err("directional Stage needs a Board with an origin".to_owned());
+                }
+                let overlaps: Vec<usize> = parent.entries.iter().enumerate()
+                    .filter(|(_, entry)| entry.rect.overlaps_positive_area(&rect))
+                    .map(|(index, _)| index).collect();
+                if overlaps.len() > 1 {
+                    return Err("direction overlaps several existing inputs".to_owned());
+                }
+                if let Some(&index) = overlaps.first() {
+                    let previous = &parent.entries[index];
+                    if previous.rect.x != dx || previous.rect.y != dy
+                        || previous.rect.width != 2 || previous.rect.height != 2
+                    {
+                        return Err("direction is occupied by a nonstandard input region".to_owned());
+                    }
+                    let behavior = &previous.resolver.default;
+                    if !previous.resolver.cases.is_empty() || behavior.hold.is_some() {
+                        return Err("existing conditions or Hold require advanced editing".to_owned());
+                    }
+                    if behavior.transition.is_some() {
+                        return Err("direction already has a next Stage".to_owned());
+                    }
+                    if !behavior.on_release.is_empty() && !replace_existing_output {
+                        return Err("confirm before replacing this direction's output".to_owned());
+                    }
+                }
+                let serial = (1..=1_000_000u32)
+                    .find(|id| !next.boards.iter()
+                        .any(|board| board.id == format!("board.user.stage.{id}")))
+                    .ok_or_else(|| "no available Stage Board ID".to_owned())?;
+                let target_id = format!("board.user.stage.{serial}");
+                let target_center_id = format!("entry.user.stage.center.{serial}");
+                let parent_entry_id = format!("entry.user.direction.{short}.{serial}");
+                let transition = BoardTransitionV3 {
+                    target_board_ref: target_id.clone(),
+                    lifetime: BoardTransitionLifetimeV3::Transient,
+                    extra: V3Extra::new(),
+                };
+                let parent = &mut next.boards[board_index];
+                if let Some(&index) = overlaps.first() {
+                    let behavior = &mut parent.entries[index].resolver.default;
+                    // The explicit replacement flag is required for nonempty output.
+                    behavior.on_release.clear();
+                    behavior.transition = Some(transition);
+                } else {
+                    parent.entries.push(BoardEntryV3 {
+                        id: parent_entry_id,
+                        rect,
+                        resolver: EntryResolverV3 {
+                            cases: Vec::new(),
+                            default: EndpointBehaviorV3 {
+                                transition: Some(transition),
+                                ..EndpointBehaviorV3::default()
+                            },
+                            extra: V3Extra::new(),
+                        },
+                        gesture_policy_override: None,
+                        guide_label_overrides: None,
+                        extra: V3Extra::new(),
+                    });
+                }
+                next.boards.push(BoardV3 {
+                    id: target_id,
+                    entries: vec![BoardEntryV3 {
+                        id: target_center_id,
+                        rect: BoardRectV3 {
+                            x: -1, y: -1, width: 2, height: 2, extra: V3Extra::new()
+                        },
+                        resolver: EntryResolverV3 {
+                            cases: Vec::new(),
+                            default: EndpointBehaviorV3::default(),
+                            extra: V3Extra::new(),
+                        },
+                        gesture_policy_override: None,
+                        guide_label_overrides: None,
+                        extra: V3Extra::new(),
+                    }],
+                    extra: V3Extra::new(),
+                });
             }
             EditorCommandV3::SetEntryDefaultText {
                 board_id,
