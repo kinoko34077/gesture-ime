@@ -14,8 +14,25 @@
 .key.has-flick-guides .key-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:38%;font-size:clamp(.75rem,2.5vw,1.05rem);line-height:1.1;text-align:center}
 .key.has-flick-guides .flick-guide{position:absolute;pointer-events:none;user-select:none;top:50%;left:50%;transform:translate(-50%,-50%);max-width:31%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:clamp(.53rem,1.45vw,.76rem);line-height:1.05;color:#53668e}
 .key.has-flick-guides.pressed .flick-guide{color:#1d4489}
-@media(max-width:380px){.key.has-flick-guides .flick-guide{font-size:.57rem}.key.has-flick-guides .key-label{font-size:.84rem}}
+@media(max-width:380px){.key.has-flick-guides .flick-guide{font-size:.64rem}.key.has-flick-guides .key-label{font-size:.84rem}}
 
+
+/* The keyboard and its Rust result must remain one visual task, even on phones. */
+.gesture-feedback{position:relative;z-index:2;display:grid;gap:5px;margin:0 0 8px;padding:10px 12px;background:#edf3ff;border:1px solid #bdcced;border-radius:11px;color:#24406b;font-size:.88rem;overflow-wrap:anywhere}
+#gesture-result{font-weight:700;line-height:1.4}
+.gesture-guides{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.gesture-guides[hidden]{display:none}
+.gesture-guide-item{padding:3px 7px;border:1px solid #a8bcdf;border-radius:7px;background:white;font-weight:700;font-size:.79rem}
+.gesture-detail{margin-top:8px;padding:7px 9px;border-radius:9px;background:#f7f9fe}
+.gesture-detail .section-label{margin:0 0 4px}
+.gesture-detail .selected{display:inline;margin:0;font-size:.88rem}
+.gesture-detail #trace-state{margin:2px 0 4px;overflow-wrap:anywhere}
+.trace-details summary{cursor:pointer;font-size:.8rem;color:#37578e;min-height:32px;display:list-item}
+.trace-details .trace-box{margin:6px 0 2px;max-height:170px;overflow:auto;min-height:0}
+@media(max-width:750px){
+  .gesture-feedback{position:sticky;top:0;margin-top:0;padding:8px 10px;box-shadow:0 2px 8px #1c31551a}
+  .gesture-guide-item{font-size:.76rem}
+}
 
 /* Layer/Board selection operates only on validated Rust preview metadata. */
 .board-picker{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:10px;margin:0 0 8px}
