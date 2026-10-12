@@ -57,6 +57,15 @@ enum EditorCommandV3 {
         #[serde(rename = "delayMs")]
         delay_ms: i64,
     },
+    SetHoldCenterInsertText {
+        #[serde(rename = "boardId")]
+        board_id: String,
+        #[serde(rename = "entryId")]
+        entry_id: String,
+        // Value is mandatory: null deliberately removes an authored insertion,
+        // but an omitted field must never clear the output silently.
+        text: Value,
+    },
     SetEntryDefaultText {
         #[serde(rename = "boardId")]
         board_id: String,
@@ -426,6 +435,73 @@ impl ProfileEditorV3 {
                     }],
                     extra: V3Extra::new(),
                 });
+            }
+            EditorCommandV3::SetHoldCenterInsertText {
+                board_id, entry_id, text,
+            } => {
+                let new_text = match text {
+                    Value::String(text) if !text.is_empty() && text.chars().count() <= 256 => Some(text),
+                    Value::Null => None,
+                    _ => return Err("Hold insertion text must be 1–256 characters, or explicit null".to_owned()),
+                };
+                // Only a validated Hold destination, never a production root
+                // key, can be altered through this deliberately narrow command.
+                let is_hold_target = next.boards.iter().flat_map(|board| board.entries.iter())
+                    .any(|entry| std::iter::once(&entry.resolver.default)
+                        .chain(entry.resolver.cases.iter().map(|case| &case.behavior))
+                        .any(|behavior| behavior.hold.as_ref()
+                            .and_then(|hold| hold.transition.as_ref())
+                            .is_some_and(|transition| transition.target_board_ref == board_id)));
+                if !is_hold_target {
+                    return Err("the selected Board is not a reachable Hold destination".to_owned());
+                }
+                let board = next.boards.iter_mut()
+                    .find(|board| board.id == board_id)
+                    .ok_or_else(|| format!("Hold Board not found: {board_id}"))?;
+                if board.entries.len() != 1 || !board.entries[0].rect.contains_origin()
+                    || board.entries[0].id != entry_id {
+                    return Err("Hold insertion can edit only the sole center entry".to_owned());
+                }
+                let entry = &mut board.entries[0];
+                if !entry.resolver.cases.is_empty() {
+                    return Err("conditional Hold output requires advanced editing".to_owned());
+                }
+                let actions = &mut entry.resolver.default.on_release;
+                let text_indices: Vec<usize> = actions.iter().enumerate()
+                    .filter(|(_, a)| a.action_id == "text.insert").map(|(i, _)| i).collect();
+                if text_indices.len() > 1 {
+                    return Err("multiple text.insert actions require advanced editing".to_owned());
+                }
+                if let Some(new_text) = new_text {
+                    if let Some(&index) = text_indices.first() {
+                        // Preserve all additional arguments/transforms, ordering,
+                        // unrelated actions, conditional rules, and presentation.
+                        let value = actions[index].arguments.get_mut("text")
+                            .and_then(Value::as_object_mut)
+                            .and_then(|t| t.get_mut("base"))
+                            .ok_or_else(|| "advanced text.insert requires separate editing".to_owned())?;
+                        if !value.is_string() {
+                            return Err("advanced text.insert requires separate editing".to_owned());
+                        }
+                        *value = Value::String(new_text);
+                    } else {
+                        let mut arguments = serde_json::Map::new();
+                        arguments.insert("text".to_owned(), json!({
+                            "base": new_text, "transforms": []
+                        }));
+                        actions.push(ActionInvocationV3 {
+                            action_id: "text.insert".to_owned(),
+                            arguments,
+                            extra: V3Extra::new(),
+                        });
+                    }
+                } else {
+                    // Explicit null removes only the sole default text insertion,
+                    // preserving any other action and authored presentation.
+                    if let Some(&index) = text_indices.first() {
+                        actions.remove(index);
+                    }
+                }
             }
             EditorCommandV3::SetEntryDefaultText {
                 board_id,
