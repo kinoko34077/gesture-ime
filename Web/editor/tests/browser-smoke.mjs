@@ -70,6 +70,9 @@ try {
   assert.ok((await page.locator('#entry-transition-feedback').innerText()).includes('遷移先を変更しました'));
   assert.equal(await target.inputValue(), 'board.base.kana.ka.flick');
   assert.equal(await lifetime.inputValue(), 'persistent');
+  // An idempotent Rust edit must say "no change", not falsely imply a second commit.
+  await page.locator('#apply-entry-transition').click();
+  assert.ok((await page.locator('#entry-transition-feedback').innerText()).includes('変更されていません'));
   assert.ok((await page.locator('#save-info').innerText()).includes('未保存の編集'));
   const changedGuides = await kana.locator('.flick-guide').allTextContents();
   assert.notDeepStrictEqual(changedGuides, initialGuides, 'Rust preview guides must follow the selected transition');
