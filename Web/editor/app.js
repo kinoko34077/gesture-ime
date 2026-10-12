@@ -161,7 +161,7 @@ function keyEditorStatus(id, message, failed = false) {
   status(message, failed);
 }
 function clearKeyEditorFeedback() {
-  for (const id of ['entry-text-feedback', 'entry-transition-feedback', 'hold-feedback']) {
+  for (const id of ['entry-text-feedback', 'entry-transition-feedback', 'hold-feedback', 'hold-insert-feedback']) {
     const element = $(id);
     element.textContent = '';
     delete element.dataset.result;
@@ -349,7 +349,27 @@ function reachableHoldForSelected() {
   const hold = origin?.resolver?.default?.hold;
   return hold ? {hold, target: hold.transition?.targetBoardRef || null} : {hold: null, target: null};
 }
+function isSelectedHoldCenter() {
+  const center = selectedKeyDocument();
+  if (!center || !hasOrigin(center)) return false;
+  return !!state.document?.boards?.some(board => board.entries.some(entry =>
+    [entry.resolver?.default, ...(entry.resolver?.cases ?? []).map(c => c.behavior)]
+      .some(behavior => behavior?.hold?.transition?.targetBoardRef === state.viewBoardId)));
+}
+function authoredHoldInsertText() {
+  const entry = selectedKeyDocument();
+  return entry?.resolver?.default?.onRelease?.find(action => action.actionID === 'text.insert')
+    ?.arguments?.text?.base ?? '';
+}
 function renderHoldEditor() {
+  const isHoldCenter = isSelectedHoldCenter();
+  const outputControls = $('hold-output-controls');
+  outputControls.hidden = !isHoldCenter;
+  if (isHoldCenter) {
+    const text = authoredHoldInsertText();
+    $('hold-insert-text').value = typeof text === 'string' ? text : '';
+    $('hold-remove-insert').disabled = !text;
+  }
   const button = $('hold-open');
   const delay = $('hold-delay');
   const guide = $('hold-guide');
@@ -371,7 +391,9 @@ function renderHoldEditor() {
   } else if (!key) {
     guide.textContent = 'まず編集したいキーを選択してください。';
   } else if (!root) {
-    guide.textContent = '中央キーの表示文字を編集できます。入力する文字の動作設定は別機能です。前のキーに戻れます。';
+    guide.textContent = isHoldCenter
+      ? '下の欄で入力文字を設定できます。前のキーに戻って動作を試せます。'
+      : 'この入力面は編集用プレビューです。前のキーに戻れます。';
   } else if (linked?.hold) {
     guide.textContent = '既存の詳細な長押し設定はこの簡易画面では開けません。';
   } else {
@@ -421,6 +443,26 @@ function openOrCreateHold() {
     keyEditorStatus('hold-feedback', '長押し先を作成しました。中央キーの表示を編集できます（入力動作は別設定）。');
   } catch (error) {
     keyEditorStatus('hold-feedback', '長押しを設定できません: ' + String(error?.message || error), true);
+  }
+}
+function applyHoldInsertText(remove = false) {
+  if (!isSelectedHoldCenter() || !state.selected) return;
+  const text = $('hold-insert-text').value;
+  if (!remove && (!text || [...text].length > 256)) {
+    keyEditorStatus('hold-insert-feedback', '入力文字を1〜256文字で指定してください。', true);
+    return;
+  }
+  try {
+    const result = applyCommand({
+      type: 'setHoldCenterInsertText',
+      boardId: state.inspected.profile.boardId, entryId: state.selected.id,
+      text: remove ? null : text
+    }, remove ? '長押し入力文字を解除' : '長押し入力文字を設定');
+    keyEditorStatus('hold-insert-feedback',
+      result.changed ? (remove ? '文字入力を解除しました。' : '長押し時の入力文字を設定しました。')
+        : '文字入力は変更されていません。');
+  } catch (error) {
+    keyEditorStatus('hold-insert-feedback', '入力文字を変更できません: ' + String(error), true);
   }
 }
 function keyMacroBindingStatus(message, failed = false) {
@@ -1003,6 +1045,8 @@ $('stage-grid').addEventListener('click', event => {
 $('stage-back').addEventListener('click', returnToPreviousKey);
 $('hold-back').addEventListener('click', returnToPreviousKey);
 $('hold-open').addEventListener('click', openOrCreateHold);
+$('hold-apply-insert').addEventListener('click', () => applyHoldInsertText(false));
+$('hold-remove-insert').addEventListener('click', () => applyHoldInsertText(true));
 $('profile-file').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   if (!file) return;
