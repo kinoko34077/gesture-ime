@@ -54,6 +54,29 @@ try {
   assert.ok((await kana.getAttribute('aria-label')).includes('フリック候補'));
   assert.ok((await page.locator('#save-info').innerText()).includes('未変更'));
   await kana.click();
+  assert.ok((await page.locator('#gesture-result').innerText()).includes('Rust判定：'),
+    'visible keyboard-adjacent feedback must report canonical Rust result on release');
+  assert.equal(await page.locator('#trace-details').evaluate(el => el.open), false,
+    'verbose trace stays collapsed by default rather than pushing keyboard feedback away');
+  const feedbackNearBoard = await page.locator('#gesture-feedback').evaluate(el =>
+    !!(el.compareDocumentPosition(document.querySelector('#board')) & Node.DOCUMENT_POSITION_FOLLOWING));
+  assert.ok(feedbackNearBoard, 'Rust result must precede keyboard, not follow long edit forms');
+  await kana.scrollIntoViewIfNeeded();
+  const keyBox = await kana.boundingBox();
+  await page.mouse.move(keyBox.x + keyBox.width / 2, keyBox.y + keyBox.height / 2);
+  await page.mouse.down();
+  assert.ok((await page.locator('#gesture-result').innerText()).includes('指を離した後'));
+  assert.equal(await page.locator('#gesture-guides').isVisible(), true,
+    'press must reveal legible Rust-provided flick candidates, not only clipped badges');
+  assert.ok((await page.locator('#gesture-guides').innerText()).includes('い'),
+    'Rust-projected left flick output must appear beside active keyboard');
+  assert.ok(await page.locator('#gesture-guides .gesture-guide-item').count() >= 4);
+  await page.mouse.up();
+  assert.ok((await page.locator('#gesture-result').innerText()).includes('Rust判定：'));
+  await page.locator('#trace-details summary').click();
+  assert.equal(await page.locator('#trace-details').evaluate(el => el.open), true);
+  assert.ok((await page.locator('#trace-actions').innerText()).length > 1);
+  await page.locator('#trace-details summary').click();
   const original = (await kana.locator('.key-label').innerText()).trim();
   assert.ok(original);
   // M3l: the selected ordinary key exposes eight virtual directions without
@@ -281,6 +304,12 @@ try {
   assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
   // Narrow-screen + keyboard-accessible controls: no offscreen Key Macro editor.
   await page.setViewportSize({width: 320, height: 844});
+  const visibleFeedbackWidth = await page.locator('#gesture-feedback').evaluate(el => ({
+    actual: el.getBoundingClientRect().width,
+    viewport: window.innerWidth
+  }));
+  assert.ok(visibleFeedbackWidth.actual <= visibleFeedbackWidth.viewport,
+    'gesture feedback must fit the 320px mobile viewport without horizontal overflow');
   const keyMacroBounds = await page.locator('.key-macro-editor').evaluate(el => ({
     width: el.getBoundingClientRect().width, screen: window.innerWidth
   }));
