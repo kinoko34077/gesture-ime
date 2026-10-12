@@ -63,14 +63,81 @@ function updateTransitionControls(entry) {
   lifetime.disabled = !entry || !target.value;
   apply.disabled = !entry;
 }
+function selectedKeyDocument() {
+  const board = state.document?.boards?.find(b => b.id === state.inspected?.profile?.boardId);
+  return board?.entries?.find(e => e.id === state.selected?.id) ?? null;
+}
+function keyMacroBindingStatus(message, failed = false) {
+  const el = $('key-macro-feedback');
+  el.textContent = message;
+  el.dataset.result = failed ? 'error' : 'success';
+  status(message, failed);
+}
+// Display authored Macro references only. All changes/validation execute in Rust.
+function updateKeyMacroBindings() {
+  const key = selectedKeyDocument();
+  const macros = state.document?.macros ?? [];
+  const assigned = [...new Set((key?.resolver?.default?.onRelease ?? [])
+    .filter(a => a.actionID === 'macro.run')
+    .map(a => a.arguments?.macro)
+    .filter(id => typeof id === 'string'))];
+  const list = $('key-macro-assigned');
+  list.replaceChildren();
+  if (!key || !assigned.length) {
+    const empty = document.createElement('li');
+    empty.textContent = key ? '割当なし' : 'まずキーを選択';
+    list.append(empty);
+  }
+  for (const id of assigned) {
+    const row = document.createElement('li');
+    const macro = macros.find(m => m.id === id);
+    const name = document.createElement('span');
+    name.textContent = macro?.name || '参照先不明のマクロ';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'action secondary';
+    remove.dataset.macroId = id;
+    remove.textContent = '外す';
+    remove.setAttribute('aria-label', (macro?.name || '参照先不明のマクロ') + 'の割当を外す');
+    row.append(name, remove);
+    list.append(row);
+  }
+  const picker = $('key-macro-picker');
+  const previous = picker.value;
+  picker.replaceChildren();
+  const available = macros.filter(m => !assigned.includes(m.id));
+  const blank = document.createElement('option');
+  blank.value = '';
+  blank.textContent = available.length ? 'マクロを選ぶ' : '割当できるマクロなし';
+  picker.append(blank);
+  for (const m of available) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name || '(名前未設定)';
+    picker.append(opt);
+  }
+  picker.value = available.some(m => m.id === previous) ? previous : '';
+  picker.disabled = !key || !available.length;
+  $('key-macro-attach').disabled = !key || !picker.value;
+  $('key-macro-open-editor').hidden = !!macros.length;
+  $('key-macro-guide').textContent = !key
+    ? 'キーボードからキーを選択してください。'
+    : 'ここでの割当はProfileへの保存用です。実キーボードでの実行は未確認です。';
+}
 function setSelected(entry) {
+  const nextKey = entry ? state.inspected.profile.boardId + '/' + entry.id : null;
+  if (state.keyMacroSelection !== nextKey) $('key-macro-feedback').textContent = '';
+  state.keyMacroSelection = nextKey;
   state.selected = entry;
-  $('selected-key').textContent = entry ? entry.id : 'なし';
+  $('selected-key').textContent = entry
+    ? (entry.text || authoredBaseText(state.inspected.profile.boardId, entry.id) || entry.id)
+    : 'なし';
   document.querySelectorAll('.key').forEach(key => key.classList.toggle('selected', key.dataset.entryId === entry?.id));
   $('entry-text').disabled = !entry;
   $('apply-key-text').disabled = !entry;
   $('entry-text').value = entry ? authoredBaseText(state.inspected.profile.boardId, entry.id) : '';
   updateTransitionControls(entry);
+  updateKeyMacroBindings();
 }
 function editorSnapshot() {
   if (!state.editor) throw new Error('編集エンジンを読み込んでいません');
@@ -542,6 +609,43 @@ $('apply-entry-transition').addEventListener('click', () => {
   }
 });
 
+$('key-macro-picker').addEventListener('change', () => {
+  $('key-macro-attach').disabled = !$('key-macro-picker').value || !state.selected;
+});
+$('key-macro-attach').addEventListener('click', () => {
+  const entry = state.selected;
+  const macroId = $('key-macro-picker').value;
+  if (!entry || !macroId) return;
+  try {
+    const name = state.document?.macros?.find(m => m.id === macroId)?.name || 'マクロ';
+    const result = applyCommand({
+      type: 'setEntryDefaultMacroInvocation', boardId: state.inspected.profile.boardId,
+      entryId: entry.id, macroId, enabled: true
+    }, 'マクロ割当');
+    keyMacroBindingStatus(result.changed ? name + 'を割り当てました。' : '既に割り当て済みです。');
+  } catch (error) {
+    keyMacroBindingStatus('割当失敗: ' + String(error), true);
+  }
+});
+$('key-macro-assigned').addEventListener('click', event => {
+  const remove = event.target.closest('button[data-macro-id]');
+  if (!remove || !state.selected) return;
+  const macroId = remove.dataset.macroId;
+  const name = state.document?.macros?.find(m => m.id === macroId)?.name || 'マクロ';
+  try {
+    const result = applyCommand({
+      type: 'setEntryDefaultMacroInvocation', boardId: state.inspected.profile.boardId,
+      entryId: state.selected.id, macroId, enabled: false
+    }, 'マクロ割当解除');
+    keyMacroBindingStatus(result.changed ? name + 'の割当を外しました。' : '割当はありません。');
+  } catch (error) {
+    keyMacroBindingStatus('解除失敗: ' + String(error), true);
+  }
+});
+$('key-macro-open-editor').addEventListener('click', () => {
+  $('macro-create-name').focus();
+  $('macro-create-name').scrollIntoView({block: 'center'});
+});
 $('macro-select').addEventListener('change', event => {
   state.macroId = event.target.value;
   state.macroActionIndex = -1;
