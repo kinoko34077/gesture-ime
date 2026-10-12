@@ -127,6 +127,27 @@ try {
   await kana.dispatchEvent('pointercancel', {pointerId: 1, isPrimary: true, bubbles: true});
   assert.equal(await popup.count(), 0);
   await page.mouse.up();
+
+  // Dispatch actual browser touch input (not only a mouse with a mobile viewport).
+  // The popup must survive the swipe and leave Rust as the sole release judge.
+  await kana.scrollIntoViewIfNeeded();
+  const touchBox = await kana.boundingBox();
+  const tx = Math.round(touchBox.x + touchBox.width / 2);
+  const ty = Math.round(touchBox.y + touchBox.height / 2);
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart', touchPoints: [{x: tx, y: ty, id: 0}]
+  });
+  assert.equal(await popup.count(), 1, 'real Chromium touchstart reveals key-anchored hint');
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove', touchPoints: [{x: tx - 48, y: ty, id: 0}]
+  });
+  assert.equal(await popup.count(), 1, 'real touchmove leaves the popup visible');
+  await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
+  assert.equal(await popup.count(), 0, 'real touchend clears popup');
+  assert.ok((await page.locator('#trace-state').innerText()).includes('Committed'),
+    'Rust must commit touch flick as well as mouse flick');
+  await cdp.detach();
   await page.locator('#trace-details summary').click();
   assert.equal(await page.locator('#trace-details').evaluate(el => el.open), true);
   assert.ok((await page.locator('#trace-actions').innerText()).length > 1);
