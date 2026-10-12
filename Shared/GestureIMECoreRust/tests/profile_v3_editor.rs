@@ -664,3 +664,120 @@ fn reachable_hold_does_not_change_another_key_sharing_the_same_relative_board() 
     assert_eq!(editor.revision(), 0);
     assert!(!editor.can_undo());
 }
+
+
+#[test]
+fn hold_center_input_inserts_real_rust_action_after_due_time_without_changing_tap() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let before = value(&editor.export_json().unwrap());
+    let create = json!({"type":"createReachableHoldSurface",
+        "boardId":"board.ja.root","entryId":"kana.a","delayMs":480});
+    assert!(editor.apply_command_json(&create.to_string(), editor.revision()).unwrap());
+    let profile = value(&editor.export_json().unwrap());
+    let origin = profile["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.base.kana.a.flick").unwrap()
+        ["entries"].as_array().unwrap().iter()
+        .find(|e| e["id"] == "kana.a.tap").unwrap();
+    let destination = origin["resolver"]["default"]["hold"]["transition"]["targetBoardRef"]
+        .as_str().unwrap().to_string();
+    let dest = profile["boards"].as_array().unwrap().iter().find(|b| b["id"] == destination).unwrap();
+    let center_id = dest["entries"][0]["id"].as_str().unwrap().to_string();
+    let set = json!({"type":"setHoldCenterInsertText",
+        "boardId":destination,"entryId":center_id,"text":"長押し文字"});
+    assert!(editor.apply_command_json(&set.to_string(), editor.revision()).unwrap());
+    let after = value(&editor.export_json().unwrap());
+    let root_before = before["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.ja.root").unwrap();
+    let root_after = after["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.ja.root").unwrap();
+    assert_eq!(root_after, root_before, "root tap/cardinal behaviour is unchanged");
+    let inserted = after["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == destination).unwrap();
+    assert_eq!(inserted["entries"][0]["resolver"]["default"]["onRelease"][0]["actionID"], "text.insert");
+    assert_eq!(inserted["entries"][0]["resolver"]["default"]["onRelease"][0]["arguments"]["text"]["base"], "長押し文字");
+    assert!(ProfileEditorV3::open(&editor.export_json().unwrap()).is_ok());
+    let profile = ProfileV3Codec::decode_and_validate(editor.export_json().unwrap().as_bytes()).unwrap();
+    let runtime = ProfileV3BoardRuntime::compile(&profile, "hold-text-output").unwrap();
+    let frame = runtime.new_frame("layer.ja").unwrap();
+    let mut session = runtime.begin_direct_session(
+        frame, "kana.a",
+        GestureSize {width:100.0,height:50.0}, GesturePoint{x:0.0,y:0.0}, 0,
+        Box::<DefaultBoardSemanticsV3>::default()
+    ).unwrap();
+    session.advance_time(479);
+    assert_eq!(session.current_board_id, "board.base.kana.a.flick");
+    session.advance_time(480);
+    assert_eq!(session.current_board_id, destination);
+    session.touch_up(Some(520));
+    assert!(session.dispatched_actions.iter().any(|a|
+        a.action_id == "text.insert"
+        && a.arguments.get("text").and_then(|x| x.get("base")).and_then(Value::as_str)
+            == Some("長押し文字")), "actual Rust BoardSession must dispatch authored Hold center text");
+    let frame = runtime.new_frame("layer.ja").unwrap();
+    let mut tap = runtime.begin_direct_session(
+        frame, "kana.a",
+        GestureSize {width:100.0,height:50.0}, GesturePoint{x:0.0,y:0.0}, 0,
+        Box::<DefaultBoardSemanticsV3>::default()
+    ).unwrap();
+    tap.touch_up(Some(50));
+    assert!(tap.dispatched_actions.iter().all(|a|
+        a.arguments.get("text").and_then(|x| x.get("base")).and_then(Value::as_str)
+            != Some("長押し文字")), "quick tap must never emit Hold output");
+    assert!(editor.undo().unwrap()); // output only
+    let no_output = value(&editor.export_json().unwrap());
+    assert_eq!(no_output["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == destination).unwrap()
+        ["entries"][0]["resolver"]["default"]["onRelease"].as_array().unwrap().len(), 0);
+    assert!(editor.redo().unwrap());
+    assert_eq!(value(&editor.export_json().unwrap()), after);
+}
+
+#[test]
+fn hold_center_text_command_rejects_unsafe_targets_and_clears_only_explicitly() {
+    let mut editor = ProfileEditorV3::open(PRODUCT).unwrap();
+    let create = json!({"type":"createReachableHoldSurface",
+        "boardId":"board.alpha.root","entryId":"alpha.abc","delayMs":500});
+    assert!(editor.apply_command_json(&create.to_string(), editor.revision()).unwrap());
+    let profile = value(&editor.export_json().unwrap());
+    let relative = profile["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == "board.alpha.alpha.abc.flick").unwrap();
+    let origin = relative["entries"].as_array().unwrap().iter()
+        .find(|e| e["rect"]["x"] == -1 && e["rect"]["y"] == -1).unwrap();
+    let dest_id = origin["resolver"]["default"]["hold"]["transition"]["targetBoardRef"]
+        .as_str().unwrap().to_string();
+    let hold_board = profile["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == dest_id).unwrap();
+    let center = hold_board["entries"][0]["id"].as_str().unwrap().to_string();
+    let before = editor.export_json().unwrap();
+    let rev = editor.revision();
+    for command in [
+        json!({"type":"setHoldCenterInsertText","boardId":"board.alpha.root",
+            "entryId":"alpha.abc","text":"x"}),
+        json!({"type":"setHoldCenterInsertText","boardId":dest_id,"entryId":center}),
+        json!({"type":"setHoldCenterInsertText","boardId":dest_id,"entryId":center,"text":""}),
+        json!({"type":"setHoldCenterInsertText","boardId":dest_id,"entryId":center,"text":17}),
+        json!({"type":"setHoldCenterInsertText","boardId":dest_id,"entryId":"unknown","text":"x"}),
+        json!({"type":"setHoldCenterInsertText","boardId":dest_id,"entryId":center,
+            "text":"x".repeat(257)}),
+    ] {
+        assert!(editor.apply_command_json(&command.to_string(), rev).is_err(), "{command}");
+        assert_eq!(editor.revision(), rev);
+        assert_eq!(editor.export_json().unwrap(), before);
+    }
+    let add = json!({"type":"setHoldCenterInsertText",
+        "boardId":dest_id,"entryId":center,"text":"a"});
+    assert!(editor.apply_command_json(&add.to_string(), editor.revision()).unwrap());
+    assert!(!editor.apply_command_json(&add.to_string(), editor.revision()).unwrap());
+    let remove = json!({"type":"setHoldCenterInsertText",
+        "boardId":dest_id,"entryId":center,"text":null});
+    assert!(editor.apply_command_json(&remove.to_string(), editor.revision()).unwrap());
+    let after = value(&editor.export_json().unwrap());
+    assert_eq!(after["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == dest_id).unwrap()
+        ["entries"][0]["resolver"]["default"]["onRelease"].as_array().unwrap().len(), 0);
+    assert!(editor.undo().unwrap());
+    let restored = value(&editor.export_json().unwrap());
+    assert_eq!(restored["boards"].as_array().unwrap().iter()
+        .find(|b| b["id"] == dest_id).unwrap()
+        ["entries"][0]["resolver"]["default"]["onRelease"][0]["arguments"]["text"]["base"], "a");
+}
