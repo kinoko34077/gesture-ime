@@ -89,6 +89,18 @@
             <button id="apply-entry-transition" type="button" class="action secondary" disabled>遷移を適用</button>
             <p class="hint">対象は選択キーの標準遷移のみです。条件別の動作・Hold中の遷移は変更しません。</p>
           </div>
+          <section class="key-macro-editor" aria-label="選択キーのマクロ割当">
+            <h3>このキーのマクロ</h3>
+            <ul id="key-macro-assigned" class="key-macro-assigned" aria-label="割当済みのマクロ"><li>まずキーを選択</li></ul>
+            <label class="section-label" for="key-macro-picker">追加するマクロ</label>
+            <div class="edit-row">
+              <select id="key-macro-picker" disabled aria-label="このキーへ割り当てるマクロ"><option value="">キーを選択</option></select>
+              <button id="key-macro-attach" class="action secondary" type="button" disabled>割り当てる</button>
+            </div>
+            <button id="key-macro-open-editor" class="action secondary" type="button" hidden>マクロを作る</button>
+            <p id="key-macro-feedback" class="macro-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+            <p id="key-macro-guide" class="hint">キーボードからキーを選択してください。</p>
+          </section>
           <p class="hint">編集・取り消しは共通Rustで処理します。保存先はこのブラウザのみで、実機キーボードには反映されません。</p>
         </div>
 
@@ -130,7 +142,7 @@
           </div>
           <p id="macro-action-feedback" class="macro-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
           <p id="macro-action-hint" class="hint" role="status">マクロを選択してください。</p>
-          <p class="hint">サンプルは明示操作でのみ作成され、編集できます。キーへのマクロ割当と実キーボードでの実行は未実装です。</p>
+          <p class="hint">サンプルは明示操作でのみ作成され、編集できます。選択したキーへの割当は上の「このキーのマクロ」から行えます。実キーボードでの実行は未確認です。</p>
         </section>
         <div class="detail">
           <label class="section-label">選択キー</label>
@@ -140,7 +152,7 @@
           <label class="section-label">発行された命令</label>
           <pre id="trace-actions" class="trace-box">—</pre>
         </div>
-        <div class="feature-later"><strong>後続実装</strong><p>マクロのキー割当、条件、候補変換、ThemeとiOS・Androidへの設定配送は、次の共通UI／ネイティブ統合工程で扱います。</p></div>
+        <div class="feature-later"><strong>後続実装</strong><p>条件、候補変換、ThemeとiOS・Androidへの設定配送は、次の共通UI／ネイティブ統合工程で扱います。</p></div>
       </div>
     </section>
     <footer><span id="status" role="status" aria-live="polite">準備中</span><span id="build-id"></span></footer>
