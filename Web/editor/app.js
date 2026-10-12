@@ -34,12 +34,64 @@ function showRustGestureGuides(entry) {
   }
   region.hidden = guides.length === 0;
 }
+// Visual-only popup: every direction/label is read from Rust's direct_surface.
+// No pointer-distance threshold or candidate judgement exists in JavaScript.
+function clearFlickPopup() {
+  $('flick-popup')?.remove();
+}
+function showFlickPopup(entry, keyButton) {
+  clearFlickPopup();
+  const guides = (Array.isArray(entry?.guides) ? entry.guides : [])
+    .filter(g => g.label && Number.isFinite(g.centerX) && Number.isFinite(g.centerY));
+  if (!guides.length) return;
+  const board = $('board');
+  const popup = document.createElement('div');
+  popup.id = 'flick-popup';
+  popup.className = 'flick-popup';
+  popup.setAttribute('aria-hidden', 'true'); // The accessible guide list remains above the keyboard.
+  popup.dataset.sourceEntryId = entry.id;
+  const cells = Array.from({length: 9}, (_, i) => {
+    const cell = document.createElement('span');
+    cell.className = 'flick-popup-cell';
+    cell.dataset.direction = ['northWest', 'north', 'northEast',
+      'west', 'center', 'east', 'southWest', 'south', 'southEast'][i];
+    if (i === 4) {
+      cell.classList.add('is-center');
+      cell.textContent = entry.text || authoredBaseText(state.inspected.profile.boardId, entry.id) || entry.id;
+    } else {
+      cell.classList.add('is-empty');
+    }
+    popup.append(cell);
+    return cell;
+  });
+  for (const guide of guides) {
+    const col = Math.sign(guide.centerX) + 1;
+    const row = Math.sign(guide.centerY) + 1;
+    const index = row * 3 + col;
+    if (index === 4) continue;
+    const cell = cells[index];
+    // Multiple Rust-provided guides at one position stay visible, never guessed.
+    cell.textContent = cell.classList.contains('is-empty')
+      ? guide.label : cell.textContent + '・' + guide.label;
+    cell.classList.remove('is-empty');
+  }
+  board.append(popup);
+  const boardBox = board.getBoundingClientRect();
+  const keyBox = keyButton.getBoundingClientRect();
+  const popupBox = popup.getBoundingClientRect();
+  const centerX = keyBox.left - boardBox.left + keyBox.width / 2;
+  const centerY = keyBox.top - boardBox.top + keyBox.height / 2;
+  popup.style.left = Math.max(4, Math.min(centerX - popupBox.width / 2,
+    boardBox.width - popupBox.width - 4)) + 'px';
+  popup.style.top = Math.max(-14, centerY - popupBox.height / 2) + 'px';
+}
 function gestureOutcome(message, failed = false) {
   const element = $('gesture-result');
   element.textContent = message;
   element.dataset.result = failed ? 'error' : 'success';
 }
 function resetGestureOutcome() {
+  clearFlickPopup();
   gestureOutcome('キーを押すと、ここにRustの判定が表示されます。');
   $('gesture-guides').replaceChildren();
   $('gesture-guides').hidden = true;
@@ -601,6 +653,7 @@ async function saveCurrentDraft() {
 }
 
 function renderBoard() {
+  clearFlickPopup();
   const boardEl = $('board');
   boardEl.replaceChildren();
   const profile = state.inspected.profile;
@@ -656,6 +709,15 @@ function renderBoard() {
       btn.addEventListener('pointerup', event => finishPointer(event, false));
       btn.addEventListener('pointercancel', event => finishPointer(event, true));
     } else {
+      // Other Boards are edit-only: let the user inspect the same Rust guide
+      // popup without claiming an internal Board gesture was replayed.
+      btn.addEventListener('pointerdown', event => {
+        if (!event.isPrimary) return;
+        showRustGestureGuides(entry);
+        showFlickPopup(entry, btn);
+      });
+      btn.addEventListener('pointerup', clearFlickPopup);
+      btn.addEventListener('pointercancel', clearFlickPopup);
       btn.addEventListener('click', () => setSelected(entry));
     }
     boardEl.append(btn);
@@ -678,6 +740,7 @@ function startPointer(event, btn, entry, cols, rows) {
   setSelected(entry);
   gestureOutcome('「' + (entry.text || entry.id) + '」押下中 · 確定判定は指を離した後');
   showRustGestureGuides(entry);
+  showFlickPopup(entry, btn);
   try { btn.setPointerCapture(event.pointerId); } catch (_) { /* capture unavailable */ }
 }
 function updatePointer(event) {
@@ -695,6 +758,7 @@ function finishPointer(event, cancel) {
   event.preventDefault();
   const atMs = eventMs(a);
   a.element.classList.remove('pressed');
+  clearFlickPopup();
   state.activePointer = null;
   const events = a.events;
   // Always advance time in canonical Rust; it alone determines per-entry Hold thresholds.
