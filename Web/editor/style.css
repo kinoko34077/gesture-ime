@@ -19,7 +19,7 @@
 
 /* The keyboard and its Rust result must remain one visual task, even on phones. */
 .gesture-feedback{position:relative;z-index:2;display:grid;gap:5px;margin:0 0 8px;padding:10px 12px;background:#edf3ff;border:1px solid #bdcced;border-radius:11px;color:#24406b;font-size:.88rem;overflow-wrap:anywhere}
-#gesture-result{font-weight:700;line-height:1.4}
+#gesture-result{font-weight:700;line-height:1.4;min-height:2.8em;display:flex;align-items:center}
 .gesture-guides{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .gesture-guides[hidden]{display:none}
 .gesture-guide-item{padding:3px 7px;border:1px solid #a8bcdf;border-radius:7px;background:white;font-weight:700;font-size:.79rem}
@@ -104,6 +104,13 @@
 @media(max-width:380px){.key-macro-editor .edit-row{flex-wrap:wrap}.key-macro-editor .edit-row .action{width:100%}}
 
 
+/* Keep Rust's text guide list available to assistive technology without
+   adding a second, shifting visible row above the key during pointerdown.
+   The same candidates are visible in the key-anchored popup. */
+.gesture-guides{
+  position:absolute;width:1px;height:1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;pointer-events:none;
+}
 /* Press-and-hold hint, composited over the actual key. Its only semantic input
    is the Rust-rendered guide list; the popup cannot receive touch events. */
 .flick-popup{
