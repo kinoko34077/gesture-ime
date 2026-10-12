@@ -193,3 +193,24 @@
   #app[data-workspace="test"] .pane-header p{font-size:.76rem}
   #app[data-workspace="test"] .board-preview-state{font-size:.75rem}
 }
+
+
+/* An ordinary Key's reachable long-press input surface is edited locally
+   without exposing raw IDs, JSON, or an unconfigured runtime hit target. */
+.key-hold-editor{margin-top:13px;padding:11px;border:1px solid #d3ddef;
+  border-radius:12px;background:#f6f9ff;min-width:0}
+.key-hold-editor .stage-heading{margin-bottom:3px}
+.key-hold-editor .stage-heading h3{font-size:.93rem;margin:0}
+.key-hold-editor .subtle{margin:4px 0 7px;overflow-wrap:anywhere}
+.key-hold-editor .hold-controls label{margin-top:6px}
+.key-hold-editor .edit-row{min-width:0;align-items:stretch}
+.key-hold-editor #hold-delay{width:90px;min-width:75px;flex:0 1 100px}
+.key-hold-editor #hold-open{flex:1 1 170px;white-space:normal}
+.key-hold-editor #hold-back{font-size:.79rem;padding:7px 9px}
+.key-hold-editor #hold-feedback{margin:8px 0 0}
+@media(max-width:380px){
+  .key-hold-editor{padding:9px}
+  .key-hold-editor .edit-row{flex-wrap:wrap}
+  .key-hold-editor #hold-delay{flex:1 1 100px;width:auto}
+  .key-hold-editor #hold-open{flex:2 1 155px;width:auto}
+}
