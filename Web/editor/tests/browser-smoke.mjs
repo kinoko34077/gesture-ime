@@ -231,7 +231,17 @@ try {
   await page.locator('button.key[data-entry-id="kana.a"]').click();
   assert.equal(await page.locator('#key-macro-assigned button').count(), 1);
   assert.ok((await page.locator('#save-info').innerText()).includes('ブラウザに保存済'));
-  console.log('M3j Key Macro attach/multiple/no-op/invalid/Undo/Redo/save-reload Rust/Wasm PASS');
+  // Narrow-screen + keyboard-accessible controls: no offscreen Key Macro editor.
+  await page.setViewportSize({width: 320, height: 844});
+  const keyMacroBounds = await page.locator('.key-macro-editor').evaluate(el => ({
+    width: el.getBoundingClientRect().width, screen: window.innerWidth
+  }));
+  assert.ok(keyMacroBounds.width <= keyMacroBounds.screen,
+    'Key-local Macro editor must fit 320px screens');
+  await page.locator('#key-macro-picker').focus();
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'key-macro-picker');
+  await page.setViewportSize({width: 390, height: 844});
+  console.log('M3j Key Macro attach/multiple/no-op/invalid/Undo/Redo/save-reload and 320px focus PASS');
 
 
   await page.locator('#save-local').click();
