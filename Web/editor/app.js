@@ -15,6 +15,41 @@ function status(message, failed = false) {
   $('status').textContent = message;
   $('status').style.color = failed ? '#b22340' : '';
 }
+// Read-only guide rendering; candidate order/text comes from Rust direct_surface.
+// Pointer movement does not guess selection in JavaScript.
+function showRustGestureGuides(entry) {
+  const region = $('gesture-guides');
+  region.replaceChildren();
+  const guides = (Array.isArray(entry?.guides) ? entry.guides : [])
+    .filter(g => g.label && Number.isFinite(g.centerX) && Number.isFinite(g.centerY));
+  for (const guide of guides) {
+    const dx = Math.sign(guide.centerX), dy = Math.sign(guide.centerY);
+    const direction = ({'-1,-1':'↖', '0,-1':'↑', '1,-1':'↗',
+      '-1,0':'←', '1,0':'→', '-1,1':'↙', '0,1':'↓', '1,1':'↘'})
+      [dx + ',' + dy] || '•';
+    const item = document.createElement('span');
+    item.className = 'gesture-guide-item';
+    item.textContent = direction + ' ' + guide.label;
+    region.append(item);
+  }
+  region.hidden = guides.length === 0;
+}
+function gestureOutcome(message, failed = false) {
+  const element = $('gesture-result');
+  element.textContent = message;
+  element.dataset.result = failed ? 'error' : 'success';
+}
+function resetGestureOutcome() {
+  gestureOutcome('キーを押すと、ここにRustの判定が表示されます。');
+  $('gesture-guides').replaceChildren();
+  $('gesture-guides').hidden = true;
+}
+function describeRustAction(action) {
+  const text = action?.arguments?.text?.base;
+  if ((action?.actionID === 'text.insert' || action?.actionID === 'text.directInsert')
+      && typeof text === 'string') return '文字「' + text + '」';
+  return action?.actionID || '不明な命令';
+}
 function localMacroStatus(id, message, failed = false) {
   status(message, failed);
   const feedback = $(id);
@@ -361,6 +396,7 @@ function chooseBoard(layerId, boardId) {
       ? 'キーを操作してRustの判定を確認できます。'
       : 'このBoardはキー編集・表示のみ対応しています。';
     $('trace-actions').textContent = '—';
+    resetGestureOutcome();
   } catch (error) {
     state.viewLayerId = oldLayer;
     state.viewBoardId = oldBoard;
@@ -420,6 +456,7 @@ function loadEditor(profileJSON, source, saved = false) {
   const result = JSON.parse(editor.snapshot());
   if (!result.ok || !result.snapshot) throw new Error(result.error || 'Profileを開けません');
   state.editor = editor;
+  resetGestureOutcome();
   state.stageHistory = [];
   $('stage-feedback').textContent = '';
   clearKeyEditorFeedback();
@@ -639,6 +676,8 @@ function startPointer(event, btn, entry, cols, rows) {
   };
   btn.classList.add('pressed');
   setSelected(entry);
+  gestureOutcome('「' + (entry.text || entry.id) + '」押下中 · 確定判定は指を離した後');
+  showRustGestureGuides(entry);
   try { btn.setPointerCapture(event.pointerId); } catch (_) { /* capture unavailable */ }
 }
 function updatePointer(event) {
@@ -674,8 +713,12 @@ function finishPointer(event, cancel) {
       last.context, last.terminal || '処理中', '候補: ' + (last.candidateEntryId || '—')].join(' / ');
     const actions = last.dispatchedActions || [];
     $('trace-actions').textContent = actions.length ? JSON.stringify(actions, null, 2) : '発行された命令はありません';
+    const outcome = cancel ? 'キャンセル' : (last.terminal || '判定完了');
+    const actionText = actions.length ? actions.map(describeRustAction).join('・') : '発行命令なし';
+    gestureOutcome('Rust判定：' + outcome + ' · ' + actionText + '（ブラウザ内）');
     status('Rust判定を実行しました（ブラウザ内のみ）。');
   } catch (error) {
+    gestureOutcome('Rust判定エラー：' + String(error?.message || error), true);
     status('操作を検証できません: ' + String(error?.message || error), true);
   }
 }
