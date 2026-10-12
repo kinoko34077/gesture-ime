@@ -205,12 +205,27 @@ try {
     'new Hold Board must have center only and no phantom diagonal inputs');
   assert.ok(await page.locator('#hold-back').isVisible());
   assert.ok(await page.locator('#hold-guide').innerText().then(x => x.includes('中央キー')));
-  await page.locator('#entry-text').fill('長押し入力');
-  await page.locator('#apply-key-text').click();
-  assert.equal((await page.locator('#board button.key .key-label').innerText()).trim(), '長押し入力');
+  assert.equal(await page.locator('#hold-output-controls').isVisible(), true);
+  await page.locator('#hold-insert-text').fill('長押し入力');
+  await page.locator('#hold-apply-insert').click();
+  assert.ok((await page.locator('#hold-insert-feedback').innerText()).includes('入力文字を設定しました'));
+  assert.equal(await page.locator('#hold-insert-text').inputValue(), '長押し入力');
+  assert.equal((await page.locator('#board button.key .key-label').innerText()).trim(), '長押し入力',
+    'real inserted text must also become the visible label on an empty Hold center');
   await page.locator('#hold-back').click();
   assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
   assert.equal((await page.locator('#selected-key').innerText()).trim(), original);
+  assert.equal(await page.locator('#hold-output-controls').isVisible(), false,
+    'real text editing must be available only on a Hold center');
+  // The actual Rust board session must emit text only after Hold fires.
+  await kana.scrollIntoViewIfNeeded();
+  const heldBox = await kana.boundingBox();
+  await page.mouse.move(heldBox.x + heldBox.width / 2, heldBox.y + heldBox.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  await page.mouse.up();
+  assert.ok((await page.locator('#trace-actions').innerText()).includes('長押し入力'),
+    'Rust must dispatch a real Hold center text.insert, not only draw a label');
   assert.equal((await page.locator('#hold-open').innerText()).trim(), '長押しの入力面へ');
   await page.locator('#hold-open').click();
   assert.equal(await page.locator('#board-picker').inputValue(), holdBoard,
@@ -558,8 +573,9 @@ try {
   await page.locator('#hold-open').click();
   const savedHoldBoard = await page.locator('#board-picker').inputValue();
   assert.match(savedHoldBoard, /^board\.user\.hold\./);
-  await page.locator('#entry-text').fill('保存された長押し面');
-  await page.locator('#apply-key-text').click();
+  await page.locator('#hold-insert-text').fill('保存された長押し面');
+  await page.locator('#hold-apply-insert').click();
+  assert.equal((await page.locator('#board .key-label').innerText()).trim(), '保存された長押し面');
   await page.locator('#hold-back').click();
   assert.equal(await page.locator('#hold-open').getAttribute('data-mode'), 'open');
   await page.locator('#save-local').click();
@@ -593,6 +609,8 @@ try {
     await page.locator('#hold-open').click();
     assert.equal(await page.locator('#board-picker').inputValue(), savedHoldBoard);
     assert.equal((await page.locator('#board .key-label').innerText()).trim(), '保存された長押し面');
+    assert.equal(await page.locator('#hold-insert-text').inputValue(), '保存された長押し面',
+      'offline restored output is a persisted Rust text.insert action');
     await page.locator('#hold-back').click();
     await page.locator('#mode-test').click();
     assert.ok(await page.locator('button.key[data-entry-id="kana.a"] .flick-guide').count() >= 4,
