@@ -33,6 +33,22 @@
 .transition-editor select:focus-visible{outline:3px solid #a0b6ff;outline-offset:1px}
 .transition-editor .action{align-self:flex-start;margin-top:7px}
 
+/* Only authored directions create runtime entries. This 3×3 is editor chrome. */
+.stage-editor{margin-top:14px;padding:12px 0 0;border-top:1px solid #e1e6f0}
+.stage-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.stage-heading h3{font-size:.93rem;margin:0}
+.stage-heading .action{font-size:.79rem;padding:7px 9px}
+.stage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.stage-cell{border:1px solid #c7d1e2;background:#f6f8ff;color:#253b66;min-height:62px;padding:6px 3px;border-radius:10px;text-align:center;font-size:.77rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow-wrap:anywhere}
+.stage-cell small{font-size:.67rem;color:#66718a}
+.stage-cell[data-state="empty"]{border-style:dashed;background:#fff}
+.stage-cell[data-state="existing"]{background:#e9f1ff;border-color:#94abdb}
+.stage-cell[data-state="blocked"]{background:#f1f2f5;color:#747c8b}
+.stage-cell[data-state="center"]{background:#eef1f7;color:#384458;font-weight:700}
+.stage-cell:focus-visible{outline:3px solid #6483fa;outline-offset:2px}
+.stage-cell:disabled{cursor:default}
+@media(max-width:380px){.stage-cell{min-height:56px;font-size:.7rem}.stage-cell small{font-size:.61rem}}
+
 /* M3h: user-facing Macro edit controls, not a browser Macro runtime. */
 .macro-editor{background:#fbfcff;border:1px solid #dfe5f0;border-radius:12px;padding:12px;margin:0 0 16px;min-width:0}
 .macro-editor h3{font-size:1.02rem;margin:0}
