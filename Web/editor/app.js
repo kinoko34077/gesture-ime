@@ -1,7 +1,13 @@
 import {readDraft, writeDraft} from './host-browser.js';
 // Shared editor-shell foundation. Input semantics come exclusively from Rust Wasm.
 const $ = (id) => document.getElementById(id);
-const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null, editor: null, savedJSON: null, baselineJSON: null, viewLayerId: null, viewBoardId: null, macroId: null, macroActionIndex: -1 };
+const state = { core: null, profileJSON: '', source: '', document: null, inspected: null, selected: null, activePointer: null, editor: null, savedJSON: null, baselineJSON: null, viewLayerId: null, viewBoardId: null, macroId: null, macroActionIndex: -1, stageHistory: [] };
+const STAGE_DIRECTIONS = [
+  {id:'northWest', name:'左上', x:-3, y:-3}, {id:'north', name:'上', x:-1, y:-3},
+  {id:'northEast', name:'右上', x:1, y:-3}, {id:'west', name:'左', x:-3, y:-1},
+  {id:'east', name:'右', x:1, y:-1}, {id:'southWest', name:'左下', x:-3, y:1},
+  {id:'south', name:'下', x:-1, y:1}, {id:'southEast', name:'右下', x:1, y:1}
+];
 const MAX_LOCAL_FILE_BYTES = 2_000_000;
 const MAX_POINTER_EVENTS = 120;
 
@@ -81,6 +87,127 @@ function selectedKeyDocument() {
   const board = state.document?.boards?.find(b => b.id === state.inspected?.profile?.boardId);
   return board?.entries?.find(e => e.id === state.selected?.id) ?? null;
 }
+// Projection of authored v3 Board rectangles, not an independent gesture hit engine.
+function hasOrigin(entry) {
+  const r = entry?.rect;
+  return !!r && r.x <= 0 && r.y <= 0 && r.x + r.width > 0 && r.y + r.height > 0;
+}
+function stageBoardForSelected() {
+  const key = selectedKeyDocument();
+  if (!key) return null;
+  const target = key.resolver?.default?.transition?.targetBoardRef;
+  if (target) return state.document.boards.find(board => board.id === target) || null;
+  const here = state.document.boards.find(board => board.id === state.viewBoardId);
+  const layer = state.document.layers.find(layer => layer.id === state.viewLayerId);
+  // Within a relative Board the entire 3×3 belongs to this stage, not a fresh
+  // transition out of its origin. Root keys without a relative Board need
+  // a separate canonical create-flick-Board command before editing.
+  if (here && layer?.rootBoardRef !== here.id && here.entries.some(hasOrigin)) return here;
+  return null;
+}
+function stageFeedback(message, failed = false) {
+  const region = $('stage-feedback');
+  region.textContent = message;
+  region.dataset.result = failed ? 'error' : 'success';
+  status(message, failed);
+}
+function renderStageEditor() {
+  const grid = $('stage-grid');
+  grid.replaceChildren();
+  const board = stageBoardForSelected();
+  $('stage-back').hidden = !state.stageHistory.length;
+  const key = selectedKeyDocument();
+  $('stage-location').textContent = !key
+    ? 'キーボードからキーを選択してください。'
+    : board ? '中央と8方向 · 空欄はまだ入力に使われません。'
+      : 'このキーには方向の入力面がありません。先にフリック面の作成が必要です。';
+  const makeCell = (name, label, stateName, direction = null, disabled = false) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'stage-cell';
+    button.dataset.state = stateName;
+    if (direction) button.dataset.direction = direction;
+    button.disabled = disabled;
+    button.setAttribute('aria-label', name + '：' + label);
+    const heading = document.createElement('span');
+    heading.textContent = name;
+    const detail = document.createElement('small');
+    detail.textContent = label;
+    button.append(heading, detail);
+    return button;
+  };
+  const cells = new Map(STAGE_DIRECTIONS.map(dir => [dir.x + ',' + dir.y, dir]));
+  for (const y of [-3, -1, 1]) for (const x of [-3, -1, 1]) {
+    if (x === -1 && y === -1) {
+      const center = board?.entries.find(hasOrigin);
+      const name = center?.resolver?.default?.presentation?.text?.base || '中央';
+      grid.append(makeCell('中央', name, 'center', null, true));
+      continue;
+    }
+    const d = cells.get(x + ',' + y);
+    const overlaps = board?.entries.filter(e => e.rect.x < x + 2 && e.rect.x + e.rect.width > x
+      && e.rect.y < y + 2 && e.rect.y + e.rect.height > y) ?? [];
+    const exact = overlaps.length === 1 && overlaps[0].rect.x === x
+      && overlaps[0].rect.y === y && overlaps[0].rect.width === 2 && overlaps[0].rect.height === 2;
+    const entry = exact ? overlaps[0] : null;
+    const defaultAction = entry?.resolver?.default;
+    const advanced = !!entry && (entry.resolver.cases.length > 0 || !!defaultAction.hold);
+    const transition = defaultAction?.transition?.targetBoardRef;
+    const output = defaultAction?.presentation?.text?.base || defaultAction?.onRelease?.find(a => a.actionID === 'text.insert')?.arguments?.text?.base || '';
+    let label = '+ 続き', stateName = 'empty', disabled = !board;
+    if (overlaps.length && !exact || advanced) {
+      label = '詳細編集が必要'; stateName = 'blocked'; disabled = true;
+    } else if (transition) {
+      label = '続きへ ▸'; stateName = 'existing';
+    } else if (entry) {
+      label = output ? output + ' · 続き' : '続き';
+      stateName = 'existing';
+    }
+    grid.append(makeCell(d.name, label, stateName, d.id, disabled));
+  }
+}
+function openStageBoard(targetId) {
+  if (!state.document.boards.some(board => board.id === targetId)) throw new Error('遷移先の入力面がありません');
+  state.stageHistory.push({layerId:state.viewLayerId, boardId:state.viewBoardId, entryId:state.selected?.id});
+  chooseBoard(state.viewLayerId, targetId);
+  const origin = state.inspected.profile.entries.find(entry => hasOrigin(entry));
+  setSelected(origin || null);
+}
+function editDirection(directionId) {
+  const direction = STAGE_DIRECTIONS.find(item => item.id === directionId);
+  const board = stageBoardForSelected();
+  if (!direction || !board) return;
+  const entries = board.entries.filter(e => e.rect.x < direction.x + 2
+    && e.rect.x + e.rect.width > direction.x && e.rect.y < direction.y + 2
+    && e.rect.y + e.rect.height > direction.y);
+  const entry = entries.length === 1 ? entries[0] : null;
+  const existing = entry?.resolver?.default?.transition?.targetBoardRef;
+  if (existing) {
+    openStageBoard(existing);
+    return;
+  }
+  // Rust performs final canonical collision, advanced-rule and overwrite checks.
+  const nonempty = (entry?.resolver?.default?.onRelease?.length ?? 0) > 0;
+  if (nonempty && !window.confirm('「' + direction.name + '」の現在の入力を、次の段階への遷移に置き換えますか？')) return;
+  try {
+    const ids = new Set(state.document.boards.map(b => b.id));
+    const result = applyCommand({
+      type: 'createDirectionalStage', boardId: board.id,
+      direction: direction.id, replaceExistingOutput: nonempty
+    }, '方向から次の段階を作成');
+    if (!result.changed) {
+      stageFeedback('この方向は変更されていません。');
+      return;
+    }
+    const added = state.document.boards.filter(b => !ids.has(b.id));
+    if (added.length !== 1) throw new Error('作成したStageの位置が不明です');
+    openStageBoard(added[0].id);
+    stageFeedback('「' + direction.name + '」の次の段階を作りました。戻るで元のキーに戻れます。');
+  } catch (error) {
+    stageFeedback('次の段階を作成できません: ' + String(error), true);
+  }
+}
+
 function keyMacroBindingStatus(message, failed = false) {
   const el = $('key-macro-feedback');
   el.textContent = message;
@@ -154,6 +281,7 @@ function setSelected(entry) {
   $('entry-text').value = entry ? authoredBaseText(state.inspected.profile.boardId, entry.id) : '';
   updateTransitionControls(entry);
   updateKeyMacroBindings();
+  renderStageEditor();
 }
 function editorSnapshot() {
   if (!state.editor) throw new Error('編集エンジンを読み込んでいません');
@@ -242,7 +370,29 @@ function chooseBoard(layerId, boardId) {
 }
 
 function refreshEditor(snapshot, selectedId = state.selected?.id) {
-  const inspected = inspectSelectedBoard(snapshot.profileJSON);
+  let inspected;
+  try {
+    inspected = inspectSelectedBoard(snapshot.profileJSON);
+  } catch (error) {
+    // Undo can remove the Stage currently being edited. Restore the closest
+    // existing source Board/Key rather than discarding a valid document.
+    const restored = JSON.parse(snapshot.profileJSON);
+    while (state.stageHistory.length) {
+      const prior = state.stageHistory.pop();
+      if (!restored.boards.some(board => board.id === prior.boardId)) continue;
+      state.viewLayerId = prior.layerId;
+      state.viewBoardId = prior.boardId;
+      selectedId = prior.entryId;
+      inspected = inspectSelectedBoard(snapshot.profileJSON);
+      break;
+    }
+    if (!inspected) {
+      state.viewLayerId = null;
+      state.viewBoardId = null;
+      selectedId = null;
+      inspected = inspectSelectedBoard(snapshot.profileJSON);
+    }
+  }
   state.profileJSON = snapshot.profileJSON;
   state.document = JSON.parse(snapshot.profileJSON);
   state.inspected = inspected;
@@ -270,6 +420,8 @@ function loadEditor(profileJSON, source, saved = false) {
   const result = JSON.parse(editor.snapshot());
   if (!result.ok || !result.snapshot) throw new Error(result.error || 'Profileを開けません');
   state.editor = editor;
+  state.stageHistory = [];
+  $('stage-feedback').textContent = '';
   clearKeyEditorFeedback();
   state.keyEditorSelection = null;
   state.source = source;
@@ -289,6 +441,7 @@ function applyEditorResult(resultText, action) {
   const output = JSON.parse(resultText);
   if (!output.ok) throw new Error(output.error || action + 'に失敗しました');
   clearKeyEditorFeedback(); // Clear outcomes invalidated by Undo, Redo or another edit.
+  $('stage-feedback').textContent = '';
   refreshEditor(output.snapshot);
   status(action + (output.changed ? 'しました。' : '（変更なし）。'));
   return output;
@@ -572,6 +725,17 @@ async function boot() {
     status('Rustモジュールを読み込めません: ' + String(error?.message || error), true);
   }
 }
+$('stage-grid').addEventListener('click', event => {
+  const cell = event.target.closest('button[data-direction]');
+  if (cell && !cell.disabled) editDirection(cell.dataset.direction);
+});
+$('stage-back').addEventListener('click', () => {
+  const prior = state.stageHistory.pop();
+  if (!prior) return;
+  chooseBoard(prior.layerId, prior.boardId);
+  setSelected(state.inspected.profile.entries.find(item => item.id === prior.entryId) || null);
+  $('stage-feedback').textContent = '';
+});
 $('profile-file').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -736,9 +900,13 @@ $('macro-remove-action').addEventListener('click', () => {
 $('layer-picker').addEventListener('change', event => {
   const id = event.target.value;
   const layer = state.inspected.profile.layers.find(item => item.id === id);
-  if (layer) chooseBoard(id, layer.rootBoardId);
+  if (layer) {
+    state.stageHistory = [];
+    chooseBoard(id, layer.rootBoardId);
+  }
 });
 $('board-picker').addEventListener('change', event => {
+  state.stageHistory = [];
   chooseBoard(state.viewLayerId, event.target.value);
 });
 $('build-id').textContent = 'Profile v3 · Rust/Wasm';

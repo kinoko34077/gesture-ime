@@ -56,6 +56,44 @@ try {
   await kana.click();
   const original = (await kana.locator('.key-label').innerText()).trim();
   assert.ok(original);
+  // M3l: the selected ordinary key exposes eight virtual directions without
+  // creating phantom runtime entries, and nested Stages roundtrip through Rust.
+  assert.equal(await page.locator('#stage-grid button[data-direction]').count(), 8);
+  const stageNW = page.locator('#stage-grid button[data-direction="northWest"]');
+  assert.ok((await stageNW.innerText()).includes('+ 続き'));
+  const stageWest = page.locator('#stage-grid button[data-direction="west"]');
+  assert.ok((await stageWest.innerText()).includes('い'), 'existing cardinal output remains visible');
+  page.once('dialog', async dialog => {
+    assert.ok(dialog.message().includes('左'));
+    await dialog.dismiss();
+  });
+  await stageWest.click(); // No consent: the existing cardinal output is not replaced.
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
+  await stageNW.click();
+  const stageOne = await page.locator('#board-picker').inputValue();
+  assert.match(stageOne, /^board\.user\.stage\./);
+  assert.ok(await page.locator('#stage-back').isVisible());
+  assert.equal(await page.locator('#stage-grid button[data-direction]').count(), 8);
+  await page.locator('#stage-grid button[data-direction="northEast"]').click();
+  const stageTwo = await page.locator('#board-picker').inputValue();
+  assert.match(stageTwo, /^board\.user\.stage\./);
+  assert.notEqual(stageTwo, stageOne);
+  await page.locator('#stage-back').click();
+  assert.equal(await page.locator('#board-picker').inputValue(), stageOne);
+  await page.locator('#stage-back').click();
+  assert.equal(await page.locator('#board-picker').inputValue(), 'board.ja.root');
+  assert.equal((await page.locator('#selected-key').innerText()).trim(), original);
+  assert.ok((await page.locator('#stage-grid button[data-direction="northWest"]').innerText()).includes('続きへ'));
+  await page.locator('#undo-edit').click();
+  await page.locator('#undo-edit').click();
+  assert.ok((await page.locator('#stage-grid button[data-direction="northWest"]').innerText()).includes('+ 続き'));
+  assert.equal(await page.locator('#board-picker option[value="' + stageOne + '"]').count(), 0);
+  assert.equal(await page.locator('#board-picker option[value="' + stageTwo + '"]').count(), 0);
+  await page.locator('#redo-edit').click();
+  await page.locator('#redo-edit').click();
+  assert.equal(await page.locator('#board-picker option[value="' + stageTwo + '"]').count(), 1);
+  await page.locator('#undo-edit').click();
+  await page.locator('#undo-edit').click();
   assert.equal(await page.locator('#apply-key-text').isEnabled(), true);
   // M3f: the current authored default transition is shown without any JS
   // semantic editing. Only the canonical Rust command updates its meaning.
