@@ -226,13 +226,33 @@ try {
   await page.waitForTimeout(600);
   await page.mouse.up();
   const heldTraceState = await page.locator('#trace-state').innerText();
-  const heldTraceActions = await page.locator('#trace-actions').innerText();
+  // Detailed Rust actions live inside a collapsed <details>: innerText()
+  // returns empty for hidden descendants even though the underlying trace
+  // contains the successful dispatch. Read its actual textContent instead.
+  const heldTraceActions = await page.locator('#trace-actions').textContent();
   const heldOutcome = await page.locator('#gesture-result').innerText();
   assert.ok(heldTraceActions.includes('長押し入力'),
     'Rust must dispatch a real Hold center text.insert, not only draw a label'
     + '; trace-state=' + heldTraceState
     + '; actions=' + heldTraceActions
     + '; user-outcome=' + heldOutcome);
+  assert.ok(heldOutcome.includes('長押し入力'),
+    'the normal visible result must show the Rust-issued Hold output');
+
+  // Verify the same canonical result through the actual user-first test mode,
+  // not only through technical trace JSON in the editor.
+  await page.locator('#mode-test').click();
+  const testerKey = page.locator('button.key[data-entry-id="kana.a"]');
+  await testerKey.scrollIntoViewIfNeeded();
+  const testKeyBox = await testerKey.boundingBox();
+  await page.mouse.move(testKeyBox.x + testKeyBox.width / 2,
+    testKeyBox.y + testKeyBox.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  await page.mouse.up();
+  assert.ok((await page.locator('#test-output').innerText()).includes('長押し入力'),
+    'test-first UI must display the actual Rust-dispatched Hold insertion');
+  await page.locator('#mode-edit').click();
   assert.equal((await page.locator('#hold-open').innerText()).trim(), '長押しの入力面へ');
   await page.locator('#hold-open').click();
   assert.equal(await page.locator('#board-picker').inputValue(), holdBoard,
