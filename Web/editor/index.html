@@ -56,9 +56,21 @@
           </div>
         </div>
         <p class="board-preview-state" id="board-preview-state" role="status">初期Boardの入力検証</p>
+        <div id="gesture-feedback" class="gesture-feedback" aria-label="キーボードの判定結果">
+          <strong id="gesture-result" role="status" aria-live="polite" aria-atomic="true">キーを押すと、ここにRustの判定が表示されます。</strong>
+          <div id="gesture-guides" class="gesture-guides" hidden aria-label="Rustから取得したフリック候補"></div>
+        </div>
         <div class="candidate-preview" aria-label="候補欄のプレースホルダー">候補欄 · 実際の変換候補は未接続</div>
         <div id="board" class="keyboard-board" role="group" aria-label="入力プレビュー"></div>
-        <p class="hint">文字は入力欄へ送信しません。操作再生は初期Layerの初期Boardのみ対応します。それ以外のBoardは編集用プレビューです。キーの表示文字・フリックガイドはRustの既定入力文脈で解決します。iOS・Android実機の入力欄条件は未反映です。</p>
+        <div class="detail gesture-detail">
+          <span class="section-label">選択キー：<span id="selected-key" class="selected">なし</span></span>
+          <p id="trace-state" class="subtle">Rustの判定詳細は操作後に更新されます。</p>
+          <details id="trace-details" class="trace-details">
+            <summary>詳しい判定・発行命令を表示</summary>
+            <pre id="trace-actions" class="trace-box">—</pre>
+          </details>
+        </div>
+        <p class="hint">ここでの操作はRustによるブラウザ内シミュレーションです。別のBoardでは編集のみ、実キーボードへの入力や端末条件・変換候補は未接続です。</p>
       </div>
       <div class="pane inspector-pane">
         <div class="pane-header">
@@ -154,14 +166,7 @@
           <p id="macro-action-hint" class="hint" role="status">マクロを選択してください。</p>
           <p class="hint">サンプルは明示操作でのみ作成され、編集できます。選択したキーへの割当は上の「このキーのマクロ」から行えます。実キーボードでの実行は未確認です。</p>
         </section>
-        <div class="detail">
-          <label class="section-label">選択キー</label>
-          <p id="selected-key" class="selected">なし</p>
-          <label class="section-label">Board・段階</label>
-          <p id="trace-state" class="subtle">キーを押すと結果が表示されます。</p>
-          <label class="section-label">発行された命令</label>
-          <pre id="trace-actions" class="trace-box">—</pre>
-        </div>
+
         <div class="feature-later"><strong>後続実装</strong><p>条件、候補変換、ThemeとiOS・Androidへの設定配送は、次の共通UI／ネイティブ統合工程で扱います。</p></div>
       </div>
     </section>
