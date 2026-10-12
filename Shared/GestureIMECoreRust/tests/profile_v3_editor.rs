@@ -506,6 +506,15 @@ fn reachable_hold_from_kana_and_latin_keeps_root_and_cardinal_outputs() {
             if prev["rect"]["x"] == -1 && prev["rect"]["y"] == -1 {
                 expected["resolver"]["default"]["hold"] =
                     current["resolver"]["default"]["hold"].clone();
+                if let Some(cases) = expected["resolver"]["cases"].as_array_mut() {
+                    for (i, case) in cases.iter_mut().enumerate() {
+                        case["behavior"]["hold"] =
+                            current["resolver"]["cases"][i]["behavior"]["hold"].clone();
+                        assert_eq!(case["behavior"]["hold"]["transition"]["targetBoardRef"],
+                            expected["resolver"]["default"]["hold"]["transition"]["targetBoardRef"],
+                            "every conditional endpoint must lead to the same Hold surface");
+                    }
+                }
             }
             assert_eq!(*current, expected,
                 "only the relative origin Hold is new, no flick output changed");
