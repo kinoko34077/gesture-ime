@@ -161,7 +161,7 @@ function keyEditorStatus(id, message, failed = false) {
   status(message, failed);
 }
 function clearKeyEditorFeedback() {
-  for (const id of ['entry-text-feedback', 'entry-transition-feedback']) {
+  for (const id of ['entry-text-feedback', 'entry-transition-feedback', 'hold-feedback']) {
     const element = $(id);
     element.textContent = '';
     delete element.dataset.result;
@@ -332,6 +332,97 @@ function editDirection(directionId) {
   }
 }
 
+// The canonical Rust editor alone creates a reachable Hold. This is a
+// read-only path projection of validated authored source/relative-origin data,
+// never a fabricated destination ID or duplicate gesture implementation.
+function reachableHoldForSelected() {
+  const source = selectedKeyDocument();
+  if (!source) return null;
+  const direct = source.resolver?.default?.hold;
+  if (direct) return {
+    hold: direct,
+    target: direct.transition?.targetBoardRef || null
+  };
+  const relativeId = source.resolver?.default?.transition?.targetBoardRef;
+  const relative = state.document?.boards?.find(board => board.id === relativeId);
+  const origin = relative?.entries?.find(hasOrigin);
+  const hold = origin?.resolver?.default?.hold;
+  return hold ? {hold, target: hold.transition?.targetBoardRef || null} : {hold: null, target: null};
+}
+function renderHoldEditor() {
+  const button = $('hold-open');
+  const delay = $('hold-delay');
+  const guide = $('hold-guide');
+  const key = selectedKeyDocument();
+  const layer = state.document?.layers?.find(item => item.id === state.viewLayerId);
+  const root = layer?.rootBoardRef === state.viewBoardId;
+  const linked = root && key ? reachableHoldForSelected() : null;
+  const destination = linked?.target
+    && state.document?.boards?.some(board => board.id === linked.target)
+      ? linked.target : null;
+  $('hold-back').hidden = !state.stageHistory.length;
+  button.dataset.mode = destination ? 'open' : 'create';
+  button.textContent = destination ? '長押しの入力面へ' : '長押しの入力面を作る';
+  button.disabled = !root || !key || (!!linked?.hold && !destination);
+  delay.disabled = !root || !key || !!linked?.hold;
+  if (destination) {
+    delay.value = String(linked.hold.delayMs);
+    guide.textContent = '作成済みです。押すと長押し先の入力面を編集できます。';
+  } else if (!key) {
+    guide.textContent = 'まず編集したいキーを選択してください。';
+  } else if (!root) {
+    guide.textContent = 'この入力面の中央キーを編集できます。前のキーに戻ると長押し設定を確認できます。';
+  } else if (linked?.hold) {
+    guide.textContent = '既存の詳細な長押し設定はこの簡易画面では開けません。';
+  } else {
+    guide.textContent = '新しい長押し専用の入力面を作ります。通常のタップとフリックは保持されます。';
+  }
+}
+function returnToPreviousKey() {
+  const prior = state.stageHistory.pop();
+  if (!prior) return;
+  chooseBoard(prior.layerId, prior.boardId);
+  setSelected(state.inspected.profile.entries.find(item => item.id === prior.entryId) || null);
+  $('stage-feedback').textContent = '';
+  $('hold-feedback').textContent = '';
+}
+function openOrCreateHold() {
+  const key = selectedKeyDocument();
+  if (!key || !state.selected) return;
+  const target = reachableHoldForSelected()?.target;
+  if (target && state.document.boards.some(board => board.id === target)) {
+    openStageBoard(target);
+    keyEditorStatus('hold-feedback', '長押し先を開きました。中央キーを選択して文字を設定できます。');
+    return;
+  }
+  const delay = Number($('hold-delay').value);
+  try {
+    // Fail without mutation for empty/out-of-range/decimal entry; Rust also
+    // validates 50–5000 and the complete reachable structure.
+    if (!Number.isInteger(delay) || delay < 50 || delay > 5000 || !$('hold-delay').value.trim()) {
+      throw new Error('長押しの時間は50〜5000ミリ秒の整数で指定してください');
+    }
+    const before = new Set(state.document.boards.map(b => b.id));
+    const boardId = state.inspected.profile.boardId, entryId = state.selected.id;
+    const result = applyCommand({type:'createReachableHoldSurface', boardId, entryId, delayMs:delay},
+      '長押しの入力面を作成');
+    if (!result.changed) {
+      keyEditorStatus('hold-feedback', '変更はありません。');
+      return;
+    }
+    // Inspect the actual Rust-edited Profile, never derive a target from
+    // a generated ID naming convention.
+    const destination = reachableHoldForSelected()?.target;
+    if (!destination || before.has(destination)
+        || !state.document.boards.some(board => board.id === destination)) {
+      throw new Error('作成後の長押し先を確認できません');
+    }
+    openStageBoard(destination);
+    keyEditorStatus('hold-feedback', '長押し先を作成しました。中央キーの文字を編集できます。');
+  } catch (error) {
+    keyEditorStatus('hold-feedback', '長押しを設定できません: ' + String(error?.message || error), true);
+  }
+}
 function keyMacroBindingStatus(message, failed = false) {
   const el = $('key-macro-feedback');
   el.textContent = message;
@@ -406,6 +497,7 @@ function setSelected(entry) {
   updateTransitionControls(entry);
   updateKeyMacroBindings();
   renderStageEditor();
+  renderHoldEditor();
 }
 function editorSnapshot() {
   if (!state.editor) throw new Error('編集エンジンを読み込んでいません');
@@ -908,13 +1000,9 @@ $('stage-grid').addEventListener('click', event => {
   const cell = event.target.closest('button[data-direction]');
   if (cell && !cell.disabled) editDirection(cell.dataset.direction);
 });
-$('stage-back').addEventListener('click', () => {
-  const prior = state.stageHistory.pop();
-  if (!prior) return;
-  chooseBoard(prior.layerId, prior.boardId);
-  setSelected(state.inspected.profile.entries.find(item => item.id === prior.entryId) || null);
-  $('stage-feedback').textContent = '';
-});
+$('stage-back').addEventListener('click', returnToPreviousKey);
+$('hold-back').addEventListener('click', returnToPreviousKey);
+$('hold-open').addEventListener('click', openOrCreateHold);
 $('profile-file').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   if (!file) return;
