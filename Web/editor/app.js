@@ -23,6 +23,20 @@ function macroStatus(message, failed = false) {
 function macroActionStatus(message, failed = false) {
   localMacroStatus('macro-action-feedback', message, failed);
 }
+// Edit results belong next to the selected key. The Rust command is the only validator.
+function keyEditorStatus(id, message, failed = false) {
+  const element = $(id);
+  element.textContent = message;
+  element.dataset.result = failed ? 'error' : 'success';
+  status(message, failed);
+}
+function clearKeyEditorFeedback() {
+  for (const id of ['entry-text-feedback', 'entry-transition-feedback']) {
+    const element = $(id);
+    element.textContent = '';
+    delete element.dataset.result;
+  }
+}
 
 function escapeFileName(name) {
   return (name || 'profile').replace(/[^\p{L}\p{N}._-]+/gu, '_').slice(0, 70);
@@ -127,7 +141,9 @@ function updateKeyMacroBindings() {
 function setSelected(entry) {
   const nextKey = entry ? state.inspected.profile.boardId + '/' + entry.id : null;
   if (state.keyMacroSelection !== nextKey) $('key-macro-feedback').textContent = '';
+  if (state.keyEditorSelection !== nextKey) clearKeyEditorFeedback();
   state.keyMacroSelection = nextKey;
+  state.keyEditorSelection = nextKey;
   state.selected = entry;
   $('selected-key').textContent = entry
     ? (entry.text || authoredBaseText(state.inspected.profile.boardId, entry.id) || entry.id)
@@ -254,6 +270,8 @@ function loadEditor(profileJSON, source, saved = false) {
   const result = JSON.parse(editor.snapshot());
   if (!result.ok || !result.snapshot) throw new Error(result.error || 'Profileを開けません');
   state.editor = editor;
+  clearKeyEditorFeedback();
+  state.keyEditorSelection = null;
   state.source = source;
   state.baselineJSON = result.snapshot.profileJSON;
   state.savedJSON = saved ? result.snapshot.profileJSON : null;
@@ -270,6 +288,7 @@ function loadEditor(profileJSON, source, saved = false) {
 function applyEditorResult(resultText, action) {
   const output = JSON.parse(resultText);
   if (!output.ok) throw new Error(output.error || action + 'に失敗しました');
+  clearKeyEditorFeedback(); // Clear outcomes invalidated by Undo, Redo or another edit.
   refreshEditor(output.snapshot);
   status(action + (output.changed ? 'しました。' : '（変更なし）。'));
   return output;
@@ -586,8 +605,9 @@ $('rename-profile').addEventListener('click', () => {
 $('apply-key-text').addEventListener('click', () => {
   if (!state.selected) return;
   try {
-    applyCommand({type: 'setEntryDefaultText', boardId: state.inspected.profile.boardId, entryId: state.selected.id, text: $('entry-text').value}, 'キー文字を変更');
-  } catch(error) { status('キー編集失敗: ' + String(error), true); }
+    const result = applyCommand({type: 'setEntryDefaultText', boardId: state.inspected.profile.boardId, entryId: state.selected.id, text: $('entry-text').value}, 'キー文字を変更');
+    keyEditorStatus('entry-text-feedback', result.changed ? 'キーの文字を変更しました。' : '文字は変更されていません。');
+  } catch(error) { keyEditorStatus('entry-text-feedback', 'キーの文字を変更できません: ' + String(error), true); }
 });
 $('entry-transition-board').addEventListener('change', event => {
   $('entry-transition-lifetime').disabled = !state.selected || !event.target.value;
@@ -597,15 +617,16 @@ $('apply-entry-transition').addEventListener('click', () => {
   const target = $('entry-transition-board').value;
   const lifetime = target ? $('entry-transition-lifetime').value : null;
   try {
-    applyCommand({
+    const result = applyCommand({
       type: 'setEntryDefaultTransition',
       boardId: state.inspected.profile.boardId,
       entryId: state.selected.id,
       targetBoardId: target || null,
       lifetime
     }, '標準遷移を変更');
+    keyEditorStatus('entry-transition-feedback', result.changed ? 'キーの遷移先を変更しました。' : '遷移先は変更されていません。');
   } catch (error) {
-    status('遷移変更失敗: ' + String(error), true);
+    keyEditorStatus('entry-transition-feedback', '遷移先を変更できません: ' + String(error), true);
   }
 });
 

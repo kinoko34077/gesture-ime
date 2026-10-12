@@ -49,9 +49,9 @@
 
 
 /* Keep action feedback at the place of use; no scroll to footer required. */
-.macro-feedback{margin:10px 0 12px;padding:9px 11px;border-radius:9px;font-size:.84rem;background:#edf4ff;color:#27456b;overflow-wrap:anywhere}
-.macro-feedback:empty{display:none}
-.macro-feedback[data-result="error"]{background:#fff0f1;color:#99293b}
+.macro-feedback,.edit-feedback{margin:10px 0 12px;padding:9px 11px;border-radius:9px;font-size:.84rem;background:#edf4ff;color:#27456b;overflow-wrap:anywhere}
+.macro-feedback:empty,.edit-feedback:empty{display:none}
+.macro-feedback[data-result="error"],.edit-feedback[data-result="error"]{background:#fff0f1;color:#99293b}
 .macro-advanced{font-size:.75rem;color:#536078;margin:2px 0 6px}
 .macro-advanced[hidden]{display:none}
 .macro-advanced summary{cursor:pointer;width:fit-content;text-decoration:underline;text-underline-offset:2px}
