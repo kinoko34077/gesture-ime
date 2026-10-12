@@ -200,7 +200,7 @@ try {
   await page.locator('#hold-delay').fill('480');
   await page.locator('#hold-open').click();
   const holdBoard = await page.locator('#board-picker').inputValue();
-  assert.match(holdBoard, /^board\\.user\\.hold\\./);
+  assert.match(holdBoard, /^board\.user\.hold\./);
   assert.equal(await page.locator('#board button.key').count(), 1,
     'new Hold Board must have center only and no phantom diagonal inputs');
   assert.ok(await page.locator('#hold-back').isVisible());
@@ -232,7 +232,7 @@ try {
   await page.locator('#hold-delay').fill('500');
   await page.locator('#hold-open').click();
   const latinHold = await page.locator('#board-picker').inputValue();
-  assert.match(latinHold, /^board\\.user\\.hold\\./);
+  assert.match(latinHold, /^board\.user\.hold\./);
   await page.locator('#hold-back').click();
   assert.equal(await page.locator('#board-picker').inputValue(), 'board.alpha.root');
   assert.equal(await page.locator('#hold-open').getAttribute('data-mode'), 'open');
