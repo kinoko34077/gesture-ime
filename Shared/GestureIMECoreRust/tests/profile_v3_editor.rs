@@ -642,3 +642,25 @@ fn authored_reachable_hold_transitions_in_actual_rust_board_session() {
     assert!(cancelled.dispatched_actions.is_empty(),
         "cancelled input must not later emit Hold or tap");
 }
+
+
+#[test]
+fn reachable_hold_does_not_change_another_key_sharing_the_same_relative_board() {
+    let mut original = value(PRODUCT);
+    let root = original["boards"].as_array_mut().unwrap().iter_mut()
+        .find(|b| b["id"] == "board.ja.root").unwrap();
+    let second = root["entries"].as_array_mut().unwrap().iter_mut()
+        .find(|e| e["id"] == "kana.ka").unwrap();
+    second["resolver"]["default"]["transition"]["targetBoardRef"] =
+        json!("board.base.kana.a.flick");
+    let json = original.to_string();
+    let mut editor = ProfileEditorV3::open(&json).unwrap();
+    let before = editor.export_json().unwrap();
+    let cmd = json!({"type":"createReachableHoldSurface",
+        "boardId":"board.ja.root","entryId":"kana.a","delayMs":480}).to_string();
+    assert!(editor.apply_command_json(&cmd, 0).is_err(),
+        "shared relative Board must not acquire Hold that changes another key");
+    assert_eq!(editor.export_json().unwrap(), before);
+    assert_eq!(editor.revision(), 0);
+    assert!(!editor.can_undo());
+}
