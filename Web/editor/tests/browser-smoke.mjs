@@ -63,11 +63,14 @@ try {
   assert.ok(feedbackNearBoard, 'Rust result must precede keyboard, not follow long edit forms');
   await kana.scrollIntoViewIfNeeded();
   const keyBox = await kana.boundingBox();
+  const boardBeforePress = await page.locator('#board').boundingBox();
   await page.mouse.move(keyBox.x + keyBox.width / 2, keyBox.y + keyBox.height / 2);
   await page.mouse.down();
   assert.ok((await page.locator('#gesture-result').innerText()).includes('指を離した後'));
-  assert.equal(await page.locator('#gesture-guides').isVisible(), true,
-    'press must reveal legible Rust-provided flick candidates, not only clipped badges');
+  assert.ok(Math.abs((await page.locator('#board').boundingBox()).y - boardBeforePress.y) <= 1,
+    'opening flick hints must not shift the keyboard away from the pressed finger');
+  assert.equal(await page.locator('#gesture-guides').evaluate(el => getComputedStyle(el).position), 'absolute',
+    'duplicated text guide stays accessible without adding a layout row');
   assert.ok((await page.locator('#gesture-guides').innerText()).includes('い'),
     'Rust-projected left flick output must appear beside active keyboard');
   assert.ok(await page.locator('#gesture-guides .gesture-guide-item').count() >= 4);
