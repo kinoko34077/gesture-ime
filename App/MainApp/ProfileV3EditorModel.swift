@@ -118,6 +118,38 @@ final class ProfileV3EditorModel: ObservableObject {
         library.setActive(profileID: profileID)
     }
 
+    /// Activate only after a user explicitly chooses to use this Profile.
+    /// A dirty in-memory Profile must be saved successfully before publishing;
+    /// selection for editing alone must never alter the active keyboard.
+    @discardableResult
+    func saveAndActivateForKeyboard() -> Bool {
+        if case .dirty = persistenceState {
+            save()
+            if case .dirty = persistenceState {
+                return false
+            }
+        }
+
+        guard validation.valid else {
+            errorMessage = "入力内容を確認してからキーボードを切り替えてください。"
+            return false
+        }
+
+        library.setActive(profileID: profileID)
+        guard library.activeProfileID == profileID else {
+            errorMessage = library.errorMessage
+                ?? "キーボード本体への反映を確認できませんでした。"
+            return false
+        }
+
+        // setActive publishes the saved document before setting the active ID.
+        lastPersistedState = .savedLocallyAndDelivered
+        refreshPersistenceState()
+        errorMessage = nil
+        return true
+    }
+
+
     func exportURL() -> URL? {
         library.exportURL(profileID: profileID)
     }
