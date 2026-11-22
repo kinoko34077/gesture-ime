@@ -1,0 +1,18 @@
+# Shared specification and implementation: https://github.com/kinoko34077/devflow/issues/1088
+# Bootstrap default: LF for portable text; native CRLF for Windows batch scripts.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Preserve third-party vendored files and native bundles exactly.
+Vendor/** -text
+*.ipa -text
+*.xcframework/** -text
+*.framework/** -text
+*.a -text
+*.dylib -text
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.webp -text
+*.wasm -text
