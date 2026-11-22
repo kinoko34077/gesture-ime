@@ -527,6 +527,62 @@ final class ProfileV3EditorModel: ObservableObject {
         IOSKeyboardTheme(themeObject: themeTokens.mapValues(\.foundationValue))
     }
 
+    var persistedKeyboardTheme: IOSKeyboardTheme? {
+        guard
+            let persistedDocumentData,
+            let document = try? ProfileDocument(data: persistedDocumentData),
+            let tokens = try? document.v3ThemeTokens()
+        else {
+            return nil
+        }
+        return IOSKeyboardTheme(
+            themeObject: tokens.mapValues(\.foundationValue)
+        )
+    }
+
+    func currentDesignPreviewSurface() -> FfiProfileV3BoardSurface? {
+        guard let json = encodedProfileJSON(pretty: false) else {
+            return nil
+        }
+        return designPreviewSurface(profileJSON: json)
+    }
+
+    func persistedDesignPreviewSurface() -> FfiProfileV3BoardSurface? {
+        guard
+            let persistedDocumentData,
+            let json = String(
+                data: persistedDocumentData,
+                encoding: .utf8
+            )
+        else {
+            return nil
+        }
+        return designPreviewSurface(profileJSON: json)
+    }
+
+    private func designPreviewSurface(
+        profileJSON: String
+    ) -> FfiProfileV3BoardSurface? {
+        guard let runtime = try? IOSProfileV3RuntimeAdapter(
+            profileJSON: profileJSON
+        ) else {
+            return nil
+        }
+
+        if !selectedLayerID.isEmpty,
+           let active = try? runtime.activeLayerID(),
+           active != selectedLayerID {
+            _ = try? runtime.setLayer(selectedLayerID)
+        }
+
+        if let currentBoardID {
+            return try? runtime.previewSurface(
+                boardID: currentBoardID
+            )
+        }
+        return try? runtime.directSurface()
+    }
+
     /// #91: the actual initial Board as the shared runtime compiles it from
     /// the edited Profile (same surface the keyboard renders).
     func previewSurface() -> FfiProfileV3BoardSurface? {
