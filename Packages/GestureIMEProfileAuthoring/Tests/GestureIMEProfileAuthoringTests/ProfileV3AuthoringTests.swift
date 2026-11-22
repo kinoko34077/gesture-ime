@@ -709,3 +709,37 @@ func profileStorePersistsAndReloadsThemeTokens() throws {
     #expect(theme["keyboardBackground"] == .string("#11223344"))
     #expect(theme["cornerRadius"] == .integer(11))
 }
+
+
+/// #197: Child-friendly blank cells are editor affordances until authored.
+/// Empty directions must remain genuinely unassigned for Stage Stack rollback.
+@Test
+func emptyEightDirectionSlotsDoNotCreateRuntimeHitTargets() throws {
+    var document = try ProfileDocument.emptyV3(
+        id: "user.child.empty-directions",
+        name: "Child-friendly blank directions"
+    )
+    try document.v3CreateBoard(id: "board.child.stage")
+    try document.v3CreateEntry(
+        boardID: "board.child.stage",
+        id: "child.center",
+        rect: ProfileV3Rect(x: -1, y: -1, width: 2, height: 2)
+    )
+
+    let blankSlots = try document.v3ImmediateDirectionSlots(
+        boardID: "board.child.stage"
+    )
+    #expect(blankSlots.count == 8)
+    #expect(blankSlots.allSatisfy { $0.entry == nil })
+
+    try document.v3SetDirectionText(
+        boardID: "board.child.stage",
+        direction: .northWest,
+        text: "★"
+    )
+    let authored = try document.v3ImmediateDirectionSlots(
+        boardID: "board.child.stage"
+    )
+    #expect(authored.first(where: { $0.direction == .northWest })?.entry != nil)
+    #expect(authored.filter { $0.entry == nil }.count == 7)
+}

@@ -79,7 +79,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.a.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -239,7 +248,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.ka.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -399,7 +417,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.sa.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -559,7 +586,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.ta.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -719,7 +755,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.na.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -879,7 +924,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.ha.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -1039,7 +1093,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.ma.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -1199,7 +1262,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.ya.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -1359,7 +1431,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.ra.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -1519,7 +1600,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.kana.wa.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -1679,7 +1769,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.base.punctuation.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -2693,7 +2792,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.1.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -2822,7 +2930,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.2.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -2951,7 +3068,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.3.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3080,7 +3206,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.4.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3209,7 +3344,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.5.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3338,7 +3482,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.6.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3467,7 +3620,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.7.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3596,7 +3758,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.8.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3725,7 +3896,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.9.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3854,7 +4034,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.0.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -3983,7 +4172,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.numbers.num.punct.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -4941,7 +5139,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.symbol.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -5163,7 +5370,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.abc.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -5228,7 +5444,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.abc.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -5642,7 +5867,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.def.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -5707,7 +5941,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.def.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -6121,7 +6364,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.ghi.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -6186,7 +6438,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.ghi.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -6600,7 +6861,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.jkl.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -6665,7 +6935,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.jkl.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -7079,7 +7358,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.mno.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -7144,7 +7432,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.mno.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -7558,7 +7855,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.pqrs.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -7623,7 +7929,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.pqrs.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -8195,7 +8510,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.tuv.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -8260,7 +8584,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.tuv.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -8674,7 +9007,16 @@
                         "value": "lower"
                       }
                     }
-                  ]
+                  ],
+                  "hold": {
+                    "delayMs": 480,
+                    "onStart": [],
+                    "transition": {
+                      "targetBoardRef": "board.alpha.alpha.wxyz.flick.hold",
+                      "lifetime": "transient"
+                    },
+                    "suppressOnReleaseAfterStart": true
+                  }
                 }
               }
             ],
@@ -8739,7 +9081,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.wxyz.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -9249,7 +9600,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.quote.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -9409,7 +9769,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.alpha.alpha.punct.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -10634,7 +11003,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.bracket.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -10794,7 +11172,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.arrow.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -11134,7 +11521,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.star.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -11294,7 +11690,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.math.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -11454,7 +11859,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.compare.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -11614,7 +12028,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.currency.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -11774,7 +12197,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.mark.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -11934,7 +12366,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.line.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -12094,7 +12535,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.shape.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -12254,7 +12704,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.quote.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -12414,7 +12873,16 @@
                     }
                   }
                 }
-              ]
+              ],
+              "hold": {
+                "delayMs": 480,
+                "onStart": [],
+                "transition": {
+                  "targetBoardRef": "board.symbols.sym.punct.flick.hold",
+                  "lifetime": "transient"
+                },
+                "suppressOnReleaseAfterStart": true
+              }
             }
           }
         },
@@ -14460,6 +14928,886 @@
                 },
                 "suppressOnReleaseAfterStart": true
               }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.a.flick.hold",
+      "entries": [
+        {
+          "id": "kana.a.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.ka.flick.hold",
+      "entries": [
+        {
+          "id": "kana.ka.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.sa.flick.hold",
+      "entries": [
+        {
+          "id": "kana.sa.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.ta.flick.hold",
+      "entries": [
+        {
+          "id": "kana.ta.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.na.flick.hold",
+      "entries": [
+        {
+          "id": "kana.na.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.ha.flick.hold",
+      "entries": [
+        {
+          "id": "kana.ha.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.ma.flick.hold",
+      "entries": [
+        {
+          "id": "kana.ma.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.ya.flick.hold",
+      "entries": [
+        {
+          "id": "kana.ya.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.ra.flick.hold",
+      "entries": [
+        {
+          "id": "kana.ra.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.kana.wa.flick.hold",
+      "entries": [
+        {
+          "id": "kana.wa.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.base.punctuation.flick.hold",
+      "entries": [
+        {
+          "id": "punctuation.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.1.flick.hold",
+      "entries": [
+        {
+          "id": "num.1.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.2.flick.hold",
+      "entries": [
+        {
+          "id": "num.2.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.3.flick.hold",
+      "entries": [
+        {
+          "id": "num.3.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.4.flick.hold",
+      "entries": [
+        {
+          "id": "num.4.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.5.flick.hold",
+      "entries": [
+        {
+          "id": "num.5.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.6.flick.hold",
+      "entries": [
+        {
+          "id": "num.6.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.7.flick.hold",
+      "entries": [
+        {
+          "id": "num.7.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.8.flick.hold",
+      "entries": [
+        {
+          "id": "num.8.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.9.flick.hold",
+      "entries": [
+        {
+          "id": "num.9.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.0.flick.hold",
+      "entries": [
+        {
+          "id": "num.0.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.numbers.num.punct.flick.hold",
+      "entries": [
+        {
+          "id": "num.punct.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.symbol.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.symbol.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.abc.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.abc.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.def.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.def.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.ghi.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.ghi.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.jkl.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.jkl.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.mno.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.mno.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.pqrs.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.pqrs.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.tuv.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.tuv.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.wxyz.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.wxyz.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.quote.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.quote.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.alpha.alpha.punct.flick.hold",
+      "entries": [
+        {
+          "id": "alpha.punct.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.bracket.flick.hold",
+      "entries": [
+        {
+          "id": "sym.bracket.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.arrow.flick.hold",
+      "entries": [
+        {
+          "id": "sym.arrow.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.star.flick.hold",
+      "entries": [
+        {
+          "id": "sym.star.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.math.flick.hold",
+      "entries": [
+        {
+          "id": "sym.math.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.compare.flick.hold",
+      "entries": [
+        {
+          "id": "sym.compare.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.currency.flick.hold",
+      "entries": [
+        {
+          "id": "sym.currency.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.mark.flick.hold",
+      "entries": [
+        {
+          "id": "sym.mark.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.line.flick.hold",
+      "entries": [
+        {
+          "id": "sym.line.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.shape.flick.hold",
+      "entries": [
+        {
+          "id": "sym.shape.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.quote.flick.hold",
+      "entries": [
+        {
+          "id": "sym.quote.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "board.symbols.sym.punct.flick.hold",
+      "entries": [
+        {
+          "id": "sym.punct.hold.center",
+          "rect": {
+            "x": -1,
+            "y": -1,
+            "width": 2,
+            "height": 2
+          },
+          "resolver": {
+            "cases": [],
+            "default": {
+              "onRelease": []
             }
           }
         }
